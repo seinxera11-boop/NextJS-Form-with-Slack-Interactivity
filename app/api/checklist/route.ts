@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
-// Replace with your FE checklist items (full list)
+// Full list of checklist items
 const fullChecklist = [
   "Bathroom lights off",
   "Room 1 lights off",
@@ -27,7 +27,7 @@ const fullChecklist = [
 ];
 
 type ChecklistRequest = {
-  data: Record<string, boolean>;
+  data: Record<string, boolean>; // all tasks with true/false
   completedItems: number;
   totalItems: number;
 };
@@ -37,25 +37,26 @@ export async function POST(req: Request) {
     const body: ChecklistRequest = await req.json();
     const { data, completedItems, totalItems } = body;
 
-    // ✅ Save only checked items in DB
-    const checkedItems = Object.entries(data)
-      .filter(([_, value]) => value)
-      .map(([key]) => key);
-
+    // ✅ Save all tasks to DB
     const { error } = await supabase.from("office_checklists").insert([
       {
-        data: checkedItems,
+        data, // includes both completed (true) and incomplete (false)
         completed_count: completedItems,
         total_count: totalItems,
       },
     ]);
-
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    // ✅ Determine incomplete tasks by comparing full checklist
-    const incompleteTasks = fullChecklist.filter((item) => !checkedItems.includes(item));
+    // ✅ Separate completed & incomplete tasks
+    const completedTasks = Object.entries(data)
+      .filter(([_, value]) => value)
+      .map(([key]) => key);
 
-    // ✅ Send Slack message
+    const incompleteTasks = Object.entries(data)
+      .filter(([_, value]) => !value)
+      .map(([key]) => key);
+
+    // ✅ Send Slack message with direct reason input
     await fetch(process.env.SLACK_WEBHOOK_URL!, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -67,20 +68,32 @@ export async function POST(req: Request) {
           },
           {
             type: "section",
-            text: { type: "mrkdwn", text: `*✅ Completed:*\n${checkedItems.join("\n") || "None"}` },
+            text: { type: "mrkdwn", text: `*✅ Completed:*\n${completedTasks.join("\n") || "None"}` },
           },
           {
             type: "section",
             text: { type: "mrkdwn", text: `*❌ Not Completed:*\n${incompleteTasks.join("\n") || "None"}` },
+          },
+          // ✅ Text input directly in message
+          {
+            type: "input",
+            block_id: "reason_block",
+            element: {
+              type: "plain_text_input",
+              action_id: "reason_input",
+              multiline: false,
+              placeholder: { type: "plain_text", text: "Enter reason for incomplete tasks" },
+            },
+            label: { type: "plain_text", text: "Reason for incomplete tasks" },
           },
           {
             type: "actions",
             elements: [
               {
                 type: "button",
-                text: { type: "plain_text", text: "Add Reason" },
+                text: { type: "plain_text", text: "Submit" },
                 style: "primary",
-                action_id: "open_modal", // Slack interactivity
+                action_id: "submit_reason", // triggers interactivity
               },
             ],
           },
@@ -90,7 +103,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error(err);
+    console.error("❌ ERROR:", err);
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }
