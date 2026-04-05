@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 // Full list of checklist items
 const fullChecklist = [
@@ -32,20 +32,26 @@ type ChecklistRequest = {
   totalItems: number;
 };
 
+export const runtime = "nodejs"; // ensure Node runtime for backend libs
+
 export async function POST(req: Request) {
   try {
     const body: ChecklistRequest = await req.json();
     const { data, completedItems, totalItems } = body;
 
-    // ✅ Save all tasks to DB
-    const { error } = await supabase.from("office_checklists").insert([
+    // ✅ Save all tasks to DB using supabaseAdmin (service role key)
+    const { error: dbError } = await supabaseAdmin.from("office_checklists").insert([
       {
         data, // includes both completed (true) and incomplete (false)
         completed_count: completedItems,
         total_count: totalItems,
       },
     ]);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    if (dbError) {
+      console.error("❌ SUPABASE ERROR:", dbError);
+      return NextResponse.json({ error: dbError.message }, { status: 500 });
+    }
 
     // ✅ Separate completed & incomplete tasks
     const completedTasks = Object.entries(data)
@@ -64,17 +70,25 @@ export async function POST(req: Request) {
         blocks: [
           {
             type: "section",
-            text: { type: "mrkdwn", text: `*Office Checklist Submitted*\n\n*Progress:* ${completedItems}/${totalItems}` },
+            text: {
+              type: "mrkdwn",
+              text: `*Office Checklist Submitted*\n\n*Progress:* ${completedItems}/${totalItems}`,
+            },
           },
           {
             type: "section",
-            text: { type: "mrkdwn", text: `*✅ Completed:*\n${completedTasks.join("\n") || "None"}` },
+            text: {
+              type: "mrkdwn",
+              text: `*✅ Completed:*\n${completedTasks.join("\n") || "None"}`,
+            },
           },
           {
             type: "section",
-            text: { type: "mrkdwn", text: `*❌ Not Completed:*\n${incompleteTasks.join("\n") || "None"}` },
+            text: {
+              type: "mrkdwn",
+              text: `*❌ Not Completed:*\n${incompleteTasks.join("\n") || "None"}`,
+            },
           },
-          // ✅ Text input directly in message
           {
             type: "input",
             block_id: "reason_block",
@@ -93,7 +107,7 @@ export async function POST(req: Request) {
                 type: "button",
                 text: { type: "plain_text", text: "Submit" },
                 style: "primary",
-                action_id: "submit_reason", // triggers interactivity
+                action_id: "submit_reason",
               },
             ],
           },
