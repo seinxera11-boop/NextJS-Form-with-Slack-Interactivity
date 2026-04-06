@@ -42,7 +42,7 @@ function groupItems(items: ChecklistItem[]): { title: string; items: ChecklistIt
 }
 
 // Default checklist ID — set to your first checklist or make dynamic
-const DEFAULT_CHECKLIST_ID = process.env.NEXT_PUBLIC_PUBLIC_DEFAULT_CHECKLIST_ID || "1";
+const DEFAULT_CHECKLIST_ID = process.env.NEXT_PUBLIC_PUBLIC_DEFAULT_CHECKLIST_ID ;
 
 export default function OfficeChecklist() {
   const [checklist, setChecklist] = useState<Checklist | null>(null);

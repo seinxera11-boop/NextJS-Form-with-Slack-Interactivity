@@ -22,7 +22,7 @@ export async function POST(req: Request) {
       email,
       options: {
         shouldCreateUser: true,
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_PUBLIC_SITE_URL}/admin/login/callback`,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_PUBLIC_SITE_URL}/admin`,
       },
     });
 

@@ -3,12 +3,17 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+     const id = Number((await params).id); // Convert string → number
+     console.log((await params).id);
+  if (isNaN(id)) {
+    return NextResponse.json({ error: "Invalid checklist id" }, { status: 400 });
+  }
     const { data, error } = await supabaseAdmin
       .from("checklists")
       .select("*, checklist_items(*)")
-      .eq("id", params.id)
+      .eq("id", ( await params).id)
       .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

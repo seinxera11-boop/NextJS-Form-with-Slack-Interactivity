@@ -1,123 +1,125 @@
-// import { NextResponse } from "next/server";
-// import { supabaseAdmin } from "@/lib/supabase-admin";
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
-// // Full list of checklist items
-// const fullChecklist = [
-//   "Bathroom lights off",
-//   "Room 1 lights off",
-//   "Office main lights off",
-//   "All switches turned off",
-//   "AC/Fans turned off",
-//   "Laptop shut down",
-//   "Laptop stored in drawer",
-//   "Chargers unplugged",
-//   "Monitors turned off",
-//   "Printer/Scanner turned off",
-//   "All windows closed",
-//   "Curtains/blinds adjusted",
-//   "Balcony doors locked",
-//   "Tap water turned off",
-//   "No leakage present",
-//   "Lights turned off",
-//   "Exhaust fan off",
-//   "Main door locked",
-//   "Internal doors closed",
-//   "Drawer/locker locked",
-//   "Keys stored properly",
-// ];
+export const runtime = "nodejs";
 
-// type ChecklistRequest = {
-//   data: Record<string, boolean>; // all tasks with true/false
-//   completedItems: number;
-//   totalItems: number;
-// };
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { checklist_id, submitted_by, values, completedItems, totalItems } = body;
 
-// export const runtime = "nodejs"; // ensure Node runtime for backend libs
+    if (!checklist_id || !submitted_by || !values) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
 
-// export async function POST(req: Request) {
-//   try {
-//     const body: ChecklistRequest = await req.json();
-//     const { data, completedItems, totalItems } = body;
+    // 1. Insert response
+    const { data: responseData, error: responseError } = await supabaseAdmin
+      .from("responses")
+      .insert({ checklist_id, submitted_by })
+      .select()
+      .single();
 
-//     // ✅ Save all tasks to DB using supabaseAdmin (service role key)
-//     const { error: dbError } = await supabaseAdmin.from("office_checklists").insert([
-//       {
-//         data, // includes both completed (true) and incomplete (false)
-//         completed_count: completedItems,
-//         total_count: totalItems,
-//       },
-//     ]);
+    if (responseError) throw responseError;
 
-//     if (dbError) {
-//       console.error("❌ SUPABASE ERROR:", dbError);
-//       return NextResponse.json({ error: dbError.message }, { status: 500 });
-//     }
+    const responseId = responseData.id;
 
-//     // ✅ Separate completed & incomplete tasks
-//     const completedTasks = Object.entries(data)
-//       .filter(([_, value]) => value)
-//       .map(([key]) => key);
+    // 2. Insert response_items — keep itemId as string so Supabase coerces correctly
+    const itemsToInsert = Object.entries(values).map(([itemId, value]) => ({
+      response_id: responseId,
+      checklist_item_id: itemId,
+      value: String(value),
+    }));
 
-//     const incompleteTasks = Object.entries(data)
-//       .filter(([_, value]) => !value)
-//       .map(([key]) => key);
+    const { error: itemsError } = await supabaseAdmin
+      .from("response_items")
+      .insert(itemsToInsert);
 
-//     // ✅ Send Slack message with direct reason input
-//     await fetch(process.env.SLACK_WEBHOOK_URL!, {
-//       method: "POST",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify({
-//         blocks: [
-//           {
-//             type: "section",
-//             text: {
-//               type: "mrkdwn",
-//               text: `*Office Checklist Submitted*\n\n*Progress:* ${completedItems}/${totalItems}`,
-//             },
-//           },
-//           {
-//             type: "section",
-//             text: {
-//               type: "mrkdwn",
-//               text: `*✅ Completed:*\n${completedTasks.join("\n") || "None"}`,
-//             },
-//           },
-//           {
-//             type: "section",
-//             text: {
-//               type: "mrkdwn",
-//               text: `*❌ Not Completed:*\n${incompleteTasks.join("\n") || "None"}`,
-//             },
-//           },
-//           {
-//             type: "input",
-//             block_id: "reason_block",
-//             element: {
-//               type: "plain_text_input",
-//               action_id: "reason_input",
-//               multiline: false,
-//               placeholder: { type: "plain_text", text: "Enter reason for incomplete tasks" },
-//             },
-//             label: { type: "plain_text", text: "Reason for incomplete tasks" },
-//           },
-//           {
-//             type: "actions",
-//             elements: [
-//               {
-//                 type: "button",
-//                 text: { type: "plain_text", text: "Submit" },
-//                 style: "primary",
-//                 action_id: "submit_reason",
-//               },
-//             ],
-//           },
-//         ],
-//       }),
-//     });
+    if (itemsError) throw itemsError;
 
-//     return NextResponse.json({ success: true });
-//   } catch (err) {
-//     console.error("❌ ERROR:", err);
-//     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
-//   }
-// }
+    // 3. Fetch checklist items for Slack message
+    const { data: checklistItems } = await supabaseAdmin
+      .from("checklist_items")
+      .select("*")
+      .eq("checklist_id", checklist_id)
+      .order("order_index");
+
+    const checkboxItems = (checklistItems || []).filter((i) => i.type === "checkbox");
+    const completedTasks = checkboxItems.filter((i) => values[i.id] === "true").map((i) => i.label);
+    const incompleteTasks = checkboxItems.filter((i) => values[i.id] !== "true").map((i) => i.label);
+    const textItems = (checklistItems || []).filter((i) => i.type !== "checkbox");
+
+    // 4. Send Slack notification
+    if (process.env.SLACK_WEBHOOK_URL) {
+      const blocks: any[] = [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `*Checklist Submitted*\n*Submitted by:* ${submitted_by}\n*Progress:* ${completedItems}/${totalItems} tasks checked`,
+          },
+        },
+      ];
+
+      if (completedTasks.length > 0) {
+        blocks.push({
+          type: "section",
+          text: { type: "mrkdwn", text: `*✅ Completed:*\n${completedTasks.map((t) => `• ${t}`).join("\n")}` },
+        });
+      }
+
+      if (incompleteTasks.length > 0) {
+        blocks.push({
+          type: "section",
+          text: { type: "mrkdwn", text: `*❌ Not Completed:*\n${incompleteTasks.map((t) => `• ${t}`).join("\n")}` },
+        });
+      }
+
+      if (textItems.length > 0) {
+        const textResponses = textItems
+          .map((i) => `*${i.label}:*\n${values[i.id] || "_No response_"}`)
+          .join("\n\n");
+        blocks.push({
+          type: "section",
+          text: { type: "mrkdwn", text: `*📝 Responses:*\n${textResponses}` },
+        });
+      }
+
+      if (incompleteTasks.length > 0) {
+        blocks.push(
+          {
+            type: "input",
+            block_id: "reason_block",
+            element: {
+              type: "plain_text_input",
+              action_id: "reason_input",
+              placeholder: { type: "plain_text", text: "Enter reason for incomplete tasks" },
+            },
+            label: { type: "plain_text", text: "Reason for incomplete tasks" },
+          },
+          {
+            type: "actions",
+            elements: [
+              {
+                type: "button",
+                text: { type: "plain_text", text: "Submit Reason" },
+                style: "primary",
+                action_id: "submit_reason",
+              },
+            ],
+          }
+        );
+      }
+
+      await fetch(process.env.SLACK_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blocks }),
+      });
+    }
+
+    return NextResponse.json({ success: true, responseId });
+  } catch (err: any) {
+    console.error("❌ Submission error:", err);
+    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
+  }
+}

@@ -122,6 +122,7 @@ function AdminDashboard({ userEmail }: { userEmail: string }) {
     cardRow: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
     cardBtns: { display: "flex", gap: 6, flexShrink: 0 },
     editBtn: { fontSize: 12, color: "#555", background: "#f7f7f7", border: "1px solid #ebebeb", borderRadius: 6, padding: "5px 12px", cursor: "pointer" },
+    shareBtn: { fontSize: 12, color: "#2563eb", background: "#eff6ff", border: "1px solid #dbeafe", borderRadius: 6, padding: "5px 12px", cursor: "pointer" },
     delBtn: { fontSize: 12, color: "#dc2626", background: "#fff5f5", border: "1px solid #fee2e2", borderRadius: 6, padding: "5px 12px", cursor: "pointer" },
     chipsRow: { display: "flex", flexWrap: "wrap" as const, gap: 5 },
     chip: { fontSize: 11, padding: "2px 9px", borderRadius: 100, fontWeight: 500 },
@@ -195,6 +196,7 @@ function AdminDashboard({ userEmail }: { userEmail: string }) {
                       <div style={S.cardMeta}>{sorted.length} items · {cl.created_by} · {new Date(cl.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
                     </div>
                     <div style={S.cardBtns}>
+                      <button style={S.shareBtn} onClick={() => { const url = `${window.location.origin}/office-checklist/${cl.id}`; navigator.clipboard.writeText(url).then(() => alert("Link copied: " + url)); }}>Copy link</button>
                       <button style={S.editBtn} onClick={() => startEdit(cl)}>Edit</button>
                       <button style={S.delBtn} onClick={() => handleDelete(cl.id)}>Delete</button>
                     </div>

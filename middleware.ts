@@ -38,12 +38,6 @@ export async function middleware(request: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession();
 
-  if (!session) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/admin/login";
-    return NextResponse.redirect(redirectUrl);
-  }
-
   return response;
 }
 
