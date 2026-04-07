@@ -15,6 +15,10 @@ export async function middleware(request: NextRequest) {
   if (!pathname.startsWith("/admin")) {
     return NextResponse.next();
   }
+    // ✅ Allow API routes
+  if (pathname.startsWith("/api")) {
+    return NextResponse.next();
+  }
 
   const response = NextResponse.next();
 
