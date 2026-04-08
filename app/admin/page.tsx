@@ -20,19 +20,42 @@ export default function AdminDashboardWrapper() {
   const [booting, setBooting] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error || !session) { window.location.href = "/admin/login"; return; }
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) {
+        // No session — kick to login immediately, don't wait
+        window.location.href = "/admin/login";
+        return;
+      }
+      setSession(data.session);
+      setBooting(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        window.location.href = "/admin/login";
+        return;
+      }
       setSession(session);
       setBooting(false);
     });
+
+    return () => listener.subscription.unsubscribe();
   }, []);
 
+  // Keep showing loader while booting OR while redirecting (no session case)
   if (booting) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff", fontFamily: "system-ui, sans-serif", fontSize: 14, color: "#999" }}>
+    <div style={{
+      minHeight: "100vh", display: "flex", alignItems: "center",
+      justifyContent: "center", background: "#fff",
+      fontFamily: "system-ui, sans-serif", fontSize: 14, color: "#999"
+    }}>
       Loading…
     </div>
   );
+
+  // Extra guard — should never reach here without a session
   if (!session?.user?.email) return null;
+
   return <AdminDashboard userEmail={session.user.email} />;
 }
 
@@ -55,7 +78,10 @@ function AdminDashboard({ userEmail }: { userEmail: string }) {
     setLoading(false);
   };
 
-  const handleSignOut = async () => { await supabase.auth.signOut(); window.location.href = "/admin/login"; };
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/admin/login";
+  };
 
   const startCreate = () => {
     setTitle(""); setItems([{ label: "", type: "checkbox", required: true, order_index: 0 }]);
@@ -196,7 +222,10 @@ function AdminDashboard({ userEmail }: { userEmail: string }) {
                       <div style={S.cardMeta}>{sorted.length} items · {cl.created_by} · {new Date(cl.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
                     </div>
                     <div style={S.cardBtns}>
-                      <button style={S.shareBtn} onClick={() => { const url = `${window.location.origin}/office-checklist/${cl.id}`; navigator.clipboard.writeText(url).then(() => alert("Link copied: " + url)); }}>Copy link</button>
+                      <button style={S.shareBtn} onClick={() => {
+                        const url = `${window.location.origin}/office-checklist/${cl.id}`;
+                        navigator.clipboard.writeText(url).then(() => alert("Link copied: " + url));
+                      }}>Copy link</button>
                       <button style={S.editBtn} onClick={() => startEdit(cl)}>Edit</button>
                       <button style={S.delBtn} onClick={() => handleDelete(cl.id)}>Delete</button>
                     </div>
@@ -219,12 +248,19 @@ function AdminDashboard({ userEmail }: { userEmail: string }) {
           <>
             <button style={S.back} onClick={() => setView("list")}>← Back to checklists</button>
             <div style={S.pageTitle}>{view === "create" ? "New checklist" : "Edit checklist"}</div>
-            <div style={{ ...S.pageSubtitle, marginBottom: 32 }}>{view === "create" ? "Define the tasks your team will complete." : "Update tasks and settings."}</div>
+            <div style={{ ...S.pageSubtitle, marginBottom: 32 }}>
+              {view === "create" ? "Define the tasks your team will complete." : "Update tasks and settings."}
+            </div>
 
             <div style={S.section}>
               <div style={S.sectionTitle}>General</div>
               <label style={S.fieldLabel}>Title</label>
-              <input style={S.input} placeholder="e.g. Office Closing Checklist" value={title} onChange={e => setTitle(e.target.value)} />
+              <input
+                style={S.input}
+                placeholder="e.g. Office Closing Checklist"
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+              />
             </div>
 
             <div style={S.section}>
@@ -232,12 +268,26 @@ function AdminDashboard({ userEmail }: { userEmail: string }) {
               {items.map((item, idx) => (
                 <div key={idx} style={S.itemRow}>
                   <span style={S.itemNum}>{idx + 1}</span>
-                  <input style={S.itemInput} placeholder="Task label" value={item.label} onChange={e => updateItem(idx, { label: e.target.value })} />
-                  <select style={S.typeSelect} value={item.type} onChange={e => updateItem(idx, { type: e.target.value as ItemType })}>
+                  <input
+                    style={S.itemInput}
+                    placeholder="Task label"
+                    value={item.label}
+                    onChange={e => updateItem(idx, { label: e.target.value })}
+                  />
+                  <select
+                    style={S.typeSelect}
+                    value={item.type}
+                    onChange={e => updateItem(idx, { type: e.target.value as ItemType })}
+                  >
                     {Object.entries(TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                   </select>
                   <label style={S.reqLabel}>
-                    <input type="checkbox" checked={item.required} onChange={e => updateItem(idx, { required: e.target.checked })} style={{ accentColor: "#111" }} />
+                    <input
+                      type="checkbox"
+                      checked={item.required}
+                      onChange={e => updateItem(idx, { required: e.target.checked })}
+                      style={{ accentColor: "#111" }}
+                    />
                     Required
                   </label>
                   <div style={S.moveBtns}>
@@ -253,7 +303,9 @@ function AdminDashboard({ userEmail }: { userEmail: string }) {
             <div style={S.footer}>
               {saveError && <span style={S.errText}>⚠ {saveError}</span>}
               <button style={S.cancelBtn} onClick={() => setView("list")}>Cancel</button>
-              <button style={S.saveBtn} onClick={handleSave} disabled={saving}>{saving ? "Saving…" : view === "create" ? "Create" : "Save changes"}</button>
+              <button style={S.saveBtn} onClick={handleSave} disabled={saving}>
+                {saving ? "Saving…" : view === "create" ? "Create" : "Save changes"}
+              </button>
             </div>
           </>
         )}

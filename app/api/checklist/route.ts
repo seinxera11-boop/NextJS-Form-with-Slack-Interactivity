@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { checklist_id, submitted_by, values, completedItems, totalItems } = body;
+    const { checklist_id, submitted_by, reason, values, completedItems, totalItems } = body;
 
     if (!checklist_id || !submitted_by || !values) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     // 1. Insert response
     const { data: responseData, error: responseError } = await supabaseAdmin
       .from("responses")
-      .insert({ checklist_id, submitted_by })
+      .insert({ checklist_id, submitted_by, reason })
       .select()
       .single();
 
@@ -93,6 +93,16 @@ const incompleteBlock =
         },
       }
     : null;
+const reasonBlock =
+  reason && reason.trim()
+    ? {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `*📝 Submission Reason:*\n${reason}`,
+        },
+      }
+    : null;
 
 // 📝 Text responses (only for full message)
 const textBlock =
@@ -154,6 +164,7 @@ if (webhook1) {
     ...baseBlocks,
     ...(completedBlock ? [completedBlock] : []),
     ...(incompleteBlock ? [incompleteBlock] : []),
+    ...(reasonBlock ? [reasonBlock] : []), // ✅ ADD HERE
     ...(textBlock ? [textBlock] : []),
     ...actionBlocks,
   ];
@@ -171,6 +182,7 @@ if (webhook2) {
     ...baseBlocks,
     ...(completedBlock ? [completedBlock] : []),
     ...(incompleteBlock ? [incompleteBlock] : []),
+    ...(reasonBlock ? [reasonBlock] : []), // ✅ ADD HERE
   ];
 
   await fetch(webhook2, {

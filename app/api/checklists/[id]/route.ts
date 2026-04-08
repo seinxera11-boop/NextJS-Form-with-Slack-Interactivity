@@ -23,10 +23,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   }
 }
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { title, items } = await req.json();
-    const id = Number(params.id);
+    const id = Number((await params).id);
 
     // Update checklist title
     const { error: clError } = await supabaseAdmin
@@ -65,13 +65,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     // checklist_items are cascade deleted via FK
     const { error } = await supabaseAdmin
       .from("checklists")
       .delete()
-      .eq("id", params.id);
+      .eq("id", (await params).id);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });

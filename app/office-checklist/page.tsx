@@ -53,6 +53,7 @@ export default function OfficeChecklist() {
   const [values, setValues] = useState<Record<number, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submittedBy, setSubmittedBy] = useState("");
+  const [submittedReason, setSubmittedReason] = useState("");
 
   useEffect(() => {
     fetch(`/api/checklists/${DEFAULT_CHECKLIST_ID}`)
@@ -217,12 +218,23 @@ export default function OfficeChecklist() {
         {/* Submitted by field */}
         <Card className="shadow rounded-2xl">
           <CardContent className="pt-6">
+            {/*name field */}
             <div className="space-y-1">
               <label className="text-sm font-medium">Your Name <span className="text-red-400">*</span></label>
               <Input
                 value={submittedBy}
                 onChange={(e:any) => setSubmittedBy(e.target.value)}
                 placeholder="Who is submitting this checklist?"
+              />
+            </div>
+            {/*reason field */}
+            <div className="space-y-1 mt-4">
+              <label className="text-sm font-medium">Reason <span className="text-red-400">*</span></label>
+              <Textarea
+                value={submittedReason}
+                onChange={(e:any) => setSubmittedReason(e.target.value)}
+                placeholder="Why are you submitting this checklist?"
+                rows={3}
               />
             </div>
           </CardContent>

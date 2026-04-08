@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
-const ALLOWED_ADMINS = (process.env.ADMIN_EMAILS || "").split(",").map((e) => e.trim());
+const ALLOWED_ADMINS = (process.env.ADMIN_EMAILS || "")
+  .split(",")
+  .map((e) => e.trim())
+  .filter(Boolean);
 
 export async function POST(req: Request) {
   try {
@@ -11,18 +14,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
-    if (ALLOWED_ADMINS.length > 0 && ALLOWED_ADMINS[0] !== "" && !ALLOWED_ADMINS.includes(email)) {
+    if (ALLOWED_ADMINS.length > 0 && !ALLOWED_ADMINS.includes(email)) {
       return NextResponse.json({ error: "Unauthorized email" }, { status: 403 });
     }
 
-    // Use signInWithOtp — this is what actually sends the magic link email
-    // and correctly uses the redirectTo URL.
-    // generateLink only generates the link object, it doesn't send the email.
+    // emailRedirectTo MUST point to /admin/auth/callback so our page.tsx
+    // can read the #access_token hash and call setSession() correctly.
+    // Do NOT redirect to /admin directly — Next.js SSR cannot read hash fragments.
     const { error } = await supabaseAdmin.auth.signInWithOtp({
       email,
       options: {
         shouldCreateUser: true,
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_PUBLIC_SITE_URL}/admin`,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_PUBLIC_SITE_URL}/admin/login/callback`,
       },
     });
 

@@ -28,6 +28,7 @@ export default function ChecklistPage() {
   const [error, setError] = useState("");
   const [values, setValues] = useState<Record<number, string>>({});
   const [submittedBy, setSubmittedBy] = useState("");
+  const [reason, setReason] = useState(""); // ✅ New reason state
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -64,7 +65,9 @@ export default function ChecklistPage() {
     setValues(p => ({ ...p, [id]: val }));
 
   const handleSubmit = async () => {
+    // Validation
     if (!submittedBy.trim()) { alert("Please enter your name."); return; }
+
     const missing = items.filter(it => it.required && it.type !== "checkbox" && !values[it.id]?.trim());
     if (missing.length > 0) { alert(`Please fill in: ${missing.map(m => m.label).join(", ")}`); return; }
 
@@ -76,6 +79,7 @@ export default function ChecklistPage() {
         body: JSON.stringify({
           checklist_id: checklist?.id,
           submitted_by: submittedBy,
+          reason, //optional
           values,
           completedItems: checked,
           totalItems: total,
@@ -85,9 +89,9 @@ export default function ChecklistPage() {
       if (!res.ok) throw new Error(result.error);
       setSubmitted(true);
     } catch (err: any) {
-  console.error("Submit error:", err);
-  alert("Failed to submit: " + err.message);
-}finally {
+      console.error("Submit error:", err);
+      alert("Failed to submit: " + err.message);
+    } finally {
       setSubmitting(false);
     }
   };
@@ -97,6 +101,7 @@ export default function ChecklistPage() {
     items.forEach(it => { init[it.id] = it.type === "checkbox" ? "false" : ""; });
     setValues(init);
     setSubmittedBy("");
+    setReason(""); // ✅ reset reason
     setSubmitted(false);
   };
 
@@ -170,7 +175,7 @@ export default function ChecklistPage() {
           </div>
         )}
 
-        {/* All items in one card */}
+        {/* Checklist items */}
         <div style={S.itemsCard}>
           {items.map((item, idx) => {
             const isLast = idx === items.length - 1;
@@ -231,6 +236,17 @@ export default function ChecklistPage() {
             placeholder="Who is submitting this?"
             value={submittedBy}
             onChange={e => setSubmittedBy(e.target.value)}
+          />
+        </div>
+
+        {/* Reason field */}
+        <div style={S.nameCard}>
+          <label style={S.nameLabel}>Reason</label>
+          <textarea
+            style={{ ...S.textInput, minHeight: 80 }}
+            placeholder="Submit Reason"
+            value={reason}
+            onChange={e => setReason(e.target.value)}
           />
         </div>
 
