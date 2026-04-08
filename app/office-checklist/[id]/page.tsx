@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 
 type ItemType = "checkbox" | "text" | "textarea";
 
-type ChecklistItem = {
+type ChecklistTask = {
   id: number;
   label: string;
   type: ItemType;
@@ -13,10 +13,17 @@ type ChecklistItem = {
   order_index: number;
 };
 
+type ChecklistSection = {
+  id: number;
+  title: string;
+  order_index: number;
+  checklist_items: ChecklistTask[];
+};
+
 type Checklist = {
   id: number;
   title: string;
-  checklist_items: ChecklistItem[];
+  checklist_sections: ChecklistSection[];
 };
 
 export default function ChecklistPage() {
@@ -28,49 +35,59 @@ export default function ChecklistPage() {
   const [error, setError] = useState("");
   const [values, setValues] = useState<Record<number, string>>({});
   const [submittedBy, setSubmittedBy] = useState("");
-  const [reason, setReason] = useState(""); // ✅ New reason state
+  const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     fetch(`/api/checklists/${id}`)
-      .then(r => r.json())
-      .then(data => {
+      .then((r) => r.json())
+      .then((data) => {
         if (data.error) throw new Error(data.error);
         setChecklist(data);
         const init: Record<number, string> = {};
-        (data.checklist_items || []).forEach((item: ChecklistItem) => {
-          init[item.id] = item.type === "checkbox" ? "false" : "";
+        (data.checklist_sections || []).forEach((sec: ChecklistSection) => {
+          (sec.checklist_items || []).forEach((item: ChecklistTask) => {
+            init[item.id] = item.type === "checkbox" ? "false" : "";
+          });
         });
         setValues(init);
         setLoading(false);
       })
-      .catch(err => { setError(err.message); setLoading(false); });
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
   }, [id]);
 
-  const items = checklist
-    ? [...checklist.checklist_items].sort((a, b) => a.order_index - b.order_index)
+  const sections = checklist
+    ? [...checklist.checklist_sections].sort((a, b) => a.order_index - b.order_index)
     : [];
 
-  const checkboxItems = items.filter(i => i.type === "checkbox");
-  const checked = checkboxItems.filter(i => values[i.id] === "true").length;
-  const total = checkboxItems.length;
+  const allTasks = sections.flatMap((s) =>
+    [...s.checklist_items].sort((a, b) => a.order_index - b.order_index)
+  );
+  const checkboxTasks = allTasks.filter((t) => t.type === "checkbox");
+  const checked = checkboxTasks.filter((t) => values[t.id] === "true").length;
+  const total = checkboxTasks.length;
   const pct = total > 0 ? Math.round((checked / total) * 100) : 0;
 
   const toggleCheck = (id: number) =>
-    setValues(p => ({ ...p, [id]: p[id] === "true" ? "false" : "true" }));
+    setValues((p) => ({ ...p, [id]: p[id] === "true" ? "false" : "true" }));
 
   const handleText = (id: number, val: string) =>
-    setValues(p => ({ ...p, [id]: val }));
+    setValues((p) => ({ ...p, [id]: val }));
 
   const handleSubmit = async () => {
-    // Validation
     if (!submittedBy.trim()) { alert("Please enter your name."); return; }
-
-    const missing = items.filter(it => it.required && it.type !== "checkbox" && !values[it.id]?.trim());
-    if (missing.length > 0) { alert(`Please fill in: ${missing.map(m => m.label).join(", ")}`); return; }
-
+    const missing = allTasks.filter(
+      (it) => it.required && it.type !== "checkbox" && !values[it.id]?.trim()
+    );
+    if (missing.length > 0) {
+      alert(`Please fill in: ${missing.map((m) => m.label).join(", ")}`);
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch("/api/checklist", {
@@ -79,7 +96,7 @@ export default function ChecklistPage() {
         body: JSON.stringify({
           checklist_id: checklist?.id,
           submitted_by: submittedBy,
-          reason, //optional
+          reason,
           values,
           completedItems: checked,
           totalItems: total,
@@ -89,7 +106,6 @@ export default function ChecklistPage() {
       if (!res.ok) throw new Error(result.error);
       setSubmitted(true);
     } catch (err: any) {
-      console.error("Submit error:", err);
       alert("Failed to submit: " + err.message);
     } finally {
       setSubmitting(false);
@@ -98,10 +114,10 @@ export default function ChecklistPage() {
 
   const handleReset = () => {
     const init: Record<number, string> = {};
-    items.forEach(it => { init[it.id] = it.type === "checkbox" ? "false" : ""; });
+    allTasks.forEach((it) => { init[it.id] = it.type === "checkbox" ? "false" : ""; });
     setValues(init);
     setSubmittedBy("");
-    setReason(""); // ✅ reset reason
+    setReason("");
     setSubmitted(false);
   };
 
@@ -112,24 +128,25 @@ export default function ChecklistPage() {
     headerName: { fontSize: 14, fontWeight: 700, color: "#111", letterSpacing: "-0.02em" },
     main: { maxWidth: 640, margin: "0 auto", padding: "48px 24px" },
     title: { fontSize: 26, fontWeight: 700, letterSpacing: "-0.03em", color: "#111", marginBottom: 4 },
-    subtitle: { fontSize: 13, color: "#999", marginBottom: 32 },
     progressWrap: { marginBottom: 36 },
     progressLabel: { display: "flex", justifyContent: "space-between", fontSize: 12, color: "#999", marginBottom: 8 },
     progressTrack: { height: 3, background: "#f0f0f0", borderRadius: 100, overflow: "hidden" },
     progressFill: { height: "100%", background: "#111", borderRadius: 100, transition: "width 0.3s" },
-    itemsCard: { border: "1px solid #f0f0f0", borderRadius: 12, overflow: "hidden", marginBottom: 16 },
-    itemRow: { display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 20px", borderBottom: "1px solid #f8f8f8" },
-    itemRowLast: { display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 20px" },
+    // Section card
+    secCard: { border: "1px solid #f0f0f0", borderRadius: 12, overflow: "hidden", marginBottom: 12 },
+    secTitle: { fontSize: 13, fontWeight: 600, color: "#555", padding: "12px 20px", borderBottom: "1px solid #f8f8f8", background: "#fafafa", letterSpacing: "-0.01em" },
+    itemRow: { display: "flex", alignItems: "flex-start", gap: 12, padding: "13px 20px", borderBottom: "1px solid #f8f8f8" },
+    itemRowLast: { display: "flex", alignItems: "flex-start", gap: 12, padding: "13px 20px" },
     checkbox: { width: 16, height: 16, marginTop: 1, flexShrink: 0, cursor: "pointer", accentColor: "#111" },
     itemLabel: { fontSize: 14, color: "#111", lineHeight: 1.5, flex: 1 },
     itemLabelMuted: { fontSize: 14, color: "#aaa", lineHeight: 1.5, flex: 1, textDecoration: "line-through" },
     reqStar: { color: "#dc2626", fontSize: 12, marginLeft: 3 },
-    textInput: { width: "100%", border: "1px solid #e5e5e5", borderRadius: 8, padding: "9px 12px", fontSize: 14, color: "#111", outline: "none", background: "#fafafa", fontFamily: "inherit", boxSizing: "border-box" as const, resize: "none" as const },
-    nameCard: { border: "1px solid #f0f0f0", borderRadius: 12, padding: "20px", marginBottom: 16 },
+    textInput: { width: "100%", border: "1px solid #e5e5e5", borderRadius: 8, padding: "9px 12px", fontSize: 14, color: "#111", outline: "none", background: "#fafafa", fontFamily: "inherit", boxSizing: "border-box", resize: "none" },
+    nameCard: { border: "1px solid #f0f0f0", borderRadius: 12, padding: "20px", marginBottom: 12 },
     nameLabel: { fontSize: 12, fontWeight: 500, color: "#555", marginBottom: 8, display: "block" },
     submitBtn: { width: "100%", background: "#111", color: "#fff", border: "none", borderRadius: 10, padding: "13px 0", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", letterSpacing: "-0.01em" },
     submitBtnDisabled: { width: "100%", background: "#e5e5e5", color: "#aaa", border: "none", borderRadius: 10, padding: "13px 0", fontSize: 14, fontWeight: 600, cursor: "not-allowed", fontFamily: "inherit" },
-    successWrap: { textAlign: "center" as const, padding: "80px 0" },
+    successWrap: { textAlign: "center", padding: "80px 0" },
     successIcon: { fontSize: 36, marginBottom: 20 },
     successTitle: { fontSize: 22, fontWeight: 700, color: "#111", letterSpacing: "-0.02em", marginBottom: 8 },
     successText: { fontSize: 13, color: "#999", lineHeight: 1.7, marginBottom: 32 },
@@ -163,6 +180,7 @@ export default function ChecklistPage() {
 
       <div style={S.main}>
         <div style={S.title}>{checklist.title}</div>
+
         {total > 0 && (
           <div style={S.progressWrap}>
             <div style={S.progressLabel}>
@@ -175,59 +193,64 @@ export default function ChecklistPage() {
           </div>
         )}
 
-        {/* Checklist items */}
-        <div style={S.itemsCard}>
-          {items.map((item, idx) => {
-            const isLast = idx === items.length - 1;
-            const rowStyle = isLast ? S.itemRowLast : S.itemRow;
-            const isDone = item.type === "checkbox" && values[item.id] === "true";
-
-            return (
-              <div key={item.id} style={rowStyle}>
-                {item.type === "checkbox" ? (
-                  <>
-                    <input
-                      type="checkbox"
-                      style={S.checkbox}
-                      checked={values[item.id] === "true"}
-                      onChange={() => toggleCheck(item.id)}
-                    />
-                    <span style={isDone ? S.itemLabelMuted : S.itemLabel}>{item.label}</span>
-                  </>
-                ) : item.type === "text" ? (
-                  <div style={{ flex: 1 }}>
-                    <div style={{ ...S.itemLabel, marginBottom: 8 }}>
-                      {item.label}
-                      {item.required && <span style={S.reqStar}>*</span>}
-                    </div>
-                    <input
-                      type="text"
-                      style={S.textInput}
-                      placeholder="Your answer…"
-                      value={values[item.id] || ""}
-                      onChange={e => handleText(item.id, e.target.value)}
-                    />
+        {/* One card per section */}
+        {sections.map((sec) => {
+          const tasks = [...sec.checklist_items].sort((a, b) => a.order_index - b.order_index);
+          return (
+            <div key={sec.id} style={S.secCard}>
+              <div style={S.secTitle}>{sec.title}</div>
+              {tasks.map((item, idx) => {
+                const isLast = idx === tasks.length - 1;
+                const rowStyle = isLast ? S.itemRowLast : S.itemRow;
+                const isDone = item.type === "checkbox" && values[item.id] === "true";
+                return (
+                  <div key={item.id} style={rowStyle}>
+                    {item.type === "checkbox" ? (
+                      <>
+                        <input
+                          type="checkbox"
+                          style={S.checkbox}
+                          checked={values[item.id] === "true"}
+                          onChange={() => toggleCheck(item.id)}
+                        />
+                        <span style={isDone ? S.itemLabelMuted : S.itemLabel}>{item.label}</span>
+                      </>
+                    ) : item.type === "text" ? (
+                      <div style={{ flex: 1 }}>
+                        <div style={{ ...S.itemLabel, marginBottom: 8 }}>
+                          {item.label}
+                          {item.required && <span style={S.reqStar}>*</span>}
+                        </div>
+                        <input
+                          type="text"
+                          style={S.textInput}
+                          placeholder="Your answer…"
+                          value={values[item.id] || ""}
+                          onChange={(e) => handleText(item.id, e.target.value)}
+                        />
+                      </div>
+                    ) : (
+                      <div style={{ flex: 1 }}>
+                        <div style={{ ...S.itemLabel, marginBottom: 8 }}>
+                          {item.label}
+                          {item.required && <span style={S.reqStar}>*</span>}
+                        </div>
+                        <textarea
+                          style={{ ...S.textInput, minHeight: 80 }}
+                          placeholder="Your answer…"
+                          value={values[item.id] || ""}
+                          onChange={(e) => handleText(item.id, e.target.value)}
+                        />
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div style={{ flex: 1 }}>
-                    <div style={{ ...S.itemLabel, marginBottom: 8 }}>
-                      {item.label}
-                      {item.required && <span style={S.reqStar}>*</span>}
-                    </div>
-                    <textarea
-                      style={{ ...S.textInput, minHeight: 80 }}
-                      placeholder="Your answer…"
-                      value={values[item.id] || ""}
-                      onChange={e => handleText(item.id, e.target.value)}
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                );
+              })}
+            </div>
+          );
+        })}
 
-        {/* Name field */}
+        {/* Name */}
         <div style={S.nameCard}>
           <label style={S.nameLabel}>Your name <span style={S.reqStar}>*</span></label>
           <input
@@ -235,18 +258,18 @@ export default function ChecklistPage() {
             style={S.textInput}
             placeholder="Who is submitting this?"
             value={submittedBy}
-            onChange={e => setSubmittedBy(e.target.value)}
+            onChange={(e) => setSubmittedBy(e.target.value)}
           />
         </div>
 
-        {/* Reason field */}
+        {/* Reason */}
         <div style={S.nameCard}>
           <label style={S.nameLabel}>Reason</label>
           <textarea
             style={{ ...S.textInput, minHeight: 80 }}
-            placeholder="Submit Reason"
+            placeholder="Submit reason"
             value={reason}
-            onChange={e => setReason(e.target.value)}
+            onChange={(e) => setReason(e.target.value)}
           />
         </div>
 

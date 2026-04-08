@@ -1,61 +1,54 @@
+import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase-admin";
 
-export const runtime = "nodejs";
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function GET() {
-  try {
-    const { data, error } = await supabaseAdmin
-      .from("checklists")
-      .select("*, checklist_items(*)")
-      .order("created_at", { ascending: false });
+  const { data, error } = await supabase
+    .from("checklists")
+    .select("*, checklist_sections(*, checklist_items(*))")
+    .order("created_at", { ascending: false });
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data);
-  } catch (err) {
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
-  }
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json(data);
 }
 
 export async function POST(req: Request) {
-  try {
-    const { title, items, created_by } = await req.json();
+  const { title, sections, created_by } = await req.json();
 
-    if (!title || !items || items.length === 0) {
-      return NextResponse.json({ error: "Title and items are required" }, { status: 400 });
-    }
+  // 1. Insert checklist
+  const { data: cl, error: clErr } = await supabase
+    .from("checklists")
+    .insert({ title, created_by })
+    .select()
+    .single();
+  if (clErr) return NextResponse.json({ error: clErr.message }, { status: 500 });
 
-    // Insert checklist
-    const { data: checklist, error: clError } = await supabaseAdmin
-      .from("checklists")
-      .insert([{ title, created_by: created_by || "admin" }])
+  // 2. Insert sections + their items
+  for (const sec of sections) {
+    const { data: secRow, error: secErr } = await supabase
+      .from("checklist_sections")
+      .insert({ checklist_id: cl.id, title: sec.title, order_index: sec.order_index })
       .select()
       .single();
+    if (secErr) return NextResponse.json({ error: secErr.message }, { status: 500 });
 
-    if (clError) return NextResponse.json({ error: clError.message }, { status: 500 });
-
-    // Insert items
-    const itemsToInsert = items.map((item: any, index: number) => ({
-      checklist_id: checklist.id,
-      label: item.label,
-      type: item.type || "checkbox",
-      required: item.required !== false,
-      order_index: item.order_index ?? index,
-    }));
-
-    const { error: itemsError } = await supabaseAdmin
-      .from("checklist_items")
-      .insert(itemsToInsert);
-
-    if (itemsError) return NextResponse.json({ error: itemsError.message }, { status: 500 });
-
-    return NextResponse.json({ success: true, id: checklist.id });
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+    if (sec.tasks?.length) {
+      const items = sec.tasks.map((t: any) => ({
+        checklist_id: cl.id,
+        section_id:   secRow.id,
+        label:        t.label,
+        type:         t.type,
+        required:     t.required,
+        order_index:  t.order_index,
+      }));
+      const { error: itemErr } = await supabase.from("checklist_items").insert(items);
+      if (itemErr) return NextResponse.json({ error: itemErr.message }, { status: 500 });
+    }
   }
+
+  return NextResponse.json({ id: cl.id }, { status: 201 });
 }
-
-
-
-

@@ -6,12 +6,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-// import { Input } from "@/components/ui/input";
-import { Input } from "@/components/ui/input"; // Update this path to the actual location of your Input component
+import { Input } from "@/components/ui/input";
 
 type ItemType = "checkbox" | "text" | "textarea";
 
-type ChecklistItem = {
+type ChecklistTask = {
   id: number;
   label: string;
   type: ItemType;
@@ -19,37 +18,25 @@ type ChecklistItem = {
   order_index: number;
 };
 
+type ChecklistSection = {
+  id: number;
+  title: string;
+  order_index: number;
+  checklist_items: ChecklistTask[];
+};
+
 type Checklist = {
   id: number;
   title: string;
-  checklist_items: ChecklistItem[];
+  checklist_sections: ChecklistSection[];
 };
 
-// Group items by sections of 5 for display (mirrors original UX)
-function groupItems(items: ChecklistItem[]): { title: string; items: ChecklistItem[] }[] {
-  // Use a single group with the checklist title if items are few
-  // Or split into logical groups of ~5
-  const groups: { title: string; items: ChecklistItem[] }[] = [];
-  const sorted = [...items].sort((a, b) => a.order_index - b.order_index);
-  const chunkSize = 5;
-  for (let i = 0; i < sorted.length; i += chunkSize) {
-    groups.push({
-      title: `Section ${Math.floor(i / chunkSize) + 1}`,
-      items: sorted.slice(i, i + chunkSize),
-    });
-  }
-  return groups;
-}
-
-// Default checklist ID — set to your first checklist or make dynamic
-const DEFAULT_CHECKLIST_ID = process.env.NEXT_PUBLIC_PUBLIC_DEFAULT_CHECKLIST_ID ;
+const DEFAULT_CHECKLIST_ID = process.env.NEXT_PUBLIC_PUBLIC_DEFAULT_CHECKLIST_ID;
 
 export default function OfficeChecklist() {
   const [checklist, setChecklist] = useState<Checklist | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // values: item.id -> string (for text/textarea) or "true"/"false" (for checkbox)
   const [values, setValues] = useState<Record<number, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submittedBy, setSubmittedBy] = useState("");
@@ -61,10 +48,11 @@ export default function OfficeChecklist() {
       .then((data) => {
         if (data.error) throw new Error(data.error);
         setChecklist(data);
-        // Init values
         const init: Record<number, string> = {};
-        (data.checklist_items || []).forEach((item: ChecklistItem) => {
-          init[item.id] = item.type === "checkbox" ? "false" : "";
+        (data.checklist_sections || []).forEach((sec: ChecklistSection) => {
+          (sec.checklist_items || []).forEach((item: ChecklistTask) => {
+            init[item.id] = item.type === "checkbox" ? "false" : "";
+          });
         });
         setValues(init);
         setLoading(false);
@@ -75,27 +63,28 @@ export default function OfficeChecklist() {
       });
   }, []);
 
-  const items = checklist?.checklist_items || [];
-  const checkboxItems = items.filter((i) => i.type === "checkbox");
-  const completedCheckboxes = checkboxItems.filter((i) => values[i.id] === "true").length;
-  const totalCheckboxes = checkboxItems.length;
+  const sections = checklist
+    ? [...checklist.checklist_sections].sort((a, b) => a.order_index - b.order_index)
+    : [];
+
+  const allTasks = sections.flatMap((s) =>
+    [...s.checklist_items].sort((a, b) => a.order_index - b.order_index)
+  );
+  const checkboxTasks = allTasks.filter((t) => t.type === "checkbox");
+  const completedCheckboxes = checkboxTasks.filter((t) => values[t.id] === "true").length;
+  const totalCheckboxes = checkboxTasks.length;
   const progress = totalCheckboxes > 0 ? (completedCheckboxes / totalCheckboxes) * 100 : 0;
 
-  const handleCheckbox = (id: number) => {
+  const handleCheckbox = (id: number) =>
     setValues((prev) => ({ ...prev, [id]: prev[id] === "true" ? "false" : "true" }));
-  };
 
-  const handleText = (id: number, val: string) => {
+  const handleText = (id: number, val: string) =>
     setValues((prev) => ({ ...prev, [id]: val }));
-  };
 
   const handleSubmit = async () => {
-    // Validate required items
-    const missing = items.filter((item) => {
-      if (!item.required) return false;
-      if (item.type === "checkbox") return false; // checkboxes don't need to be checked to submit
-      return !values[item.id]?.trim();
-    });
+    const missing = allTasks.filter(
+      (item) => item.required && item.type !== "checkbox" && !values[item.id]?.trim()
+    );
     if (missing.length > 0) {
       alert(`Please fill in: ${missing.map((m) => m.label).join(", ")}`);
       return;
@@ -104,7 +93,6 @@ export default function OfficeChecklist() {
       alert("Please enter your name before submitting.");
       return;
     }
-
     setSubmitting(true);
     try {
       const res = await fetch("/api/checklist", {
@@ -113,20 +101,22 @@ export default function OfficeChecklist() {
         body: JSON.stringify({
           checklist_id: checklist?.id,
           submitted_by: submittedBy,
-          values, // { [item_id]: value }
+          reason: submittedReason,
+          values,
           completedItems: completedCheckboxes,
           totalItems: totalCheckboxes,
         }),
       });
-
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
 
-      // Reset
       const init: Record<number, string> = {};
-      items.forEach((item) => { init[item.id] = item.type === "checkbox" ? "false" : ""; });
+      allTasks.forEach((item) => {
+        init[item.id] = item.type === "checkbox" ? "false" : "";
+      });
       setValues(init);
       setSubmittedBy("");
+      setSubmittedReason("");
       window.scrollTo({ top: 0, behavior: "smooth" });
       alert("Checklist submitted successfully!");
     } catch (err: any) {
@@ -152,87 +142,97 @@ export default function OfficeChecklist() {
     );
   }
 
-  const groups = groupItems(items);
-
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-3xl mx-auto space-y-6">
+        {/* Header card */}
         <Card className="shadow-lg rounded-2xl">
           <CardHeader>
             <CardTitle className="text-2xl">{checklist.title}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="mb-4">
-              <p className="text-sm mb-2">
-                Progress: {completedCheckboxes} / {totalCheckboxes} tasks checked
-              </p>
-              <Progress value={progress} />
-            </div>
+            <p className="text-sm mb-2">
+              Progress: {completedCheckboxes} / {totalCheckboxes} tasks checked
+            </p>
+            <Progress value={progress} />
           </CardContent>
         </Card>
 
-        {groups.map((group, gi) => (
-          <Card key={gi} className="shadow rounded-2xl">
-            <CardHeader>
-              <CardTitle className="text-lg">{group.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {group.items.map((item) => (
-                <div key={item.id}>
-                  {item.type === "checkbox" && (
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={values[item.id] === "true"}
-                        onCheckedChange={() => handleCheckbox(item.id)}
-                      />
-                      <label className="text-sm">{item.label}{item.required && <span className="text-red-400 ml-1">*</span>}</label>
-                    </div>
-                  )}
-                  {item.type === "text" && (
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium">{item.label}{item.required && <span className="text-red-400 ml-1">*</span>}</label>
-                      <Input
-                        value={values[item.id] || ""}
-                        onChange={(e:any) => handleText(item.id, e.target.value)}
-                        placeholder="Enter answer..."
-                      />
-                    </div>
-                  )}
-                  {item.type === "textarea" && (
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium">{item.label}{item.required && <span className="text-red-400 ml-1">*</span>}</label>
-                      <Textarea
-                        value={values[item.id] || ""}
-                        onChange={(e:any) => handleText(item.id, e.target.value)}
-                        placeholder="Enter answer..."
-                        rows={3}
-                      />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        ))}
+        {/* One card per section */}
+        {sections.map((sec) => {
+          const tasks = [...sec.checklist_items].sort((a, b) => a.order_index - b.order_index);
+          return (
+            <Card key={sec.id} className="shadow rounded-2xl">
+              <CardHeader>
+                <CardTitle className="text-lg">{sec.title}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {tasks.map((item) => (
+                  <div key={item.id}>
+                    {item.type === "checkbox" && (
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          checked={values[item.id] === "true"}
+                          onCheckedChange={() => handleCheckbox(item.id)}
+                        />
+                        <label className="text-sm">
+                          {item.label}
+                          {item.required && <span className="text-red-400 ml-1">*</span>}
+                        </label>
+                      </div>
+                    )}
+                    {item.type === "text" && (
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium">
+                          {item.label}
+                          {item.required && <span className="text-red-400 ml-1">*</span>}
+                        </label>
+                        <Input
+                          value={values[item.id] || ""}
+                          onChange={(e: any) => handleText(item.id, e.target.value)}
+                          placeholder="Enter answer..."
+                        />
+                      </div>
+                    )}
+                    {item.type === "textarea" && (
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium">
+                          {item.label}
+                          {item.required && <span className="text-red-400 ml-1">*</span>}
+                        </label>
+                        <Textarea
+                          value={values[item.id] || ""}
+                          onChange={(e: any) => handleText(item.id, e.target.value)}
+                          placeholder="Enter answer..."
+                          rows={3}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          );
+        })}
 
-        {/* Submitted by field */}
+        {/* Submitter info */}
         <Card className="shadow rounded-2xl">
-          <CardContent className="pt-6">
-            {/*name field */}
+          <CardContent className="pt-6 space-y-4">
             <div className="space-y-1">
-              <label className="text-sm font-medium">Your Name <span className="text-red-400">*</span></label>
+              <label className="text-sm font-medium">
+                Your Name <span className="text-red-400">*</span>
+              </label>
               <Input
                 value={submittedBy}
-                onChange={(e:any) => setSubmittedBy(e.target.value)}
+                onChange={(e: any) => setSubmittedBy(e.target.value)}
                 placeholder="Who is submitting this checklist?"
               />
             </div>
-            {/*reason field */}
-            <div className="space-y-1 mt-4">
-              <label className="text-sm font-medium">Reason <span className="text-red-400">*</span></label>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Reason</label>
               <Textarea
                 value={submittedReason}
-                onChange={(e:any) => setSubmittedReason(e.target.value)}
+                onChange={(e: any) => setSubmittedReason(e.target.value)}
                 placeholder="Why are you submitting this checklist?"
                 rows={3}
               />
