@@ -35,7 +35,7 @@ export default function AdminAuthCallback() {
         return;
       }
 
-      Set the session using the tokens from the magic link
+      //Set the session using the tokens from the magic link
       const { error: sessionError } = await supabase.auth.setSession({
         access_token,
         refresh_token,
