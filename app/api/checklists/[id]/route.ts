@@ -28,33 +28,102 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     .eq("id", checklistId);
   if (clErr) return NextResponse.json({ error: clErr.message }, { status: 500 });
 
-  // 2. Delete old sections (cascade deletes their items too)
-  const { error: delErr } = await supabase
+  // 2. Get existing section IDs from DB
+  const { data: existingSections } = await supabase
     .from("checklist_sections")
-    .delete()
+    .select("id")
     .eq("checklist_id", checklistId);
-  if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
 
-  // 3. Re-insert sections + items
-  for (const sec of sections) {
-    const { data: secRow, error: secErr } = await supabase
+  const existingSectionIds = (existingSections || []).map((s) => s.id);
+
+  // Section IDs coming from the client (only those that already existed)
+  const incomingSectionIds = sections
+    .filter((s: any) => s.id)
+    .map((s: any) => s.id);
+
+  // Delete sections that were removed by admin
+  const sectionsToDelete = existingSectionIds.filter((id) => !incomingSectionIds.includes(id));
+  if (sectionsToDelete.length) {
+    const { error } = await supabase
       .from("checklist_sections")
-      .insert({ checklist_id: checklistId, title: sec.title, order_index: sec.order_index })
-      .select()
-      .single();
-    if (secErr) return NextResponse.json({ error: secErr.message }, { status: 500 });
+      .delete()
+      .in("id", sectionsToDelete);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
-    if (sec.tasks?.length) {
-      const items = sec.tasks.map((t: any) => ({
-        checklist_id: checklistId,
-        section_id:   secRow.id,
-        label:        t.label,
-        type:         t.type,
-        required:     t.required,
-        order_index:  t.order_index,
-      }));
-      const { error: itemErr } = await supabase.from("checklist_items").insert(items);
-      if (itemErr) return NextResponse.json({ error: itemErr.message }, { status: 500 });
+  // 3. Upsert sections and their tasks
+  for (const sec of sections) {
+    let sectionId: number;
+
+    if (sec.id) {
+      // Update existing section
+      const { error } = await supabase
+        .from("checklist_sections")
+        .update({ title: sec.title, order_index: sec.order_index })
+        .eq("id", sec.id);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      sectionId = sec.id;
+    } else {
+      // Insert new section
+      const { data: newSec, error } = await supabase
+        .from("checklist_sections")
+        .insert({ checklist_id: checklistId, title: sec.title, order_index: sec.order_index })
+        .select()
+        .single();
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      sectionId = newSec.id;
+    }
+
+    // Get existing item IDs for this section
+    const { data: existingItems } = await supabase
+      .from("checklist_items")
+      .select("id")
+      .eq("section_id", sectionId);
+
+    const existingItemIds = (existingItems || []).map((i) => i.id);
+    const incomingItemIds = (sec.tasks || [])
+      .filter((t: any) => t.id)
+      .map((t: any) => t.id);
+
+    // Delete items that were removed
+    const itemsToDelete = existingItemIds.filter((id) => !incomingItemIds.includes(id));
+    if (itemsToDelete.length) {
+      const { error } = await supabase
+        .from("checklist_items")
+        .delete()
+        .in("id", itemsToDelete);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Upsert each task
+    for (const task of sec.tasks || []) {
+      if (task.id) {
+        // Update existing item — preserve ID so response_items FK stays intact
+        const { error } = await supabase
+          .from("checklist_items")
+          .update({
+            label:       task.label,
+            type:        task.type,
+            required:    task.required,
+            order_index: task.order_index,
+            section_id:  sectionId,
+          })
+          .eq("id", task.id);
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      } else {
+        // Insert new item
+        const { error } = await supabase
+          .from("checklist_items")
+          .insert({
+            checklist_id: checklistId,
+            section_id:   sectionId,
+            label:        task.label,
+            type:         task.type,
+            required:     task.required,
+            order_index:  task.order_index,
+          });
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      }
     }
   }
 
