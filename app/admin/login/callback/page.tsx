@@ -36,17 +36,18 @@ export default function AdminAuthCallback() {
       }
 
       // Set the session using the tokens from the magic link
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token,
-        refresh_token,
-      });
+      // const { error: sessionError } = await supabase.auth.setSession({
+      //   access_token,
+      //   refresh_token,
+      // });
+      // console.log("Supabase session:", sessionError);
 
-      if (sessionError) {
-        console.error("Session error:", sessionError.message);
-        setError("Login failed. Please try again.");
-        setTimeout(() => router.replace("/admin/login?error=session_failed"), 2000);
-        return;
-      }
+      // if (sessionError) {
+      //   console.error("Session error:", sessionError.message);
+      //   setError("Login failed. Please try again.");
+      //   setTimeout(() => router.replace("/admin/login?error=session_failed"), 2000);
+      //   return;
+      // }
 
       // Clean the URL hash so the token is not visible or bookmarkable
       window.history.replaceState({}, document.title, "/admin/auth/callback");
