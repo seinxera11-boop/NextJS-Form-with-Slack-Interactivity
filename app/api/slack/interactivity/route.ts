@@ -1,33 +1,66 @@
-export async function POST(req: Request) {
-  try {
-    
-    const formData = await req.formData();
-    const rawPayload = formData.get("payload");
-    if (!rawPayload) return new Response("No payload", { status: 400 });
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
-    const payload = JSON.parse(rawPayload as string);
-    console.log("📩 Slack Payload:", payload);
-    console.log("hi");
+export async function POST(req: NextRequest) {
+  const formData = await req.formData();
+  const payload = JSON.parse(formData.get("payload") as string);
 
-    if (payload.actions?.[0]?.action_id === "submit_reason") {
-      // ✅ Get reason text
-      const reason =
-        payload.state?.values?.reason_block?.reason_input?.value || "No reason provided";
+  // 👤 Slack user
+  const userName = payload.user.username || payload.user.name;
 
-      console.log("🔥 Reason submitted:", reason);
+  // 📝 Reason input
+  const reason =
+    payload.state?.values?.reason_block?.reason_input?.value || "No reason";
 
-      // ✅ Save to Supabase here
-      // await supabase.from("office_checklists").update({ reason }).eq("id", payload.message.ts);
+  // 📦 Get metadata from button
+  const action = payload.actions?.[0];
+  const parsedValue = JSON.parse(action.value || "{}");
 
-      return new Response(
-        JSON.stringify({ response_action: "update", text: "✅ Reason submitted!" }),
-        { status: 200 }
-      );
+  const response_id = parsedValue.response_id;
+
+  // ✅ 1. STORE IN DATABASE
+  if (response_id) {
+    const { error } = await supabaseAdmin
+      .from("response_approvals")
+      .insert({
+        response_id,
+        reason,
+        approved_by: userName,
+      });
+
+    if (error) {
+      console.error("DB insert error:", error);
     }
-
-    return new Response("OK");
-  } catch (err) {
-    console.error(err);
-    return new Response("Error", { status: 500 });
   }
+
+  // 📦 Original message
+  const originalBlocks = payload.message.blocks;
+
+  // ❌ Remove input + button
+  const cleanedBlocks = originalBlocks.filter(
+    (block: any) =>
+      block.block_id !== "reason_block" &&
+      block.block_id !== "actions_block"
+  );
+
+  // ✅ Add final message
+  cleanedBlocks.push({
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: `*Reason:* ${reason}\n${userName} approved!`,
+    },
+  });
+
+  // 🔁 Update Slack message
+  await fetch(payload.response_url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      replace_original: true,
+      blocks: cleanedBlocks,
+    }),
+  });
+
+  return NextResponse.json({ ok: true });
 }
