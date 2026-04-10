@@ -2,29 +2,20 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-export async function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {  // ← "middleware" not "proxy"
   const { pathname } = request.nextUrl;
 
   if (
-    pathname.startsWith("/_next") ||   // HMR, static files
-    pathname.startsWith("/api") ||     // APIs
-    pathname === "/favicon.ico"
-  ) {
-    return NextResponse.next();
-  }
-
-  // Allow login + callback
-  if (
-    pathname.startsWith("/admin/login")
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
+    pathname === "/favicon.ico" ||
+    pathname.startsWith("/admin/login") ||
+    pathname.startsWith("/admin/auth")
   ) {
     return NextResponse.next();
   }
 
   if (!pathname.startsWith("/admin")) {
-    return NextResponse.next();
-  }
-    // ✅ Allow API routes
-  if (pathname.startsWith("/api")) {
     return NextResponse.next();
   }
 
@@ -35,20 +26,23 @@ export async function proxy(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (name) => request.cookies.get(name)?.value,
-        set: (name, value, options) => {
-          response.cookies.set({ name, value, ...options });
+        getAll() {
+          return request.cookies.getAll();
         },
-        remove: (name, options) => {
-          response.cookies.set({ name, value: "", ...options });
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
         },
       },
     }
   );
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.redirect(new URL("/admin/login", request.url));
+  }
 
   return response;
 }

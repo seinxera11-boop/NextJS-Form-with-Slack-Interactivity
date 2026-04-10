@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createClient, Session } from "@supabase/supabase-js";
-
-const supabase = createClient(
+import { createBrowserClient } from "@supabase/ssr";
+import { Session } from "@supabase/supabase-js";
+import { useEffect, useState } from "react";
+const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
-
 type ItemType = "checkbox" | "text" | "textarea";
 
 type ChecklistTask = {
