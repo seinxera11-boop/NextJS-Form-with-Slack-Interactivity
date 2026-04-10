@@ -2,12 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createBrowserClient } from "@supabase/ssr";
 
 export default function AdminAuthCallback() {
   const router = useRouter();
@@ -15,16 +10,20 @@ export default function AdminAuthCallback() {
 
   useEffect(() => {
     async function handleMagicLink() {
+      // Use createBrowserClient — stores session in cookies, not localStorage
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+
       const hash = window.location.hash;
 
-      // No hash fragment at all — something went wrong
       if (!hash || !hash.includes("access_token")) {
         setError("Invalid or missing login token.");
         setTimeout(() => router.replace("/admin/login?error=no_token"), 2000);
         return;
       }
 
-      // Parse the hash fragment (strip leading #)
       const params = new URLSearchParams(hash.substring(1));
       const access_token = params.get("access_token");
       const refresh_token = params.get("refresh_token");
@@ -35,12 +34,10 @@ export default function AdminAuthCallback() {
         return;
       }
 
-      //Set the session using the tokens from the magic link
       const { error: sessionError } = await supabase.auth.setSession({
         access_token,
         refresh_token,
       });
-      console.log("Supabase session:", sessionError);
 
       if (sessionError) {
         console.error("Session error:", sessionError.message);
@@ -49,10 +46,7 @@ export default function AdminAuthCallback() {
         return;
       }
 
-      // Clean the URL hash so the token is not visible or bookmarkable
       window.history.replaceState({}, document.title, "/admin/auth/callback");
-
-      // Redirect to dashboard
       router.replace("/admin");
     }
 
@@ -61,14 +55,9 @@ export default function AdminAuthCallback() {
 
   return (
     <div style={{
-      minHeight: "100vh",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "#fff",
-      fontFamily: "system-ui, sans-serif",
-      gap: 12,
+      minHeight: "100vh", display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      background: "#fff", fontFamily: "system-ui, sans-serif", gap: 12,
     }}>
       {error ? (
         <>
