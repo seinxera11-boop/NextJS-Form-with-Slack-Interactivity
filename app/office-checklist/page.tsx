@@ -129,7 +129,7 @@ export default function OfficeChecklist() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <p className="text-gray-500 text-sm">Loading checklist...</p>
+        <p className="text-gray-500 text-base">Loading checklist...</p>
       </div>
     );
   }
@@ -137,7 +137,7 @@ export default function OfficeChecklist() {
   if (error || !checklist) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <p className="text-red-500 text-sm">Error: {error || "Checklist not found"}</p>
+        <p className="text-red-500 text-base">Error: {error || "Checklist not found"}</p>
       </div>
     );
   }
@@ -148,10 +148,10 @@ export default function OfficeChecklist() {
         {/* Header card */}
         <Card className="shadow-lg rounded-2xl">
           <CardHeader>
-            <CardTitle className="text-2xl">{checklist.title}</CardTitle>
+            <CardTitle className="text-3xl">{checklist.title}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm mb-2">
+            <p className="text-base mb-2">
               Progress: {completedCheckboxes} / {totalCheckboxes} tasks checked
             </p>
             <Progress value={progress} />
@@ -164,7 +164,7 @@ export default function OfficeChecklist() {
           return (
             <Card key={sec.id} className="shadow rounded-2xl">
               <CardHeader>
-                <CardTitle className="text-lg">{sec.title}</CardTitle>
+                <CardTitle className="text-xl">{sec.title}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {tasks.map((item) => (
@@ -175,7 +175,7 @@ export default function OfficeChecklist() {
                           checked={values[item.id] === "true"}
                           onCheckedChange={() => handleCheckbox(item.id)}
                         />
-                        <label className="text-sm">
+                        <label className="text-base">
                           {item.label}
                           {item.required && <span className="text-red-400 ml-1">*</span>}
                         </label>
@@ -183,11 +183,12 @@ export default function OfficeChecklist() {
                     )}
                     {item.type === "text" && (
                       <div className="space-y-1">
-                        <label className="text-sm font-medium">
+                        <label className="text-base font-medium">
                           {item.label}
                           {item.required && <span className="text-red-400 ml-1">*</span>}
                         </label>
                         <Input
+                          className="text-base"
                           value={values[item.id] || ""}
                           onChange={(e: any) => handleText(item.id, e.target.value)}
                           placeholder="Enter answer..."
@@ -196,11 +197,12 @@ export default function OfficeChecklist() {
                     )}
                     {item.type === "textarea" && (
                       <div className="space-y-1">
-                        <label className="text-sm font-medium">
+                        <label className="text-base font-medium">
                           {item.label}
                           {item.required && <span className="text-red-400 ml-1">*</span>}
                         </label>
                         <Textarea
+                          className="text-base"
                           value={values[item.id] || ""}
                           onChange={(e: any) => handleText(item.id, e.target.value)}
                           placeholder="Enter answer..."
@@ -219,18 +221,20 @@ export default function OfficeChecklist() {
         <Card className="shadow rounded-2xl">
           <CardContent className="pt-6 space-y-4">
             <div className="space-y-1">
-              <label className="text-sm font-medium">
+              <label className="text-base font-medium">
                 Your Name <span className="text-red-400">*</span>
               </label>
               <Input
+                className="text-base"
                 value={submittedBy}
                 onChange={(e: any) => setSubmittedBy(e.target.value)}
                 placeholder="Who is submitting this checklist?"
               />
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">Reason</label>
+              <label className="text-base font-medium">Reason</label>
               <Textarea
+                className="text-base"
                 value={submittedReason}
                 onChange={(e: any) => setSubmittedReason(e.target.value)}
                 placeholder="Why are you submitting this checklist?"
@@ -240,7 +244,7 @@ export default function OfficeChecklist() {
           </CardContent>
         </Card>
 
-        <Button className="w-full" onClick={handleSubmit} disabled={submitting}>
+        <Button className="w-full text-base py-6" onClick={handleSubmit} disabled={submitting}>
           {submitting ? "Submitting..." : "Submit Checklist"}
         </Button>
       </div>

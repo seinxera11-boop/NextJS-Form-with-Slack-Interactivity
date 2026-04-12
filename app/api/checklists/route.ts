@@ -11,7 +11,6 @@ export async function GET() {
     .from("checklists")
     .select("*, checklist_sections(*, checklist_items(*))")
     .order("created_at", { ascending: false });
-
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }
@@ -19,7 +18,6 @@ export async function GET() {
 export async function POST(req: Request) {
   const { title, sections, created_by } = await req.json();
 
-  // 1. Insert checklist
   const { data: cl, error: clErr } = await supabase
     .from("checklists")
     .insert({ title, created_by })
@@ -27,7 +25,6 @@ export async function POST(req: Request) {
     .single();
   if (clErr) return NextResponse.json({ error: clErr.message }, { status: 500 });
 
-  // 2. Insert sections + their items
   for (const sec of sections) {
     const { data: secRow, error: secErr } = await supabase
       .from("checklist_sections")
