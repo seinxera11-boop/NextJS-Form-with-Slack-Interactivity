@@ -48,7 +48,7 @@ export default function AdminLoginPage() {
         {/* Logo mark */}
         <div style={{ marginBottom: 40, display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#111" }} />
-          <span style={{ fontSize: 14, fontWeight: 700, color: "#111", letterSpacing: "-0.02em" }}>OfficeAdmin</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: "#111", letterSpacing: "-0.02em" }}>OfficeAdmin</span>
         </div>
 
         {sent ? (
@@ -56,31 +56,31 @@ export default function AdminLoginPage() {
             <div style={{ width: 44, height: 44, border: "1px solid #e5e5e5", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, marginBottom: 24 }}>
               ✉
             </div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: "#111", letterSpacing: "-0.02em", marginBottom: 8 }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: "#111", letterSpacing: "-0.02em", marginBottom: 8 }}>
               Check your inbox
             </div>
-            <p style={{ fontSize: 13, color: "#999", lineHeight: 1.7, marginBottom: 24 }}>
+            <p style={{ fontSize: 14, color: "#999", lineHeight: 1.7, marginBottom: 24 }}>
               We sent a sign-in link to <strong style={{ color: "#555", fontWeight: 500 }}>{email}</strong>.<br />
               Click it to access the admin dashboard.
             </p>
             <button
               onClick={() => setSent(false)}
-              style={{ fontSize: 13, color: "#999", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+              style={{ fontSize: 14, color: "#999", background: "none", border: "none", padding: 0, cursor: "pointer" }}
             >
               ← Use a different email
             </button>
           </div>
         ) : (
           <div>
-            <div style={{ fontSize: 26, fontWeight: 700, color: "#111", letterSpacing: "-0.03em", marginBottom: 6 }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#111", letterSpacing: "-0.03em", marginBottom: 6 }}>
               Sign in
             </div>
-            <p style={{ fontSize: 13, color: "#999", marginBottom: 32, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: "#999", marginBottom: 32, lineHeight: 1.6 }}>
               Enter your admin email to receive a magic sign-in link.
             </p>
 
             <div style={{ marginBottom: 14 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "#555", marginBottom: 7 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#555", marginBottom: 7 }}>
                 Email address
               </label>
               <input
@@ -94,7 +94,7 @@ export default function AdminLoginPage() {
                   border: "1px solid #e5e5e5",
                   borderRadius: 9,
                   padding: "11px 14px",
-                  fontSize: 14,
+                  fontSize: 15,
                   color: "#111",
                   outline: "none",
                   background: "#fafafa",
@@ -107,7 +107,7 @@ export default function AdminLoginPage() {
             </div>
 
             {error && (
-              <p style={{ fontSize: 12, color: "#dc2626", marginBottom: 14 }}>⚠ {error}</p>
+              <p style={{ fontSize: 13, color: "#dc2626", marginBottom: 14 }}>⚠ {error}</p>
             )}
 
             <button
@@ -120,7 +120,7 @@ export default function AdminLoginPage() {
                 border: "none",
                 borderRadius: 9,
                 padding: "12px 0",
-                fontSize: 14,
+                fontSize: 15,
                 fontWeight: 600,
                 cursor: loading || !email ? "not-allowed" : "pointer",
                 fontFamily: "inherit",
@@ -131,7 +131,7 @@ export default function AdminLoginPage() {
               {loading ? "Sending…" : "Send magic link"}
             </button>
 
-            <p style={{ fontSize: 11, color: "#ccc", marginTop: 20, lineHeight: 1.7, textAlign: "center" }}>
+            <p style={{ fontSize: 12, color: "#ccc", marginTop: 20, lineHeight: 1.7, textAlign: "center" }}>
               No password required. Only authorised admins can sign in.<br />
               Link expires after 1 hour.
             </p>

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-export async function proxy(request: NextRequest) {  // ← "middleware" not "proxy"
+export async function proxy(request: NextRequest) { 
   const { pathname } = request.nextUrl;
 
   if (
