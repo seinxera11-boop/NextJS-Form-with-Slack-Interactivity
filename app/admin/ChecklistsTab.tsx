@@ -2,14 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import {
-  type Checklist,
-  type ChecklistSection,
-  type ChecklistTask,
-  type ItemType,
-  TYPE_LABELS,
-  TYPE_COLOR,
-} from "./types";
+import { type Checklist, type ChecklistSection, type ChecklistTask } from "./types";
 
 export function ChecklistsTab({ userEmail }: { userEmail: string }) {
   const [checklists, setChecklists] = useState<Checklist[]>([]);
@@ -18,7 +11,7 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
   const [editTarget, setEditTarget] = useState<Checklist | null>(null);
   const [title, setTitle] = useState("");
   const [sections, setSections] = useState<ChecklistSection[]>([
-    { title: "", order_index: 0, tasks: [{ label: "", type: "checkbox", required: true, order_index: 0 }] },
+    { title: "", order_index: 0, tasks: [{ label: "", order_index: 0 }] },
   ]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -37,7 +30,7 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
 
   const startCreate = () => {
     setTitle("");
-    setSections([{ title: "", order_index: 0, tasks: [{ label: "", type: "checkbox", required: true, order_index: 0 }] }]);
+    setSections([{ title: "", order_index: 0, tasks: [{ label: "", order_index: 0 }] }]);
     setSaveError(""); setEditTarget(null); setView("create");
   };
 
@@ -49,13 +42,13 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
           id: sec.id, title: sec.title, order_index: sec.order_index,
           tasks: [...(sec.checklist_items || [])].sort((a, b) => a.order_index - b.order_index),
         }))
-      : [{ title: "", order_index: 0, tasks: [{ label: "", type: "checkbox", required: true, order_index: 0 }] }]
+      : [{ title: "", order_index: 0, tasks: [{ label: "", order_index: 0 }] }]
     );
     setSaveError(""); setEditTarget(cl); setView("edit");
   };
 
   const addSection = () =>
-    setSections(p => [...p, { title: "", order_index: p.length, tasks: [{ label: "", type: "checkbox", required: true, order_index: 0 }] }]);
+    setSections(p => [...p, { title: "", order_index: p.length, tasks: [{ label: "", order_index: 0 }] }]);
   const removeSection = (si: number) => {
     if (sections.length === 1) return;
     setSections(p => p.filter((_, i) => i !== si).map((s, i) => ({ ...s, order_index: i })));
@@ -70,7 +63,7 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
     setSections(p => p.map((s, i) => i === si ? { ...s, title: val } : s));
   const addTask = (si: number) =>
     setSections(p => p.map((s, i) => i === si
-      ? { ...s, tasks: [...s.tasks, { label: "", type: "checkbox", required: true, order_index: s.tasks.length }] } : s));
+      ? { ...s, tasks: [...s.tasks, { label: "", order_index: s.tasks.length }] } : s));
   const removeTask = (si: number, ti: number) =>
     setSections(p => p.map((s, i) => i !== si ? s : {
       ...s, tasks: s.tasks.filter((_, j) => j !== ti).map((t, j) => ({ ...t, order_index: j }))
@@ -83,9 +76,9 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
       [t[ti], t[target]] = [t[target], t[ti]];
       return { ...s, tasks: t.map((x, j) => ({ ...x, order_index: j })) };
     }));
-  const updateTask = (si: number, ti: number, patch: Partial<ChecklistTask>) =>
+  const updateTaskLabel = (si: number, ti: number, label: string) =>
     setSections(p => p.map((s, i) => i !== si ? s : {
-      ...s, tasks: s.tasks.map((t, j) => j === ti ? { ...t, ...patch } : t)
+      ...s, tasks: s.tasks.map((t, j) => j === ti ? { ...t, label } : t)
     }));
 
   const handleSave = async () => {
@@ -100,8 +93,11 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
     try {
       const res = await fetch(
         editTarget ? `/api/checklists/${editTarget.id}` : "/api/checklists",
-        { method: editTarget ? "PUT" : "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title, sections, created_by: userEmail }) }
+        {
+          method: editTarget ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, sections, created_by: userEmail }),
+        }
       );
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Save failed");
@@ -132,7 +128,7 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
     shareBtn: { fontSize: 13, color: "#2563eb", background: "#eff6ff", border: "1px solid #dbeafe", borderRadius: 6, padding: "5px 12px", cursor: "pointer" },
     delBtn: { fontSize: 13, color: "#dc2626", background: "#fff5f5", border: "1px solid #fee2e2", borderRadius: 6, padding: "5px 12px", cursor: "pointer" },
     chipsRow: { display: "flex", flexWrap: "wrap", gap: 5 },
-    chip: { fontSize: 12, padding: "2px 9px", borderRadius: 100, fontWeight: 500 },
+    chip: { fontSize: 12, padding: "2px 9px", borderRadius: 100, fontWeight: 500, background: "#f0f0f0", color: "#555" },
     emptyWrap: { textAlign: "center", padding: "80px 0" },
     emptyTitle: { fontSize: 19, fontWeight: 600, color: "#111", marginBottom: 6 },
     emptyText: { fontSize: 14, color: "#aaa", marginBottom: 28 },
@@ -152,8 +148,6 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
     itemRow: { display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid #f5f5f5", borderRadius: 8, padding: "9px 11px", marginBottom: 6 },
     itemNum: { fontSize: 12, color: "#ddd", minWidth: 18, textAlign: "right", flexShrink: 0 },
     itemInput: { flex: 1, border: "1px solid #e5e5e5", borderRadius: 7, padding: "7px 10px", fontSize: 14, color: "#111", outline: "none", background: "#fafafa", fontFamily: "inherit", minWidth: 0 },
-    typeSelect: { border: "1px solid #e5e5e5", borderRadius: 7, padding: "7px 9px", fontSize: 13, color: "#555", background: "#fff", outline: "none", cursor: "pointer", fontFamily: "inherit" },
-    reqLabel: { display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "#888", cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap" },
     moveBtns: { display: "flex", flexDirection: "column", gap: 1, flexShrink: 0 },
     moveBtn: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 12, padding: "1px 4px", lineHeight: 1 },
     removeBtn: { background: "none", border: "none", color: "#ddd", cursor: "pointer", fontSize: 18, padding: "2px 5px", lineHeight: 1, flexShrink: 0 },
@@ -214,9 +208,7 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
                 </div>
                 <div style={S.chipsRow}>
                   {preview.map((it, i) => (
-                    <span key={i} style={{ ...S.chip, background: TYPE_COLOR[it.type as ItemType] + "12", color: TYPE_COLOR[it.type as ItemType] }}>
-                      {it.label}{it.required ? " *" : ""}
-                    </span>
+                    <span key={i} style={S.chip}>{it.label}</span>
                   ))}
                   {extra > 0 && <span style={{ fontSize: 12, color: "#ccc", padding: "2px 4px" }}>+{extra} more</span>}
                 </div>
@@ -253,19 +245,19 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
                 {sec.tasks.map((task, ti) => (
                   <div key={ti} style={S.itemRow}>
                     <span style={S.itemNum}>{ti + 1}</span>
-                    <input style={S.itemInput} placeholder="Task label" value={task.label} onChange={e => updateTask(si, ti, { label: e.target.value })} />
-                    <select style={S.typeSelect} value={task.type} onChange={e => updateTask(si, ti, { type: e.target.value as ItemType })}>
-                      {Object.entries(TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                    </select>
-                    <label style={S.reqLabel}>
-                      <input type="checkbox" checked={task.required} onChange={e => updateTask(si, ti, { required: e.target.checked })} style={{ accentColor: "#111" }} />
-                      Required
-                    </label>
+                    <input
+                      style={S.itemInput}
+                      placeholder="Task label"
+                      value={task.label}
+                      onChange={e => updateTaskLabel(si, ti, e.target.value)}
+                    />
                     <div style={S.moveBtns}>
                       <button style={S.moveBtn} onClick={() => moveTask(si, ti, -1)}>↑</button>
                       <button style={S.moveBtn} onClick={() => moveTask(si, ti, 1)}>↓</button>
                     </div>
-                    {sec.tasks.length > 1 && <button style={S.removeBtn} onClick={() => removeTask(si, ti)}>×</button>}
+                    {sec.tasks.length > 1 && (
+                      <button style={S.removeBtn} onClick={() => removeTask(si, ti)}>×</button>
+                    )}
                   </div>
                 ))}
                 <button style={S.addTaskBtn} onClick={() => addTask(si)}>+ Add task</button>
