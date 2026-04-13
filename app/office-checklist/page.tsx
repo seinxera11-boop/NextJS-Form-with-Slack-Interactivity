@@ -5,16 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-
-type ItemType = "checkbox" | "text" | "textarea";
+import { Textarea } from "@/components/ui/textarea";
 
 type ChecklistTask = {
   id: number;
   label: string;
-  type: ItemType;
-  required: boolean;
   order_index: number;
 };
 
@@ -37,7 +33,7 @@ export default function OfficeChecklist() {
   const [checklist, setChecklist] = useState<Checklist | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [values, setValues] = useState<Record<number, string>>({});
+  const [checked, setChecked] = useState<Record<number, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submittedBy, setSubmittedBy] = useState("");
   const [submittedReason, setSubmittedReason] = useState("");
@@ -48,13 +44,13 @@ export default function OfficeChecklist() {
       .then((data) => {
         if (data.error) throw new Error(data.error);
         setChecklist(data);
-        const init: Record<number, string> = {};
+        const init: Record<number, boolean> = {};
         (data.checklist_sections || []).forEach((sec: ChecklistSection) => {
           (sec.checklist_items || []).forEach((item: ChecklistTask) => {
-            init[item.id] = item.type === "checkbox" ? "false" : "";
+            init[item.id] = false;
           });
         });
-        setValues(init);
+        setChecked(init);
         setLoading(false);
       })
       .catch((err) => {
@@ -70,31 +66,24 @@ export default function OfficeChecklist() {
   const allTasks = sections.flatMap((s) =>
     [...s.checklist_items].sort((a, b) => a.order_index - b.order_index)
   );
-  const checkboxTasks = allTasks.filter((t) => t.type === "checkbox");
-  const completedCheckboxes = checkboxTasks.filter((t) => values[t.id] === "true").length;
-  const totalCheckboxes = checkboxTasks.length;
-  const progress = totalCheckboxes > 0 ? (completedCheckboxes / totalCheckboxes) * 100 : 0;
+
+  const completedCount = allTasks.filter((t) => checked[t.id]).length;
+  const totalCount = allTasks.length;
+  const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
   const handleCheckbox = (id: number) =>
-    setValues((prev) => ({ ...prev, [id]: prev[id] === "true" ? "false" : "true" }));
-
-  const handleText = (id: number, val: string) =>
-    setValues((prev) => ({ ...prev, [id]: val }));
+    setChecked((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const handleSubmit = async () => {
-    const missing = allTasks.filter(
-      (item) => item.required && item.type !== "checkbox" && !values[item.id]?.trim()
-    );
-    if (missing.length > 0) {
-      alert(`Please fill in: ${missing.map((m) => m.label).join(", ")}`);
-      return;
-    }
     if (!submittedBy.trim()) {
       alert("Please enter your name before submitting.");
       return;
     }
     setSubmitting(true);
     try {
+      const values: Record<number, string> = {};
+      allTasks.forEach((t) => { values[t.id] = checked[t.id] ? "true" : "false"; });
+
       const res = await fetch("/api/checklist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -103,18 +92,16 @@ export default function OfficeChecklist() {
           submitted_by: submittedBy,
           reason: submittedReason,
           values,
-          completedItems: completedCheckboxes,
-          totalItems: totalCheckboxes,
+          completedItems: completedCount,
+          totalItems: totalCount,
         }),
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
 
-      const init: Record<number, string> = {};
-      allTasks.forEach((item) => {
-        init[item.id] = item.type === "checkbox" ? "false" : "";
-      });
-      setValues(init);
+      const init: Record<number, boolean> = {};
+      allTasks.forEach((t) => { init[t.id] = false; });
+      setChecked(init);
       setSubmittedBy("");
       setSubmittedReason("");
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -152,7 +139,7 @@ export default function OfficeChecklist() {
           </CardHeader>
           <CardContent>
             <p className="text-base mb-2">
-              Progress: {completedCheckboxes} / {totalCheckboxes} tasks checked
+              Progress: {completedCount} / {totalCount} tasks checked
             </p>
             <Progress value={progress} />
           </CardContent>
@@ -168,48 +155,12 @@ export default function OfficeChecklist() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {tasks.map((item) => (
-                  <div key={item.id}>
-                    {item.type === "checkbox" && (
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          checked={values[item.id] === "true"}
-                          onCheckedChange={() => handleCheckbox(item.id)}
-                        />
-                        <label className="text-base">
-                          {item.label}
-                          {item.required && <span className="text-red-400 ml-1">*</span>}
-                        </label>
-                      </div>
-                    )}
-                    {item.type === "text" && (
-                      <div className="space-y-1">
-                        <label className="text-base font-medium">
-                          {item.label}
-                          {item.required && <span className="text-red-400 ml-1">*</span>}
-                        </label>
-                        <Input
-                          className="text-base"
-                          value={values[item.id] || ""}
-                          onChange={(e: any) => handleText(item.id, e.target.value)}
-                          placeholder="Enter answer..."
-                        />
-                      </div>
-                    )}
-                    {item.type === "textarea" && (
-                      <div className="space-y-1">
-                        <label className="text-base font-medium">
-                          {item.label}
-                          {item.required && <span className="text-red-400 ml-1">*</span>}
-                        </label>
-                        <Textarea
-                          className="text-base"
-                          value={values[item.id] || ""}
-                          onChange={(e: any) => handleText(item.id, e.target.value)}
-                          placeholder="Enter answer..."
-                          rows={3}
-                        />
-                      </div>
-                    )}
+                  <div key={item.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      checked={checked[item.id] ?? false}
+                      onCheckedChange={() => handleCheckbox(item.id)}
+                    />
+                    <label className="text-base">{item.label}</label>
                   </div>
                 ))}
               </CardContent>

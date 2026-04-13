@@ -3,8 +3,6 @@ export type ItemType = "checkbox" | "text" | "textarea";
 export type ChecklistTask = {
   id?: number;
   label: string;
-  type: ItemType;
-  required: boolean;
   order_index: number;
 };
 

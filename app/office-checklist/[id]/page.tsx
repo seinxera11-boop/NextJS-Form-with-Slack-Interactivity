@@ -10,6 +10,8 @@ type Checklist = { id: number; title: string; checklist_sections: ChecklistSecti
 type Department = { id: number; name: string; };
 type OrgUser = { id: number; name: string; department_id: number; };
 
+type Step = "department" | "user" | "form";
+
 export default function ChecklistPage() {
   const params = useParams();
   const id = params?.id as string;
@@ -26,6 +28,8 @@ export default function ChecklistPage() {
   const [isOther, setIsOther] = useState(false);
   const [otherName, setOtherName] = useState("");
   const [loadingUsers, setLoadingUsers] = useState(false);
+
+  const [step, setStep] = useState<Step>("department");
 
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -83,11 +87,18 @@ export default function ChecklistPage() {
   const handleText = (id: number, val: string) =>
     setValues(p => ({ ...p, [id]: val }));
 
-  const handleSubmit = async () => {
+  const handleDeptContinue = () => {
     if (!selectedDeptId) { alert("Please select a department."); return; }
+    setStep("user");
+  };
+
+  const handleUserContinue = () => {
     if (!isOther && !selectedUserId) { alert("Please select a user or choose Other."); return; }
     if (isOther && !otherName.trim()) { alert("Please enter your name."); return; }
+    setStep("form");
+  };
 
+  const handleSubmit = async () => {
     const missing = allTasks.filter(
       it => it.required && it.type !== "checkbox" && !values[it.id]?.trim()
     );
@@ -133,6 +144,7 @@ export default function ChecklistPage() {
     setValues(init);
     setSelectedDeptId(""); setSelectedUserId(""); setIsOther(false);
     setOtherName(""); setReason(""); setSubmitted(false); setSubmittedBy("");
+    setStep("department");
   };
 
   const S: Record<string, React.CSSProperties> = {
@@ -165,6 +177,9 @@ export default function ChecklistPage() {
     nameLabel: { fontSize: 13, fontWeight: 500, color: "#555", marginBottom: 8, display: "block" },
     submitBtn: { width: "100%", background: "#111", color: "#fff", border: "none", borderRadius: 10, padding: "13px 0", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
     submitBtnDisabled: { width: "100%", background: "#e5e5e5", color: "#aaa", border: "none", borderRadius: 10, padding: "13px 0", fontSize: 15, fontWeight: 600, cursor: "not-allowed", fontFamily: "inherit" },
+    continueBtn: { width: "100%", background: "#111", color: "#fff", border: "none", borderRadius: 10, padding: "13px 0", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginTop: 4 },
+    backLink: { fontSize: 13, color: "#999", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: "8px 0", display: "inline-block", marginBottom: 16 },
+    summaryChip: { display: "inline-flex", alignItems: "center", gap: 6, background: "#f5f5f5", borderRadius: 8, padding: "6px 12px", fontSize: 13, color: "#555", marginBottom: 16 },
     successWrap: { textAlign: "center" as const, padding: "80px 0" },
     centerMsg: { display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", fontSize: 15, color: "#999" },
   };
@@ -193,156 +208,190 @@ export default function ChecklistPage() {
     </div>
   );
 
+  const deptName = departments.find(d => String(d.id) === selectedDeptId)?.name || "";
+  const userName = isOther ? otherName : (orgUsers.find(u => String(u.id) === selectedUserId)?.name || "");
+
   return (
     <div style={S.root}>
       <div style={S.header}><div style={S.headerDot} /><span style={S.headerName}>OfficeAdmin</span></div>
       <div style={S.main}>
         <div style={S.title}>{checklist.title}</div>
 
-        {total > 0 && (
-          <div style={S.progressWrap}>
-            <div style={S.progressLabel}>
-              <span>Progress</span><span>{checked}/{total} checked</span>
-            </div>
-            <div style={S.progressTrack}>
-              <div style={{ ...S.progressFill, width: `${pct}%` }} />
-            </div>
+        {/* ── STEP 1: Department ── */}
+        {step === "department" && (
+          <div style={S.selCard}>
+            <label style={S.selLabel}>Department <span style={{ color: "#dc2626" }}>*</span></label>
+            <select
+              style={S.select}
+              value={selectedDeptId}
+              onChange={e => setSelectedDeptId(e.target.value)}
+            >
+              <option value="">Select a department…</option>
+              {departments.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+            <button style={S.continueBtn} onClick={handleDeptContinue}>
+              Continue
+            </button>
           </div>
         )}
 
-        {/* Department & User Selection */}
-        <div style={S.selCard}>
-          <label style={S.selLabel}>Department <span style={{ color: "#dc2626" }}>*</span></label>
-          <select
-            style={S.select}
-            value={selectedDeptId}
-            onChange={e => setSelectedDeptId(e.target.value)}
-          >
-            <option value="">Select a department…</option>
-            {departments.map(d => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
+        {/* ── STEP 2: User ── */}
+        {step === "user" && (
+          <div style={S.selCard}>
+            <button style={S.backLink} onClick={() => setStep("department")}>
+              ← {deptName}
+            </button>
+            <label style={S.selLabel}>User <span style={{ color: "#dc2626" }}>*</span></label>
+            {loadingUsers ? (
+              <div style={{ fontSize: 14, color: "#bbb", padding: "8px 0" }}>Loading users…</div>
+            ) : (
+              <>
+                <select
+                  style={isOther ? S.selectDisabled : S.select}
+                  value={selectedUserId}
+                  onChange={e => { setSelectedUserId(e.target.value); setIsOther(false); }}
+                  disabled={isOther}
+                >
+                  <option value="">Select a user…</option>
+                  {orgUsers.map(u => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
 
-          {selectedDeptId && (
-            <div style={{ marginTop: 16 }}>
-              <label style={S.selLabel}>User <span style={{ color: "#dc2626" }}>*</span></label>
-              {loadingUsers ? (
-                <div style={{ fontSize: 14, color: "#bbb", padding: "8px 0" }}>Loading users…</div>
-              ) : (
-                <>
-                  <select
-                    style={isOther ? S.selectDisabled : S.select}
-                    value={selectedUserId}
-                    onChange={e => { setSelectedUserId(e.target.value); setIsOther(false); }}
-                    disabled={isOther}
+                <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10 }}>
+                  <button
+                    style={isOther ? S.otherBtnActive : S.otherBtn}
+                    onClick={() => { setIsOther(!isOther); setSelectedUserId(""); setOtherName(""); }}
                   >
-                    <option value="">Select a user…</option>
-                    {orgUsers.map(u => (
-                      <option key={u.id} value={u.id}>{u.name}</option>
-                    ))}
-                  </select>
-
-                  <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10 }}>
-                    <button
-                      style={isOther ? S.otherBtnActive : S.otherBtn}
-                      onClick={() => { setIsOther(!isOther); setSelectedUserId(""); setOtherName(""); }}
-                    >
-                      {isOther ? "✓ Other" : "Other"}
-                    </button>
-                    {isOther && (
-                      <span style={{ fontSize: 13, color: "#999" }}>Enter your name below</span>
-                    )}
-                  </div>
-
+                    {isOther ? "✓ Other" : "Other"}
+                  </button>
                   {isOther && (
-                    <input
-                      type="text"
-                      style={{ ...S.textInput, marginTop: 10 }}
-                      placeholder="Enter your name…"
-                      value={otherName}
-                      onChange={e => setOtherName(e.target.value)}
-                      autoFocus
-                    />
+                    <span style={{ fontSize: 13, color: "#999" }}>Enter your name below</span>
                   )}
-                </>
-              )}
+                </div>
+
+                {isOther && (
+                  <input
+                    type="text"
+                    style={{ ...S.textInput, marginTop: 10 }}
+                    placeholder="Enter your name…"
+                    value={otherName}
+                    onChange={e => setOtherName(e.target.value)}
+                    autoFocus
+                  />
+                )}
+              </>
+            )}
+            <button style={S.continueBtn} onClick={handleUserContinue}>
+              Continue
+            </button>
+          </div>
+        )}
+
+        {/* ── STEP 3: Form ── */}
+        {step === "form" && (
+          <>
+            {/* Summary chip showing who is filling */}
+            <div style={{ marginBottom: 24, display: "flex", gap: 8, flexWrap: "wrap" as const }}>
+              <span style={S.summaryChip}>
+                <span style={{ color: "#bbb" }}>dept</span> {deptName}
+              </span>
+              <span style={S.summaryChip}>
+                <span style={{ color: "#bbb" }}>user</span> {userName}
+              </span>
+              <button
+                style={{ ...S.backLink, margin: 0, alignSelf: "center" }}
+                onClick={() => setStep("user")}
+              >
+                Change
+              </button>
             </div>
-          )}
-        </div>
 
-        {/* Checklist sections */}
-        {sections.map(sec => {
-          const tasks = [...sec.checklist_items].sort((a, b) => a.order_index - b.order_index);
-          return (
-            <div key={sec.id} style={S.secCard}>
-              <div style={S.secTitle}>{sec.title}</div>
-              {tasks.map((item, idx) => {
-                const isLast = idx === tasks.length - 1;
-                const isDone = item.type === "checkbox" && values[item.id] === "true";
-                return (
-                  <div key={item.id} style={isLast ? S.itemRowLast : S.itemRow}>
-                    {item.type === "checkbox" ? (
-                      <>
-                        <input
-                          type="checkbox"
-                          style={S.checkbox}
-                          checked={values[item.id] === "true"}
-                          onChange={() => toggleCheck(item.id)}
-                        />
-                        <span style={isDone ? S.itemLabelMuted : S.itemLabel}>{item.label}</span>
-                      </>
-                    ) : item.type === "text" ? (
-                      <div style={{ flex: 1 }}>
-                        <div style={{ ...S.itemLabel, marginBottom: 8 }}>
-                          {item.label}{item.required && <span style={S.reqStar}>*</span>}
-                        </div>
-                        <input
-                          type="text"
-                          style={S.textInput}
-                          placeholder="Your answer…"
-                          value={values[item.id] || ""}
-                          onChange={e => handleText(item.id, e.target.value)}
-                        />
+            {total > 0 && (
+              <div style={S.progressWrap}>
+                <div style={S.progressLabel}>
+                  <span>Progress</span><span>{checked}/{total} checked</span>
+                </div>
+                <div style={S.progressTrack}>
+                  <div style={{ ...S.progressFill, width: `${pct}%` }} />
+                </div>
+              </div>
+            )}
+
+            {sections.map(sec => {
+              const tasks = [...sec.checklist_items].sort((a, b) => a.order_index - b.order_index);
+              return (
+                <div key={sec.id} style={S.secCard}>
+                  <div style={S.secTitle}>{sec.title}</div>
+                  {tasks.map((item, idx) => {
+                    const isLast = idx === tasks.length - 1;
+                    const isDone = item.type === "checkbox" && values[item.id] === "true";
+                    return (
+                      <div key={item.id} style={isLast ? S.itemRowLast : S.itemRow}>
+                        {item.type === "checkbox" ? (
+                          <>
+                            <input
+                              type="checkbox"
+                              style={S.checkbox}
+                              checked={values[item.id] === "true"}
+                              onChange={() => toggleCheck(item.id)}
+                            />
+                            <span style={isDone ? S.itemLabelMuted : S.itemLabel}>{item.label}</span>
+                          </>
+                        ) : item.type === "text" ? (
+                          <div style={{ flex: 1 }}>
+                            <div style={{ ...S.itemLabel, marginBottom: 8 }}>
+                              {item.label}{item.required && <span style={S.reqStar}>*</span>}
+                            </div>
+                            <input
+                              type="text"
+                              style={S.textInput}
+                              placeholder="Your answer…"
+                              value={values[item.id] || ""}
+                              onChange={e => handleText(item.id, e.target.value)}
+                            />
+                          </div>
+                        ) : (
+                          <div style={{ flex: 1 }}>
+                            <div style={{ ...S.itemLabel, marginBottom: 8 }}>
+                              {item.label}{item.required && <span style={S.reqStar}>*</span>}
+                            </div>
+                            <textarea
+                              style={{ ...S.textInput, minHeight: 80 }}
+                              placeholder="Your answer…"
+                              value={values[item.id] || ""}
+                              onChange={e => handleText(item.id, e.target.value)}
+                            />
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <div style={{ flex: 1 }}>
-                        <div style={{ ...S.itemLabel, marginBottom: 8 }}>
-                          {item.label}{item.required && <span style={S.reqStar}>*</span>}
-                        </div>
-                        <textarea
-                          style={{ ...S.textInput, minHeight: 80 }}
-                          placeholder="Your answer…"
-                          value={values[item.id] || ""}
-                          onChange={e => handleText(item.id, e.target.value)}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              );
+            })}
+
+            <div style={S.nameCard}>
+              <label style={S.nameLabel}>Reason</label>
+              <textarea
+                style={{ ...S.textInput, minHeight: 80 }}
+                placeholder="Submit reason"
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+              />
             </div>
-          );
-        })}
 
-        {/* Reason */}
-        <div style={S.nameCard}>
-          <label style={S.nameLabel}>Reason</label>
-          <textarea
-            style={{ ...S.textInput, minHeight: 80 }}
-            placeholder="Submit reason"
-            value={reason}
-            onChange={e => setReason(e.target.value)}
-          />
-        </div>
-
-        <button
-          style={submitting ? S.submitBtnDisabled : S.submitBtn}
-          onClick={handleSubmit}
-          disabled={submitting}
-        >
-          {submitting ? "Submitting…" : "Submit checklist"}
-        </button>
+            <button
+              style={submitting ? S.submitBtnDisabled : S.submitBtn}
+              onClick={handleSubmit}
+              disabled={submitting}
+            >
+              {submitting ? "Submitting…" : "Submit checklist"}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
