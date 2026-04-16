@@ -3,6 +3,19 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
 
+async function getWebhookUrls() {
+  const { data } = await supabaseAdmin
+    .from("variables")
+    .select("key, value")
+    .in("key", ["approval_url", "security_url", "reminder_url"]);
+
+  const map = Object.fromEntries((data || []).map(r => [r.key, r.value]));
+  return {
+    approvalUrl: map["approval_url"] || "",
+    securityUrl: map["security_url"] || "",
+  };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -16,12 +29,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // 1. Insert response — submitted_by already holds the resolved name
+    // 1. Insert response
     const { data: responseData, error: responseError } = await supabaseAdmin
       .from("responses")
       .insert({
         checklist_id,
-        submitted_by,   // holds org_user.name OR the typed "other" name
+        submitted_by,
         reason,
         department_id: department_id || null,
         user_id: user_id || null,
@@ -74,34 +87,27 @@ export async function POST(req: NextRequest) {
       [...(sec.checklist_items || [])].sort((a: any, b: any) => a.order_index - b.order_index)
     );
 
-    const checkboxItems = allItems.filter((i: any) => i.type === "checkbox");
-    const textItems = allItems.filter((i: any) => i.type !== "checkbox");
-    const completedTasks = checkboxItems
-      .filter((i: any) => values[i.id] === "true")
-      .map((i: any) => i.label);
-    const incompleteTasks = checkboxItems
-      .filter((i: any) => values[i.id] !== "true")
-      .map((i: any) => i.label);
+    const checkboxItems  = allItems.filter((i: any) => i.type === "checkbox");
+    const incompleteTasks = checkboxItems.filter((i: any) => values[i.id] !== "true").map((i: any) => i.label);
 
-    // 6. Slack
-    const webhook1 = process.env.SLACK_WEBHOOK_URL_1;
-    const webhook2 = process.env.SLACK_WEBHOOK_URL_2;
+    // 6. Fetch webhook URLs
+    const { approvalUrl, securityUrl } = await getWebhookUrls();
 
-    const baseBlocks: any[] = [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: [
-            `*Checklist:* ${checklistData?.title || "Untitled"}`,
-            `*Submitted by:* ${submitted_by}`,
-            departmentName ? `*Department:* ${departmentName}` : null,
-            `*Progress:* ${completedItems}/${totalItems} tasks checked`,
-          ].filter(Boolean).join("\n"),
-        },
+    // ── Shared: header block ───────────────────────────────────────────────────
+    const headerBlock: any = {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: [
+          `*Checklist:* ${checklistData?.title || "Untitled"}`,
+          `*Submitted by:* ${submitted_by}`,
+          departmentName ? `*Department:* ${departmentName}` : null,
+          `*Progress:* ${completedItems}/${totalItems} tasks checked`,
+        ].filter(Boolean).join("\n"),
       },
-    ];
+    };
 
+    // ── Shared: one block per section showing every item ──────────────────────
     const sectionBreakdownBlocks: any[] = sortedSections.map((sec) => {
       const secItems = [...(sec.checklist_items || [])].sort(
         (a: any, b: any) => a.order_index - b.order_index
@@ -110,6 +116,7 @@ export async function POST(req: NextRequest) {
         if (item.type === "checkbox") {
           return `${values[item.id] === "true" ? "✅" : "❌"} ${item.label}`;
         }
+        // text / textarea
         return `*${item.label}:* ${values[item.id]?.trim() || "_No response_"}`;
       });
       return {
@@ -118,64 +125,69 @@ export async function POST(req: NextRequest) {
       };
     });
 
+    // ── Shared: reason block ──────────────────────────────────────────────────
     const reasonBlock = reason?.trim()
       ? { type: "section", text: { type: "mrkdwn", text: `*📝 Submission Reason:*\n${reason}` } }
       : null;
 
-    const actionBlocks: any[] = incompleteTasks.length > 0
-      ? [
-          {
-            type: "input", block_id: "reason_block",
-            element: {
-              type: "plain_text_input", action_id: "reason_input",
-              placeholder: { type: "plain_text", text: "Enter reason for incomplete tasks" },
-            },
-            label: { type: "plain_text", text: "Reason for incomplete tasks" },
-          },
-          {
-            type: "actions", block_id: "actions_block",
-            elements: [{
-              type: "button", text: { type: "plain_text", text: "Approve" },
-              style: "primary", action_id: "submit_reason",
-              value: JSON.stringify({ response_id: responseId, checklist_id, submitted_by }),
-            }],
-          },
-        ]
-      : [];
+    // ── Approval channel only: interactive input + button ─────────────────────
+    const actionBlocks: any[] = [
+  {
+    type: "input",
+    block_id: "reason_block",
+    element: {
+      type: "plain_text_input",
+      action_id: "reason_input",
+      placeholder: { type: "plain_text", text: "Enter message " },
+    },
+    label: { type: "plain_text", text: "Message" },
+    optional: true, // 👈 important so it's not required
+  },
+  {
+    type: "actions",
+    block_id: "actions_block",
+    elements: [
+      {
+        type: "button",
+        text: { type: "plain_text", text: "Approve" },
+        style: "primary",
+        action_id: "submit_reason",
+        value: JSON.stringify({
+          response_id: responseId,
+          checklist_id,
+          submitted_by,
+        }),
+      },
+    ],
+  },
+];
 
-    if (webhook1) {
-      await fetch(webhook1, {
+    // ── Base blocks shared by both channels (no interactive elements) ─────────
+    const sharedBlocks: any[] = [
+      headerBlock,
+      { type: "divider" },
+      ...sectionBreakdownBlocks,
+      ...(reasonBlock ? [reasonBlock] : []),
+    ];
+
+    // ── Send to Approval channel (with interactive approve button) ────────────
+    if (approvalUrl) {
+      await fetch(approvalUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          blocks: [
-            ...baseBlocks,
-            { type: "divider" },
-            ...sectionBreakdownBlocks,
-            ...(reasonBlock ? [reasonBlock] : []),
-            ...actionBlocks,
-          ],
+          blocks: [...sharedBlocks, ...actionBlocks],
         }),
       });
     }
 
-    if (webhook2) {
-      const completedBlock = completedTasks.length > 0
-        ? { type: "section", text: { type: "mrkdwn", text: `*✅ Completed:*\n${completedTasks.map((t: string) => `• ${t}`).join("\n")}` } }
-        : null;
-      const incompleteBlock = incompleteTasks.length > 0
-        ? { type: "section", text: { type: "mrkdwn", text: `*❌ Not Completed:*\n${incompleteTasks.map((t: string) => `• ${t}`).join("\n")}` } }
-        : null;
-      await fetch(webhook2, {
+    // ── Send to Security channel (identical layout, no button) ────────────────
+    if (securityUrl) {
+      await fetch(securityUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          blocks: [
-            ...baseBlocks,
-            ...(completedBlock ? [completedBlock] : []),
-            ...(incompleteBlock ? [incompleteBlock] : []),
-            ...(reasonBlock ? [reasonBlock] : []),
-          ],
+          blocks: sharedBlocks,   // same blocks, just without actionBlocks
         }),
       });
     }

@@ -38,8 +38,8 @@ export async function POST(req: Request) {
         checklist_id: cl.id,
         section_id:   secRow.id,
         label:        t.label,
-        type:         t.type,
-        required:     t.required,
+        // type:         t.type,
+        // required:     t.required,
         order_index:  t.order_index,
       }));
       const { error: itemErr } = await supabase.from("checklist_items").insert(items);

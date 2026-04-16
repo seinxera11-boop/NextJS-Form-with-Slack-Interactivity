@@ -5,17 +5,12 @@ export async function GET() {
   try {
     const now = new Date();
 
-    // Check if today is Saturday
-    const isSaturday = now.getDay() === 6;
-
-    if (isSaturday) {
+    if (now.getDay() === 6) {
       return NextResponse.json({ message: "Today is Saturday — holiday" });
     }
 
-    // 🗓️ Today date (ISO)
     const today = now.toISOString().split("T")[0];
 
-    // Check if response already exists today
     const { data: responses } = await supabaseAdmin
       .from("responses")
       .select("id")
@@ -26,14 +21,21 @@ export async function GET() {
       return NextResponse.json({ message: "Already submitted" });
     }
 
-    // Send Slack reminder if webhook exists
-    const webhook3 = process.env.SLACK_WEBHOOK_URL_3;
-    if (webhook3) {
-      await fetch(webhook3, {
+    // Fetch reminder URL from DB
+    const { data: varData } = await supabaseAdmin
+      .from("variables")
+      .select("value")
+      .eq("key", "reminder_url")
+      .single();
+
+    const reminderUrl = varData?.value || "";
+
+    if (reminderUrl) {
+      await fetch(reminderUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          text: "🚨 Today is a working day. Why haven’t you filled the checklist?",
+          text: "🚨 Today is a working day. Why haven't you filled the checklist?",
         }),
       });
     }

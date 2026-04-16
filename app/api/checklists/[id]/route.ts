@@ -86,8 +86,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
           .from("checklist_items")
           .update({
             label:       task.label,
-            type:        task.type,
-            required:    task.required,
+            // type:        task.type,
+            // required:    task.required,
             order_index: task.order_index,
             section_id:  sectionId,
           })
@@ -100,8 +100,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
             checklist_id: checklistId,
             section_id:   sectionId,
             label:        task.label,
-            type:         task.type,
-            required:     task.required,
+            // type:         task.type,
+            // required:     task.required,
             order_index:  task.order_index,
           });
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });

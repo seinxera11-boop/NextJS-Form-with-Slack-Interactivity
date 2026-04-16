@@ -7,8 +7,9 @@ import { ChecklistsTab } from "./ChecklistsTab";
 import { ResponsesTab } from "./ResponsesTab";
 import { ApprovalsTab } from "./ApprovalsTab";
 import { DepartmentsTab } from "./DepartmentsTab";
+import { SettingsTab } from "./SettingsTab";
 
-type Tab = "checklists" | "responses" | "approvals" | "departments";
+type Tab = "checklists" | "responses" | "approvals" | "departments" | "settings";
 
 // ─── Auth wrapper ────────────────────────────────────────────────────────────
 export default function AdminDashboardWrapper() {
@@ -72,6 +73,7 @@ function AdminDashboard({ userEmail }: { userEmail: string }) {
       {tab === "responses"   && <ResponsesTab />}
       {tab === "approvals"   && <ApprovalsTab userEmail={userEmail} />}
       {tab === "departments" && <DepartmentsTab />}
+      {tab === "settings"    && <SettingsTab />}
     </div>
   );
 }
@@ -83,6 +85,7 @@ function TabNav({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
     { key: "responses",   label: "Responses"   },
     { key: "approvals",   label: "Approvals"   },
     { key: "departments", label: "Departments" },
+    { key: "settings",    label: "Settings"    },
   ];
   return (
     <div style={{ display: "flex", gap: 2 }}>
