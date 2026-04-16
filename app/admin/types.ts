@@ -1,4 +1,4 @@
-export type ItemType = "checkbox" | "text" | "textarea";
+export type ItemType = "checkbox";
 
 export type ChecklistTask = {
   id?: number;
@@ -66,12 +66,12 @@ export type OrgUser = {
 
 export const TYPE_LABELS: Record<ItemType, string> = {
   checkbox: "Checkbox",
-  text: "Short text",
-  textarea: "Long text",
+  // text: "Short text",
+  // textarea: "Long text",
 };
 
 export const TYPE_COLOR: Record<ItemType, string> = {
   checkbox: "#16a34a",
-  text: "#2563eb",
-  textarea: "#7c3aed",
+  // text: "#2563eb",
+  // textarea: "#7c3aed",
 };
