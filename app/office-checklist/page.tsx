@@ -38,26 +38,26 @@ export default function OfficeChecklist() {
   const [submittedBy, setSubmittedBy] = useState("");
   const [submittedReason, setSubmittedReason] = useState("");
 
-  useEffect(() => {
-    fetch(`/api/checklists/${DEFAULT_CHECKLIST_ID}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.error) throw new Error(data.error);
-        setChecklist(data);
-        const init: Record<number, boolean> = {};
-        (data.checklist_sections || []).forEach((sec: ChecklistSection) => {
-          (sec.checklist_items || []).forEach((item: ChecklistTask) => {
-            init[item.id] = false;
-          });
-        });
-        setChecked(init);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }, []);
+  // useEffect(() => {
+  //   fetch(`/api/checklists/${DEFAULT_CHECKLIST_ID}`)
+  //     .then((r) => r.json())
+  //     .then((data) => {
+  //       if (data.error) throw new Error(data.error);
+  //       setChecklist(data);
+  //       const init: Record<number, boolean> = {};
+  //       (data.checklist_sections || []).forEach((sec: ChecklistSection) => {
+  //         (sec.checklist_items || []).forEach((item: ChecklistTask) => {
+  //           init[item.id] = false;
+  //         });
+  //       });
+  //       setChecked(init);
+  //       setLoading(false);
+  //     })
+  //     .catch((err) => {
+  //       setError(err.message);
+  //       setLoading(false);
+  //     });
+  // }, []);
 
   const sections = checklist
     ? [...checklist.checklist_sections].sort((a, b) => a.order_index - b.order_index)
