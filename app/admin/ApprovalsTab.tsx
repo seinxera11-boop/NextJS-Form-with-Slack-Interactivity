@@ -36,7 +36,7 @@ export function ApprovalsTab({ userEmail }: { userEmail: string }) {
       setApprovalReasons(p => { const n = { ...p }; delete n[resp.id]; return n; });
       await fetchResponses();
     } catch (err: any) {
-      alert("Failed to approve: " + err.message);
+      alert("承認に失敗しました: " + err.message);
     } finally {
       setApprovingId(null);
     }
@@ -48,45 +48,83 @@ export function ApprovalsTab({ userEmail }: { userEmail: string }) {
 
   const S: Record<string, React.CSSProperties> = {
     main: { maxWidth: 860, margin: "0 auto", padding: "52px 32px" },
-    pageTitle: { fontSize: 30, fontWeight: 700, letterSpacing: "-0.03em", color: "#111", marginBottom: 4 },
-    pageSubtitle: { fontSize: 14, color: "#999", marginBottom: 32 },
-    filterRow: { display: "flex", gap: 6, marginBottom: 20 },
-    filterBtnActive: { fontSize: 14, fontWeight: 600, color: "#111", background: "#f0f0f0", border: "1px solid #e0e0e0", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontFamily: "inherit" } as React.CSSProperties,
-    filterBtnInactive: { fontSize: 14, fontWeight: 400, color: "#999", background: "none", border: "1px solid #f0f0f0", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontFamily: "inherit" } as React.CSSProperties,
-    card: { border: "1px solid #f0f0f0", borderRadius: 12, marginBottom: 10, overflow: "hidden", background: "#fff" },
-    cardHeader: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "16px 20px", cursor: "pointer" },
+    pageTitle: { fontSize: 28, fontWeight: 700, letterSpacing: "-0.04em", color: "#1a1035", marginBottom: 6 },
+    pageSubtitle: { fontSize: 14, color: "#7c6fa0", marginBottom: 32 },
+    filterRow: { display: "flex", gap: 6, marginBottom: 24 },
+    filterBtnActive: {
+      fontSize: 13, fontWeight: 600, color: "#4f35be",
+      background: "linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)",
+      border: "1.5px solid #c4b5fd", borderRadius: 10, padding: "7px 16px",
+      cursor: "pointer", fontFamily: "inherit", boxShadow: "0 1px 4px rgba(79,53,190,0.12)"
+    } as React.CSSProperties,
+    filterBtnInactive: {
+      fontSize: 13, fontWeight: 400, color: "#9688c0",
+      background: "#faf9ff", border: "1.5px solid #ede9fe",
+      borderRadius: 10, padding: "7px 16px", cursor: "pointer", fontFamily: "inherit"
+    } as React.CSSProperties,
+    card: {
+      border: "1.5px solid #ede9fe", borderRadius: 16, marginBottom: 12,
+      overflow: "hidden", background: "#fff",
+      boxShadow: "0 2px 12px rgba(79,53,190,0.06)", transition: "all 0.18s ease"
+    },
+    cardHeader: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "18px 22px", cursor: "pointer" },
     cardHeaderLeft: { flex: 1 },
-    cardTitle: { fontSize: 15, fontWeight: 600, color: "#111", marginBottom: 3 },
-    cardMeta: { fontSize: 12, color: "#bbb", marginBottom: 6 },
-    cardBody: { padding: "0 20px 20px", borderTop: "1px solid #f5f5f5" },
-    sectionTitle: { fontSize: 12, fontWeight: 600, color: "#bbb", textTransform: "uppercase", letterSpacing: "0.1em", margin: "16px 0 10px" },
-    itemRow: { display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 0", borderBottom: "1px solid #f9f9f9" },
-    itemLabel: { fontSize: 14, color: "#555", minWidth: 200, flexShrink: 0 },
-    itemValue: { fontSize: 14, color: "#111", flex: 1 },
-    reasonInput: { width: "100%", border: "1px solid #e5e5e5", borderRadius: 8, padding: "10px 13px", fontSize: 14, color: "#111", outline: "none", background: "#fafafa", fontFamily: "inherit", resize: "vertical", marginTop: 8, boxSizing: "border-box" as const },
-    approveBtn: { fontSize: 14, fontWeight: 600, color: "#fff", background: "#16a34a", border: "none", borderRadius: 8, padding: "9px 18px", cursor: "pointer", fontFamily: "inherit", marginTop: 10 },
-    reasonBox: { background: "#fafafa", border: "1px solid #f0f0f0", borderRadius: 8, padding: "10px 14px", fontSize: 14, color: "#555", marginTop: 8 },
-    expandBtn: { fontSize: 13, color: "#999", background: "none", border: "none", cursor: "pointer", marginLeft: 8 },
-    deptBadge: { fontSize: 12, background: "#f0f4ff", color: "#3b5bdb", border: "1px solid #d0d9ff", borderRadius: 100, padding: "2px 8px", fontWeight: 500 },
+    cardTitle: { fontSize: 15, fontWeight: 600, color: "#1a1035", marginBottom: 4 },
+    cardMeta: { fontSize: 12, color: "#9688c0", marginBottom: 6 },
+    cardBody: { padding: "0 22px 22px", borderTop: "1.5px solid #f5f0ff" },
+    sectionTitle: {
+      fontSize: 10, fontWeight: 700, color: "#a78bfa",
+      textTransform: "uppercase", letterSpacing: "0.12em", margin: "18px 0 10px"
+    },
+    itemRow: { display: "flex", alignItems: "flex-start", gap: 10, padding: "9px 0", borderBottom: "1px solid #faf8ff" },
+    itemLabel: { fontSize: 14, color: "#6b5fa0", minWidth: 200, flexShrink: 0 },
+    itemValue: { fontSize: 14, color: "#1a1035", flex: 1, fontWeight: 500 },
+    reasonInput: {
+      width: "100%", border: "1.5px solid #ddd6fe", borderRadius: 10,
+      padding: "10px 14px", fontSize: 14, color: "#1a1035", outline: "none",
+      background: "#faf9ff", fontFamily: "inherit", resize: "vertical",
+      marginTop: 8, boxSizing: "border-box" as const,
+      transition: "border-color 0.15s"
+    },
+    approveBtn: {
+      fontSize: 14, fontWeight: 600, color: "#fff",
+      background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
+      border: "none", borderRadius: 10, padding: "10px 20px",
+      cursor: "pointer", fontFamily: "inherit", marginTop: 10,
+      boxShadow: "0 2px 8px rgba(5,150,105,0.3)"
+    },
+    reasonBox: {
+      background: "linear-gradient(135deg, #faf9ff 0%, #f5f0ff 100%)",
+      border: "1.5px solid #ede9fe", borderRadius: 10,
+      padding: "12px 16px", fontSize: 14, color: "#4b3d80", marginTop: 8
+    },
+    expandBtn: { fontSize: 12, color: "#a78bfa", background: "none", border: "none", cursor: "pointer", marginLeft: 8 },
+    deptBadge: {
+      fontSize: 11, background: "linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)",
+      color: "#4f35be", border: "1px solid #c4b5fd",
+      borderRadius: 100, padding: "3px 10px", fontWeight: 600
+    },
+    loadingWrap: { padding: "80px 0", textAlign: "center", fontSize: 14, color: "#c4b5fd" },
+    emptyWrap: { textAlign: "center", padding: "80px 0", fontSize: 14, color: "#c4b5fd" },
   };
 
   return (
     <div style={S.main}>
-      <div style={S.pageTitle}>Approvals</div>
-      <div style={S.pageSubtitle}>Review and approve submitted checklists.</div>
+      <div style={S.pageTitle}>承認</div>
+      <div style={S.pageSubtitle}>提出されたチェックリストを確認・承認します。</div>
       <div style={S.filterRow}>
         <button style={filter === "pending" ? S.filterBtnActive : S.filterBtnInactive} onClick={() => setFilter("pending")}>
-          Pending ({pending.length})
+          承認待ち ({pending.length})
         </button>
         <button style={filter === "approved" ? S.filterBtnActive : S.filterBtnInactive} onClick={() => setFilter("approved")}>
-          Approved ({approved.length})
+          承認済み ({approved.length})
         </button>
       </div>
       {loading ? (
-        <div style={{ padding: "80px 0", textAlign: "center", fontSize: 14, color: "#ccc" }}>Loading…</div>
+        <div style={S.loadingWrap}>読み込み中…</div>
       ) : displayed.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "80px 0", fontSize: 14, color: "#bbb" }}>
-          {filter === "pending" ? "No pending approvals." : "No approved responses yet."}
+        <div style={S.emptyWrap}>
+          {filter === "pending" ? "承認待ちの項目はありません。" : "承認済みの回答はまだありません。"}
         </div>
       ) : displayed.map(resp => {
         const isExpanded = expanded === resp.id;
@@ -97,23 +135,23 @@ export function ApprovalsTab({ userEmail }: { userEmail: string }) {
         const approval = (resp.response_approvals || [])[0];
         return (
           <div key={resp.id} style={S.card}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = "#e0e0e0")}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = "#f0f0f0")}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#c4b5fd"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(79,53,190,0.12)"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "#ede9fe"; e.currentTarget.style.boxShadow = "0 2px 12px rgba(79,53,190,0.06)"; }}
           >
             <div style={S.cardHeader} onClick={() => setExpanded(isExpanded ? null : resp.id)}>
               <div style={S.cardHeaderLeft}>
                 <div style={S.cardTitle}>
                   {resp.submitted_by}
-                  {resp.other_user_name && <span style={{ fontWeight: 400, color: "#999", marginLeft: 6 }}>(other)</span>}
-                  <span style={{ fontWeight: 400, color: "#999", marginLeft: 8 }}>— {resp.checklists?.title || "Unknown"}</span>
+                  {resp.other_user_name && <span style={{ fontWeight: 400, color: "#a78bfa", marginLeft: 6 }}>(その他)</span>}
+                  <span style={{ fontWeight: 400, color: "#9688c0", marginLeft: 8 }}>— {resp.checklists?.title || "不明"}</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
                   {resp.departments?.name && <span style={S.deptBadge}>{resp.departments.name}</span>}
                 </div>
                 <div style={S.cardMeta}>
-                  {new Date(resp.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                  {" · "}{completedCount}/{checkboxItems.length} tasks checked
-                  {incompleteItems.length > 0 && <span style={{ color: "#ea580c", marginLeft: 6 }}>· {incompleteItems.length} incomplete</span>}
+                  {new Date(resp.created_at).toLocaleDateString("ja-JP", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  {" · "}タスク完了 {completedCount}/{checkboxItems.length}
+                  {incompleteItems.length > 0 && <span style={{ color: "#f97316", marginLeft: 6, fontWeight: 600 }}>· 未完了 {incompleteItems.length}件</span>}
                 </div>
               </div>
               <span style={S.expandBtn}>{isExpanded ? "▲" : "▼"}</span>
@@ -121,10 +159,10 @@ export function ApprovalsTab({ userEmail }: { userEmail: string }) {
             {isExpanded && (
               <div style={S.cardBody}>
                 {resp.reason?.trim() && (
-                  <><div style={S.sectionTitle}>Submission Reason</div><div style={S.reasonBox}>{resp.reason}</div></>
+                  <><div style={S.sectionTitle}>提出理由</div><div style={S.reasonBox}>{resp.reason}</div></>
                 )}
                 {checkboxItems.length > 0 && (
-                  <><div style={S.sectionTitle}>Tasks</div>
+                  <><div style={S.sectionTitle}>タスク</div>
                     {checkboxItems.map(item => (
                       <div key={item.id} style={S.itemRow}>
                         <span style={{ fontSize: 15 }}>{item.value === "true" ? "✅" : "❌"}</span>
@@ -133,40 +171,42 @@ export function ApprovalsTab({ userEmail }: { userEmail: string }) {
                     ))}</>
                 )}
                 {textItems.length > 0 && (
-                  <><div style={S.sectionTitle}>Text Responses</div>
+                  <><div style={S.sectionTitle}>テキスト回答</div>
                     {textItems.map(item => (
                       <div key={item.id} style={S.itemRow}>
                         <span style={S.itemLabel}>{item.checklist_items?.label}</span>
-                        <span style={S.itemValue}>{item.value || <em style={{ color: "#ccc" }}>No response</em>}</span>
+                        <span style={S.itemValue}>{item.value || <em style={{ color: "#c4b5fd" }}>未回答</em>}</span>
                       </div>
                     ))}</>
                 )}
                 {filter === "pending" && (
                   <>
-                    <div style={S.sectionTitle}>Approve</div>
+                    <div style={S.sectionTitle}>承認</div>
                     <textarea
                       style={S.reasonInput} rows={2}
-                      placeholder="Optional: add a note for this approval…"
+                      placeholder="任意：承認に関するメモを入力…"
                       value={approvalReasons[resp.id] || ""}
                       onChange={e => setApprovalReasons(p => ({ ...p, [resp.id]: e.target.value }))}
+                      onFocus={e => (e.target.style.borderColor = "#a78bfa")}
+                      onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
                     />
                     <button
                       style={{ ...S.approveBtn, opacity: approvingId === resp.id ? 0.6 : 1 }}
                       onClick={() => handleApprove(resp)}
                       disabled={approvingId === resp.id}
                     >
-                      {approvingId === resp.id ? "Approving…" : "Approve response"}
+                      {approvingId === resp.id ? "承認中…" : "回答を承認する"}
                     </button>
                   </>
                 )}
                 {filter === "approved" && approval && (
                   <>
-                    <div style={S.sectionTitle}>Approval Details</div>
+                    <div style={S.sectionTitle}>承認詳細</div>
                     <div style={S.reasonBox}>
-                      <div style={{ fontSize: 14, color: "#111", marginBottom: 4 }}><strong>Approved by:</strong> {approval.approved_by || "—"}</div>
-                      {approval.reason && <div style={{ fontSize: 14, color: "#555", marginBottom: 4 }}><strong>Note:</strong> {approval.reason}</div>}
-                      <div style={{ fontSize: 12, color: "#bbb" }}>
-                        {new Date(approval.approved_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      <div style={{ fontSize: 14, color: "#1a1035", marginBottom: 4 }}><strong>承認者：</strong> {approval.approved_by || "—"}</div>
+                      {approval.reason && <div style={{ fontSize: 14, color: "#4b3d80", marginBottom: 4 }}><strong>メモ：</strong> {approval.reason}</div>}
+                      <div style={{ fontSize: 12, color: "#a78bfa" }}>
+                        {new Date(approval.approved_at).toLocaleDateString("ja-JP", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </div>
                     </div>
                   </>

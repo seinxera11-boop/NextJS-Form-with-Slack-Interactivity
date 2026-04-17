@@ -88,13 +88,13 @@ export default function ChecklistPage() {
     setValues(p => ({ ...p, [id]: val }));
 
   const handleDeptContinue = () => {
-    if (!selectedDeptId) { alert("Please select a department."); return; }
+    if (!selectedDeptId) { alert("部署を選択してください。"); return; }
     setStep("user");
   };
 
   const handleUserContinue = () => {
-    if (!isOther && !selectedUserId) { alert("Please select a user or choose Other."); return; }
-    if (isOther && !otherName.trim()) { alert("Please enter your name."); return; }
+    if (!isOther && !selectedUserId) { alert("ユーザーを選択するか、「その他」を選んでください。"); return; }
+    if (isOther && !otherName.trim()) { alert("お名前を入力してください。"); return; }
     setStep("form");
   };
 
@@ -103,7 +103,7 @@ export default function ChecklistPage() {
       it => it.required && it.type !== "checkbox" && !values[it.id]?.trim()
     );
     if (missing.length > 0) {
-      alert(`Please fill in: ${missing.map(m => m.label).join(", ")}`);
+      alert(`以下の項目を入力してください：${missing.map(m => m.label).join("、")}`);
       return;
     }
 
@@ -132,7 +132,7 @@ export default function ChecklistPage() {
       setSubmittedBy(resolvedName);
       setSubmitted(true);
     } catch (err: any) {
-      alert("Failed to submit: " + err.message);
+      alert("送信に失敗しました：" + err.message);
     } finally {
       setSubmitting(false);
     }
@@ -148,60 +148,147 @@ export default function ChecklistPage() {
   };
 
   const S: Record<string, React.CSSProperties> = {
-    root: { minHeight: "100vh", background: "#fff", fontFamily: "'Inter', system-ui, sans-serif", color: "#111" },
-    header: { borderBottom: "1px solid #f0f0f0", padding: "16px 32px", display: "flex", alignItems: "center", gap: 8 },
-    headerDot: { width: 8, height: 8, borderRadius: "50%", background: "#111" },
-    headerName: { fontSize: 15, fontWeight: 700, color: "#111", letterSpacing: "-0.02em" },
-    main: { maxWidth: 640, margin: "0 auto", padding: "48px 24px" },
-    title: { fontSize: 28, fontWeight: 700, letterSpacing: "-0.03em", color: "#111", marginBottom: 24 },
+    root: {
+      minHeight: "100vh",
+      background: "linear-gradient(160deg, #faf9ff 0%, #f0ebff 50%, #fdf4ff 100%)",
+      fontFamily: "'Inter', system-ui, sans-serif", color: "#1a1035"
+    },
+    header: {
+      borderBottom: "1.5px solid #ede9fe", padding: "16px 32px",
+      display: "flex", alignItems: "center", gap: 10,
+      background: "rgba(255,255,255,0.85)", backdropFilter: "blur(10px)",
+      WebkitBackdropFilter: "blur(10px)"
+    },
+    headerDot: {
+      width: 8, height: 8, borderRadius: "50%",
+      background: "linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)"
+    },
+    headerName: { fontSize: 15, fontWeight: 800, color: "#4f35be", letterSpacing: "-0.03em" },
+    main: { maxWidth: 620, margin: "0 auto", padding: "48px 24px" },
+    title: { fontSize: 26, fontWeight: 700, letterSpacing: "-0.04em", color: "#1a1035", marginBottom: 24 },
     progressWrap: { marginBottom: 32 },
-    progressLabel: { display: "flex", justifyContent: "space-between", fontSize: 13, color: "#999", marginBottom: 8 },
-    progressTrack: { height: 3, background: "#f0f0f0", borderRadius: 100, overflow: "hidden" },
-    progressFill: { height: "100%", background: "#111", borderRadius: 100, transition: "width 0.3s" },
-    selCard: { border: "1px solid #f0f0f0", borderRadius: 12, padding: "20px", marginBottom: 16 },
-    selLabel: { fontSize: 13, fontWeight: 500, color: "#555", marginBottom: 8, display: "block" },
-    select: { width: "100%", border: "1px solid #e5e5e5", borderRadius: 8, padding: "10px 12px", fontSize: 15, color: "#111", outline: "none", background: "#fafafa", fontFamily: "inherit", cursor: "pointer" },
-    selectDisabled: { width: "100%", border: "1px solid #f0f0f0", borderRadius: 8, padding: "10px 12px", fontSize: 15, color: "#bbb", outline: "none", background: "#fafafa", fontFamily: "inherit", cursor: "not-allowed" },
-    otherBtn: { marginTop: 10, fontSize: 14, color: "#2563eb", background: "none", border: "1px solid #dbeafe", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontFamily: "inherit" },
-    otherBtnActive: { marginTop: 10, fontSize: 14, color: "#fff", background: "#2563eb", border: "1px solid #2563eb", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontFamily: "inherit" },
-    textInput: { width: "100%", border: "1px solid #e5e5e5", borderRadius: 8, padding: "9px 12px", fontSize: 15, color: "#111", outline: "none", background: "#fafafa", fontFamily: "inherit", boxSizing: "border-box" as const, resize: "none" as const },
-    secCard: { border: "1px solid #f0f0f0", borderRadius: 12, overflow: "hidden", marginBottom: 12 },
-    secTitle: { fontSize: 14, fontWeight: 600, color: "#555", padding: "12px 20px", borderBottom: "1px solid #f8f8f8", background: "#fafafa" },
-    itemRow: { display: "flex", alignItems: "flex-start", gap: 12, padding: "13px 20px", borderBottom: "1px solid #f8f8f8" },
-    itemRowLast: { display: "flex", alignItems: "flex-start", gap: 12, padding: "13px 20px" },
-    checkbox: { width: 16, height: 16, marginTop: 1, flexShrink: 0, cursor: "pointer", accentColor: "#111" },
-    itemLabel: { fontSize: 15, color: "#111", lineHeight: 1.5, flex: 1 },
-    itemLabelMuted: { fontSize: 15, color: "#aaa", lineHeight: 1.5, flex: 1, textDecoration: "line-through" },
-    reqStar: { color: "#dc2626", fontSize: 13, marginLeft: 3 },
-    nameCard: { border: "1px solid #f0f0f0", borderRadius: 12, padding: "20px", marginBottom: 12 },
-    nameLabel: { fontSize: 13, fontWeight: 500, color: "#555", marginBottom: 8, display: "block" },
-    submitBtn: { width: "100%", background: "#111", color: "#fff", border: "none", borderRadius: 10, padding: "13px 0", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
-    submitBtnDisabled: { width: "100%", background: "#e5e5e5", color: "#aaa", border: "none", borderRadius: 10, padding: "13px 0", fontSize: 15, fontWeight: 600, cursor: "not-allowed", fontFamily: "inherit" },
-    continueBtn: { width: "100%", background: "#111", color: "#fff", border: "none", borderRadius: 10, padding: "13px 0", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginTop: 4 },
-    backLink: { fontSize: 13, color: "#999", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: "8px 0", display: "inline-block", marginBottom: 16 },
-    summaryChip: { display: "inline-flex", alignItems: "center", gap: 6, background: "#f5f5f5", borderRadius: 8, padding: "6px 12px", fontSize: 13, color: "#555", marginBottom: 16 },
+    progressLabel: { display: "flex", justifyContent: "space-between", fontSize: 12, color: "#9688c0", marginBottom: 8, fontWeight: 500 },
+    progressTrack: { height: 6, background: "#ede9fe", borderRadius: 100, overflow: "hidden" },
+    progressFill: { height: "100%", background: "linear-gradient(90deg, #7c3aed 0%, #a78bfa 100%)", borderRadius: 100, transition: "width 0.3s" },
+    selCard: {
+      border: "1.5px solid #ede9fe", borderRadius: 16, padding: "22px",
+      marginBottom: 16, background: "#fff",
+      boxShadow: "0 4px 20px rgba(79,53,190,0.08)"
+    },
+    selLabel: { fontSize: 13, fontWeight: 600, color: "#4b3d80", marginBottom: 10, display: "block" },
+    select: {
+      width: "100%", border: "1.5px solid #ddd6fe", borderRadius: 10,
+      padding: "11px 14px", fontSize: 15, color: "#1a1035", outline: "none",
+      background: "#faf9ff", fontFamily: "inherit", cursor: "pointer",
+      transition: "border-color 0.15s"
+    },
+    selectDisabled: {
+      width: "100%", border: "1.5px solid #f0ebff", borderRadius: 10,
+      padding: "11px 14px", fontSize: 15, color: "#c4b5fd", outline: "none",
+      background: "#faf9ff", fontFamily: "inherit", cursor: "not-allowed"
+    },
+    otherBtn: {
+      marginTop: 10, fontSize: 13, color: "#6d28d9",
+      background: "#f5f0ff", border: "1.5px solid #ddd6fe",
+      borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontFamily: "inherit"
+    },
+    otherBtnActive: {
+      marginTop: 10, fontSize: 13, color: "#fff",
+      background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
+      border: "1.5px solid #7c3aed",
+      borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontFamily: "inherit"
+    },
+    textInput: {
+      width: "100%", border: "1.5px solid #ddd6fe", borderRadius: 10,
+      padding: "10px 13px", fontSize: 15, color: "#1a1035", outline: "none",
+      background: "#faf9ff", fontFamily: "inherit",
+      boxSizing: "border-box" as const, resize: "none" as const,
+      transition: "border-color 0.15s"
+    },
+    secCard: {
+      border: "1.5px solid #ede9fe", borderRadius: 14, overflow: "hidden",
+      marginBottom: 12, background: "#fff",
+      boxShadow: "0 2px 12px rgba(79,53,190,0.06)"
+    },
+    secTitle: {
+      fontSize: 13, fontWeight: 600, color: "#6d28d9",
+      padding: "12px 20px", borderBottom: "1.5px solid #f5f0ff",
+      background: "linear-gradient(135deg, #faf9ff 0%, #f5f0ff 100%)"
+    },
+    itemRow: { display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 20px", borderBottom: "1.5px solid #faf8ff" },
+    itemRowLast: { display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 20px" },
+    checkbox: { width: 16, height: 16, marginTop: 2, flexShrink: 0, cursor: "pointer", accentColor: "#7c3aed" },
+    itemLabel: { fontSize: 15, color: "#1a1035", lineHeight: 1.5, flex: 1 },
+    itemLabelMuted: { fontSize: 15, color: "#c4b5fd", lineHeight: 1.5, flex: 1, textDecoration: "line-through" },
+    reqStar: { color: "#dc2626", fontSize: 12, marginLeft: 3 },
+    nameCard: {
+      border: "1.5px solid #ede9fe", borderRadius: 14, padding: "22px",
+      marginBottom: 12, background: "#fff",
+      boxShadow: "0 2px 12px rgba(79,53,190,0.06)"
+    },
+    nameLabel: { fontSize: 13, fontWeight: 600, color: "#4b3d80", marginBottom: 10, display: "block" },
+    submitBtn: {
+      width: "100%",
+      background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)",
+      color: "#fff", border: "none", borderRadius: 12, padding: "14px 0",
+      fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+      boxShadow: "0 4px 16px rgba(109,40,217,0.35)", transition: "opacity 0.15s"
+    },
+    submitBtnDisabled: {
+      width: "100%", background: "#e9e4f8", color: "#b4a9d6",
+      border: "none", borderRadius: 12, padding: "14px 0",
+      fontSize: 15, fontWeight: 600, cursor: "not-allowed", fontFamily: "inherit"
+    },
+    continueBtn: {
+      width: "100%",
+      background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)",
+      color: "#fff", border: "none", borderRadius: 12, padding: "13px 0",
+      fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+      marginTop: 12, boxShadow: "0 3px 12px rgba(109,40,217,0.3)"
+    },
+    backLink: {
+      fontSize: 13, color: "#7c6fa0", background: "none", border: "none",
+      cursor: "pointer", fontFamily: "inherit", padding: "8px 0",
+      display: "inline-block", marginBottom: 16
+    },
+    summaryChip: {
+      display: "inline-flex", alignItems: "center", gap: 6,
+      background: "linear-gradient(135deg, #f5f0ff 0%, #ede9fe 100%)",
+      border: "1px solid #ddd6fe", borderRadius: 10, padding: "6px 14px",
+      fontSize: 13, color: "#4b3d80", fontWeight: 500
+    },
     successWrap: { textAlign: "center" as const, padding: "80px 0" },
-    centerMsg: { display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", fontSize: 15, color: "#999" },
+    centerMsg: { display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", fontSize: 15, color: "#a78bfa" },
+    successIcon: {
+      width: 64, height: 64, borderRadius: "50%",
+      background: "linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: 28, margin: "0 auto 24px", color: "#fff"
+    },
   };
 
-  if (loading) return <div style={S.root}><div style={S.centerMsg}>Loading…</div></div>;
-  if (error || !checklist) return <div style={S.root}><div style={S.centerMsg}>Checklist not found.</div></div>;
+  if (loading) return <div style={S.root}><div style={S.centerMsg}>読み込み中…</div></div>;
+  if (error || !checklist) return <div style={S.root}><div style={S.centerMsg}>チェックリストが見つかりません。</div></div>;
 
   if (submitted) return (
     <div style={S.root}>
-      <div style={S.header}><div style={S.headerDot} /><span style={S.headerName}>OfficeAdmin</span></div>
+      <div style={S.header}><div style={S.headerDot} /><span style={S.headerName}>オフィス管理者</span></div>
       <div style={S.main}>
         <div style={S.successWrap}>
-          <div style={{ fontSize: 36, marginBottom: 20 }}>✓</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#111", marginBottom: 8 }}>Submitted successfully</div>
-          <p style={{ fontSize: 14, color: "#999", lineHeight: 1.7, marginBottom: 32 }}>
-            Your response has been recorded.<br />Thank you, {submittedBy}.
+          <div style={S.successIcon}>✓</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "#1a1035", marginBottom: 10 }}>送信が完了しました</div>
+          <p style={{ fontSize: 14, color: "#7c6fa0", lineHeight: 1.8, marginBottom: 36 }}>
+            回答が記録されました。<br /><strong style={{ color: "#4f35be" }}>{submittedBy}</strong>さん、ありがとうございました。
           </p>
           <button
-            style={{ fontSize: 14, color: "#666", background: "#f7f7f7", border: "1px solid #e5e5e5", borderRadius: 8, padding: "10px 20px", cursor: "pointer", fontFamily: "inherit" }}
+            style={{
+              fontSize: 14, color: "#4b3d80", background: "#f5f0ff",
+              border: "1.5px solid #ddd6fe", borderRadius: 10,
+              padding: "10px 22px", cursor: "pointer", fontFamily: "inherit"
+            }}
             onClick={handleReset}
           >
-            Submit another response
+            別の回答を送信する
           </button>
         </div>
       </div>
@@ -213,26 +300,29 @@ export default function ChecklistPage() {
 
   return (
     <div style={S.root}>
-      <div style={S.header}><div style={S.headerDot} /><span style={S.headerName}>OfficeAdmin</span></div>
+      <div style={S.header}><div style={S.headerDot} /><span style={S.headerName}>
+オフィス管理者</span></div>
       <div style={S.main}>
         <div style={S.title}>{checklist.title}</div>
 
         {/* ── STEP 1: Department ── */}
         {step === "department" && (
           <div style={S.selCard}>
-            <label style={S.selLabel}>Department <span style={{ color: "#dc2626" }}>*</span></label>
+            <label style={S.selLabel}>部署 <span style={{ color: "#dc2626" }}>*</span></label>
             <select
               style={S.select}
               value={selectedDeptId}
               onChange={e => setSelectedDeptId(e.target.value)}
+              onFocus={e => (e.target.style.borderColor = "#a78bfa")}
+              onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
             >
-              <option value="">Select a department…</option>
+              <option value="">部署を選択してください…</option>
               {departments.map(d => (
                 <option key={d.id} value={d.id}>{d.name}</option>
               ))}
             </select>
             <button style={S.continueBtn} onClick={handleDeptContinue}>
-              Continue
+              次へ
             </button>
           </div>
         )}
@@ -243,9 +333,9 @@ export default function ChecklistPage() {
             <button style={S.backLink} onClick={() => setStep("department")}>
               ← {deptName}
             </button>
-            <label style={S.selLabel}>User <span style={{ color: "#dc2626" }}>*</span></label>
+            <label style={S.selLabel}>ユーザー <span style={{ color: "#dc2626" }}>*</span></label>
             {loadingUsers ? (
-              <div style={{ fontSize: 14, color: "#bbb", padding: "8px 0" }}>Loading users…</div>
+              <div style={{ fontSize: 14, color: "#c4b5fd", padding: "8px 0" }}>ユーザーを読み込み中…</div>
             ) : (
               <>
                 <select
@@ -254,7 +344,7 @@ export default function ChecklistPage() {
                   onChange={e => { setSelectedUserId(e.target.value); setIsOther(false); }}
                   disabled={isOther}
                 >
-                  <option value="">Select a user…</option>
+                  <option value="">ユーザーを選択してください…</option>
                   {orgUsers.map(u => (
                     <option key={u.id} value={u.id}>{u.name}</option>
                   ))}
@@ -265,10 +355,10 @@ export default function ChecklistPage() {
                     style={isOther ? S.otherBtnActive : S.otherBtn}
                     onClick={() => { setIsOther(!isOther); setSelectedUserId(""); setOtherName(""); }}
                   >
-                    {isOther ? "✓ Other" : "Other"}
+                    {isOther ? "✓ その他" : "その他"}
                   </button>
                   {isOther && (
-                    <span style={{ fontSize: 13, color: "#999" }}>Enter your name below</span>
+                    <span style={{ fontSize: 13, color: "#9688c0" }}>以下にお名前を入力してください</span>
                   )}
                 </div>
 
@@ -276,16 +366,18 @@ export default function ChecklistPage() {
                   <input
                     type="text"
                     style={{ ...S.textInput, marginTop: 10 }}
-                    placeholder="Enter your name…"
+                    placeholder="お名前を入力してください…"
                     value={otherName}
                     onChange={e => setOtherName(e.target.value)}
                     autoFocus
+                    onFocus={e => (e.target.style.borderColor = "#a78bfa")}
+                    onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
                   />
                 )}
               </>
             )}
             <button style={S.continueBtn} onClick={handleUserContinue}>
-              Continue
+              次へ
             </button>
           </div>
         )}
@@ -293,26 +385,25 @@ export default function ChecklistPage() {
         {/* ── STEP 3: Form ── */}
         {step === "form" && (
           <>
-            {/* Summary chip showing who is filling */}
             <div style={{ marginBottom: 24, display: "flex", gap: 8, flexWrap: "wrap" as const }}>
               <span style={S.summaryChip}>
-                <span style={{ color: "#bbb" }}>dept</span> {deptName}
+                <span style={{ color: "#a78bfa" }}>部署</span> {deptName}
               </span>
               <span style={S.summaryChip}>
-                <span style={{ color: "#bbb" }}>user</span> {userName}
+                <span style={{ color: "#a78bfa" }}>ユーザー</span> {userName}
               </span>
               <button
                 style={{ ...S.backLink, margin: 0, alignSelf: "center" }}
                 onClick={() => setStep("user")}
               >
-                Change
+                変更
               </button>
             </div>
 
             {total > 0 && (
               <div style={S.progressWrap}>
                 <div style={S.progressLabel}>
-                  <span>Progress</span><span>{checked}/{total} checked</span>
+                  <span>進捗</span><span style={{ color: "#7c3aed", fontWeight: 600 }}>{checked}/{total} 完了</span>
                 </div>
                 <div style={S.progressTrack}>
                   <div style={{ ...S.progressFill, width: `${pct}%` }} />
@@ -348,9 +439,11 @@ export default function ChecklistPage() {
                             <input
                               type="text"
                               style={S.textInput}
-                              placeholder="Your answer…"
+                              placeholder="回答を入力してください…"
                               value={values[item.id] || ""}
                               onChange={e => handleText(item.id, e.target.value)}
+                              onFocus={e => (e.target.style.borderColor = "#a78bfa")}
+                              onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
                             />
                           </div>
                         ) : (
@@ -360,9 +453,11 @@ export default function ChecklistPage() {
                             </div>
                             <textarea
                               style={{ ...S.textInput, minHeight: 80 }}
-                              placeholder="Your answer…"
+                              placeholder="回答を入力してください…"
                               value={values[item.id] || ""}
                               onChange={e => handleText(item.id, e.target.value)}
+                              onFocus={e => (e.target.style.borderColor = "#a78bfa")}
+                              onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
                             />
                           </div>
                         )}
@@ -374,12 +469,14 @@ export default function ChecklistPage() {
             })}
 
             <div style={S.nameCard}>
-              <label style={S.nameLabel}>Reason</label>
+              <label style={S.nameLabel}>理由</label>
               <textarea
                 style={{ ...S.textInput, minHeight: 80 }}
-                placeholder="Submit reason"
+                placeholder="送信理由を入力してください"
                 value={reason}
                 onChange={e => setReason(e.target.value)}
+                onFocus={e => (e.target.style.borderColor = "#a78bfa")}
+                onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
               />
             </div>
 
@@ -388,7 +485,7 @@ export default function ChecklistPage() {
               onClick={handleSubmit}
               disabled={submitting}
             >
-              {submitting ? "Submitting…" : "Submit checklist"}
+              {submitting ? "送信中…" : "チェックリストを送信"}
             </button>
           </>
         )}

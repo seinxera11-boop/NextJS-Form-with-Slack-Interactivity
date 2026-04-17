@@ -98,9 +98,7 @@ async function sendSlackReminder(reminderUrl: string): Promise<void> {
           text: {
             type: "mrkdwn",
             text: [
-              "🚨 *Checklist Not Submitted*",
-              `Today (${today}) is a working day, but no checklist has been filled out.`,
-              "Please submit the checklist as soon as possible.",
+              "本日、最終退社フォームの提出を確認できませんでした。状況を確認いただけますか？",
             ].join("\n"),
           },
         },

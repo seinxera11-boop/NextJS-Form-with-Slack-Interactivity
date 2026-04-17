@@ -20,9 +20,9 @@ function getMonthRange(now: Date): { start: string; end: string; label: string }
   const year  = now.getUTCFullYear();
   const month = now.getUTCMonth(); // 0-indexed — this is current month
 
-  // Report on CURRENT month
-//   const start = new Date(Date.UTC(year, month, 1, 0, 0, 0)).toISOString();
-//   const end   = new Date(Date.UTC(year, month + 1, 1, 0, 0, 0)).toISOString();
+  // // Report on CURRENT month
+  // const start = new Date(Date.UTC(year, month, 1, 0, 0, 0)).toISOString();
+  // const end   = new Date(Date.UTC(year, month + 1, 1, 0, 0, 0)).toISOString();
 
 // Report on PREVIOUS month
 const start = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0)).toISOString();
@@ -123,7 +123,9 @@ async function sendReportEmail(csv: string, label: string, rowCount: number): Pr
     html: `
       <div style="font-family: sans-serif; max-width: 480px;">
         <h2 style="color: #111;">Monthly Report — ${label}</h2>
-        <p>Please find attached the checklist report for <strong>${label}</strong>.</p>
+        <p>お疲れ様です。先月分の戸締り確認履歴でございます。必要に応じて（ダウンロード
+          等）活用ください
+        </p>
         <p><strong>${rowCount}</strong> submission${rowCount !== 1 ? "s" : ""} recorded this month.</p>
         <p style="color: #999; font-size: 13px;">This report was generated automatically.</p>
       </div>

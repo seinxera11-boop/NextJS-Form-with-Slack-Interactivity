@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 
   // 📝 Reason input
   const reason =
-    payload.state?.values?.reason_block?.reason_input?.value || "No reason";
+    payload.state?.values?.reason_block?.reason_input?.value || "理由なし";
 
   // 📦 Get metadata from button
   const action = payload.actions?.[0];
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       });
 
     if (error) {
-      console.error("DB insert error:", error);
+      console.error("DB登録エラー:", error);
     }
   }
 
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     type: "section",
     text: {
       type: "mrkdwn",
-      text: `*Reason:* ${reason}\n${userName} approved!`,
+      text: `*理由:* ${reason}\n${userName}が承認しました`,
     },
   });
 
