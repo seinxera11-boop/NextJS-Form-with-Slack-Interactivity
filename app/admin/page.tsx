@@ -29,7 +29,12 @@ export default function AdminDashboardWrapper() {
   }, []);
 
   if (booting) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff", fontFamily: "system-ui, sans-serif", fontSize: 15, color: "#999" }}>
+    <div style={{
+      minHeight: "100vh", display: "flex", alignItems: "center",
+      justifyContent: "center",
+      background: "linear-gradient(135deg, #faf9ff 0%, #f0ebff 100%)",
+      fontFamily: "system-ui, sans-serif", fontSize: 15, color: "#a78bfa"
+    }}>
       Loading…
     </div>
   );
@@ -47,21 +52,44 @@ function AdminDashboard({ userEmail }: { userEmail: string }) {
   };
 
   const S: Record<string, React.CSSProperties> = {
-    root: { minHeight: "100vh", background: "#fff", fontFamily: "'Inter', system-ui, sans-serif", color: "#111" },
-    nav: { height: 56, borderBottom: "1px solid #f0f0f0", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 32px", position: "sticky", top: 0, background: "#fff", zIndex: 50 },
-    navLeft: { display: "flex", alignItems: "center", gap: 24 },
-    navLogo: { fontWeight: 700, fontSize: 16, color: "#111", letterSpacing: "-0.02em", display: "flex", alignItems: "center", gap: 8 },
-    navDot: { width: 8, height: 8, borderRadius: "50%", background: "#111" },
+    root: {
+      minHeight: "100vh",
+      background: "linear-gradient(180deg, #faf9ff 0%, #f8f5ff 100%)",
+      fontFamily: "'Inter', system-ui, sans-serif", color: "#1a1035"
+    },
+    nav: {
+      height: 58, borderBottom: "1.5px solid #ede9fe",
+      display: "flex", alignItems: "center",
+      justifyContent: "space-between", padding: "0 32px",
+      position: "sticky", top: 0,
+      background: "rgba(255,255,255,0.92)",
+      backdropFilter: "blur(12px)",
+      WebkitBackdropFilter: "blur(12px)",
+      zIndex: 50,
+      boxShadow: "0 1px 20px rgba(79,53,190,0.07)"
+    },
+    navLeft: { display: "flex", alignItems: "center", gap: 28 },
+    navLogo: {
+      fontWeight: 800, fontSize: 16, color: "#4f35be",
+      letterSpacing: "-0.03em", display: "flex", alignItems: "center", gap: 8
+    },
+    navDot: {
+      width: 8, height: 8, borderRadius: "50%",
+      background: "linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)"
+    },
     navRight: { display: "flex", alignItems: "center", gap: 16 },
-    navEmail: { fontSize: 13, color: "#999" },
-    signOutBtn: { fontSize: 13, color: "#666", background: "none", border: "1px solid #e5e5e5", borderRadius: 6, padding: "5px 12px", cursor: "pointer" },
+    navEmail: { fontSize: 12, color: "#9688c0", fontWeight: 500 },
+    signOutBtn: {
+      fontSize: 12, color: "#7c6fa0", background: "#f5f0ff",
+      border: "1px solid #ddd6fe", borderRadius: 8, padding: "5px 14px", cursor: "pointer"
+    },
   };
 
   return (
     <div style={S.root}>
       <nav style={S.nav}>
         <div style={S.navLeft}>
-          <div style={S.navLogo}><div style={S.navDot} />OfficeAdmin</div>
+          <div style={S.navLogo}><div style={S.navDot} />Office Admin</div>
           <TabNav tab={tab} setTab={setTab} />
         </div>
         <div style={S.navRight}>
@@ -88,13 +116,18 @@ function TabNav({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
     { key: "settings",    label: "Settings"    },
   ];
   return (
-    <div style={{ display: "flex", gap: 2 }}>
+    <div style={{ display: "flex", gap: 4 }}>
       {tabs.map(t => (
         <button key={t.key} onClick={() => setTab(t.key)} style={{
-          fontSize: 14, fontWeight: tab === t.key ? 600 : 400,
-          color: tab === t.key ? "#111" : "#999",
-          background: tab === t.key ? "#f5f5f5" : "none",
-          border: "none", cursor: "pointer", padding: "6px 12px", borderRadius: 6,
+          fontSize: 14,
+          fontWeight: tab === t.key ? 600 : 400,
+          color: tab === t.key ? "#4f35be" : "#9688c0",
+          background: tab === t.key
+            ? "linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)"
+            : "none",
+          border: "none", cursor: "pointer", padding: "6px 13px",
+          borderRadius: 8,
+          transition: "all 0.15s ease",
         }}>
           {t.label}
         </button>

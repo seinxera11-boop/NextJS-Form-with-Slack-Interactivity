@@ -36,7 +36,7 @@ export default function AdminLoginPage() {
   return (
     <div style={{
       minHeight: "100vh",
-      background: "#ffffff",
+      background: "linear-gradient(180deg, #faf9ff 0%, #f8f5ff 100%)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -47,40 +47,47 @@ export default function AdminLoginPage() {
 
         {/* Logo mark */}
         <div style={{ marginBottom: 40, display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#111" }} />
-          <span style={{ fontSize: 15, fontWeight: 700, color: "#111", letterSpacing: "-0.02em" }}>OfficeAdmin</span>
+          <div style={{
+            width: 9, height: 9, borderRadius: "50%",
+            background: "linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)",
+          }} />
+          <span style={{ fontSize: 15, fontWeight: 700, color: "#4f35be", letterSpacing: "-0.02em" }}>OfficeAdmin</span>
         </div>
 
         {sent ? (
           <div>
-            <div style={{ width: 44, height: 44, border: "1px solid #e5e5e5", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, marginBottom: 24 }}>
+            <div style={{
+              width: 44, height: 44, border: "1px solid #ede9fe", borderRadius: 10,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 20, marginBottom: 24, background: "#faf9ff",
+            }}>
               ✉
             </div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: "#111", letterSpacing: "-0.02em", marginBottom: 8 }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: "#1a1035", letterSpacing: "-0.02em", marginBottom: 8 }}>
               Check your inbox
             </div>
-            <p style={{ fontSize: 14, color: "#999", lineHeight: 1.7, marginBottom: 24 }}>
-              We sent a sign-in link to <strong style={{ color: "#555", fontWeight: 500 }}>{email}</strong>.<br />
+            <p style={{ fontSize: 14, color: "#9688c0", lineHeight: 1.7, marginBottom: 24 }}>
+              We sent a sign-in link to <strong style={{ color: "#4f35be", fontWeight: 500 }}>{email}</strong>.<br />
               Click it to access the admin dashboard.
             </p>
             <button
               onClick={() => setSent(false)}
-              style={{ fontSize: 14, color: "#999", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+              style={{ fontSize: 14, color: "#9688c0", background: "none", border: "none", padding: 0, cursor: "pointer" }}
             >
               ← Use a different email
             </button>
           </div>
         ) : (
           <div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: "#111", letterSpacing: "-0.03em", marginBottom: 6 }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#1a1035", letterSpacing: "-0.03em", marginBottom: 6 }}>
               Sign in
             </div>
-            <p style={{ fontSize: 14, color: "#999", marginBottom: 32, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: "#9688c0", marginBottom: 32, lineHeight: 1.6 }}>
               Enter your admin email to receive a magic sign-in link.
             </p>
 
             <div style={{ marginBottom: 14 }}>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#555", marginBottom: 7 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#7c6fa0", marginBottom: 7 }}>
                 Email address
               </label>
               <input
@@ -91,18 +98,18 @@ export default function AdminLoginPage() {
                 onKeyDown={e => e.key === "Enter" && handleSubmit()}
                 style={{
                   width: "100%",
-                  border: "1px solid #e5e5e5",
+                  border: "1px solid #ede9fe",
                   borderRadius: 9,
                   padding: "11px 14px",
                   fontSize: 15,
-                  color: "#111",
+                  color: "#1a1035",
                   outline: "none",
-                  background: "#fafafa",
+                  background: "#faf9ff",
                   fontFamily: "inherit",
                   boxSizing: "border-box",
                 }}
-                onFocus={e => { e.target.style.borderColor = "#111"; e.target.style.background = "#fff"; }}
-                onBlur={e => { e.target.style.borderColor = "#e5e5e5"; e.target.style.background = "#fafafa"; }}
+                onFocus={e => { e.target.style.borderColor = "#6d28d9"; e.target.style.background = "#fff"; }}
+                onBlur={e => { e.target.style.borderColor = "#ede9fe"; e.target.style.background = "#faf9ff"; }}
               />
             </div>
 
@@ -115,8 +122,8 @@ export default function AdminLoginPage() {
               disabled={loading || !email}
               style={{
                 width: "100%",
-                background: loading || !email ? "#e5e5e5" : "#111",
-                color: loading || !email ? "#aaa" : "#fff",
+                background: loading || !email ? "#ede9fe" : "#4f35be",
+                color: loading || !email ? "#c4b5fd" : "#fff",
                 border: "none",
                 borderRadius: 9,
                 padding: "12px 0",
@@ -131,7 +138,7 @@ export default function AdminLoginPage() {
               {loading ? "Sending…" : "Send magic link"}
             </button>
 
-            <p style={{ fontSize: 12, color: "#ccc", marginTop: 20, lineHeight: 1.7, textAlign: "center" }}>
+            <p style={{ fontSize: 12, color: "#c4b5fd", marginTop: 20, lineHeight: 1.7, textAlign: "center" }}>
               No password required. Only authorised admins can sign in.<br />
               Link expires after 1 hour.
             </p>

@@ -27,8 +27,6 @@ type Checklist = {
   checklist_sections: ChecklistSection[];
 };
 
-const DEFAULT_CHECKLIST_ID = process.env.NEXT_PUBLIC_PUBLIC_DEFAULT_CHECKLIST_ID;
-
 export default function OfficeChecklist() {
   const [checklist, setChecklist] = useState<Checklist | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,26 +36,6 @@ export default function OfficeChecklist() {
   const [submittedBy, setSubmittedBy] = useState("");
   const [submittedReason, setSubmittedReason] = useState("");
 
-  // useEffect(() => {
-  //   fetch(`/api/checklists/${DEFAULT_CHECKLIST_ID}`)
-  //     .then((r) => r.json())
-  //     .then((data) => {
-  //       if (data.error) throw new Error(data.error);
-  //       setChecklist(data);
-  //       const init: Record<number, boolean> = {};
-  //       (data.checklist_sections || []).forEach((sec: ChecklistSection) => {
-  //         (sec.checklist_items || []).forEach((item: ChecklistTask) => {
-  //           init[item.id] = false;
-  //         });
-  //       });
-  //       setChecked(init);
-  //       setLoading(false);
-  //     })
-  //     .catch((err) => {
-  //       setError(err.message);
-  //       setLoading(false);
-  //     });
-  // }, []);
 
   const sections = checklist
     ? [...checklist.checklist_sections].sort((a, b) => a.order_index - b.order_index)

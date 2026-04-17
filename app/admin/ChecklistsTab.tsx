@@ -114,49 +114,124 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
 
   const S: Record<string, React.CSSProperties> = {
     main: { maxWidth: 780, margin: "0 auto", padding: "52px 32px" },
-    pageTitle: { fontSize: 30, fontWeight: 700, letterSpacing: "-0.03em", color: "#111", marginBottom: 4 },
-    pageSubtitle: { fontSize: 14, color: "#999", marginBottom: 40 },
-    toolbar: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
-    countLabel: { fontSize: 13, color: "#bbb" },
-    newBtn: { fontSize: 14, fontWeight: 600, background: "#111", color: "#fff", border: "none", borderRadius: 8, padding: "9px 18px", cursor: "pointer" },
-    card: { border: "1px solid #f0f0f0", borderRadius: 12, padding: "20px 24px", marginBottom: 10, background: "#fff", transition: "border-color 0.15s" },
-    cardTitle: { fontSize: 16, fontWeight: 600, color: "#111", marginBottom: 3 },
-    cardMeta: { fontSize: 12, color: "#bbb", marginBottom: 14 },
+    pageTitle: { fontSize: 28, fontWeight: 700, letterSpacing: "-0.04em", color: "#1a1035", marginBottom: 6 },
+    pageSubtitle: { fontSize: 14, color: "#7c6fa0", marginBottom: 40 },
+    toolbar: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 },
+    countLabel: { fontSize: 13, color: "#a78bfa", fontWeight: 500 },
+    newBtn: {
+      fontSize: 14, fontWeight: 600,
+      background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)",
+      color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px",
+      cursor: "pointer", boxShadow: "0 2px 10px rgba(109,40,217,0.3)"
+    },
+    card: {
+      border: "1.5px solid #ede9fe", borderRadius: 16, padding: "20px 24px",
+      marginBottom: 12, background: "#fff",
+      boxShadow: "0 2px 12px rgba(79,53,190,0.06)", transition: "all 0.18s ease"
+    },
+    cardTitle: { fontSize: 16, fontWeight: 600, color: "#1a1035", marginBottom: 4 },
+    cardMeta: { fontSize: 12, color: "#9688c0", marginBottom: 14 },
     cardRow: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
     cardBtns: { display: "flex", gap: 6, flexShrink: 0 },
-    editBtn: { fontSize: 13, color: "#555", background: "#f7f7f7", border: "1px solid #ebebeb", borderRadius: 6, padding: "5px 12px", cursor: "pointer" },
-    shareBtn: { fontSize: 13, color: "#2563eb", background: "#eff6ff", border: "1px solid #dbeafe", borderRadius: 6, padding: "5px 12px", cursor: "pointer" },
-    delBtn: { fontSize: 13, color: "#dc2626", background: "#fff5f5", border: "1px solid #fee2e2", borderRadius: 6, padding: "5px 12px", cursor: "pointer" },
+    editBtn: {
+      fontSize: 12, color: "#4b3d80", background: "#f5f0ff",
+      border: "1px solid #ddd6fe", borderRadius: 8, padding: "5px 12px", cursor: "pointer"
+    },
+    shareBtn: {
+      fontSize: 12, color: "#1d4ed8", background: "#eff6ff",
+      border: "1px solid #bfdbfe", borderRadius: 8, padding: "5px 12px", cursor: "pointer"
+    },
+    delBtn: {
+      fontSize: 12, color: "#b91c1c", background: "#fef2f2",
+      border: "1px solid #fecaca", borderRadius: 8, padding: "5px 12px", cursor: "pointer"
+    },
     chipsRow: { display: "flex", flexWrap: "wrap", gap: 5 },
-    chip: { fontSize: 12, padding: "2px 9px", borderRadius: 100, fontWeight: 500, background: "#f0f0f0", color: "#555" },
+    chip: {
+      fontSize: 11, padding: "3px 10px", borderRadius: 100, fontWeight: 500,
+      background: "linear-gradient(135deg, #f5f0ff 0%, #ede9fe 100%)",
+      color: "#6d28d9", border: "1px solid #ddd6fe"
+    },
     emptyWrap: { textAlign: "center", padding: "80px 0" },
-    emptyTitle: { fontSize: 19, fontWeight: 600, color: "#111", marginBottom: 6 },
-    emptyText: { fontSize: 14, color: "#aaa", marginBottom: 28 },
-    back: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, color: "#999", cursor: "pointer", marginBottom: 32, background: "none", border: "none", padding: 0 },
-    genSection: { border: "1px solid #f0f0f0", borderRadius: 12, padding: "28px", marginBottom: 16 },
-    sectionLabel: { fontSize: 12, fontWeight: 600, color: "#bbb", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 16 },
-    fieldLabel: { display: "block", fontSize: 13, fontWeight: 500, color: "#666", marginBottom: 7 },
-    input: { width: "100%", border: "1px solid #e5e5e5", borderRadius: 8, padding: "10px 13px", fontSize: 15, color: "#111", outline: "none", background: "#fafafa", fontFamily: "inherit" },
-    secCard: { border: "1px solid #f0f0f0", borderRadius: 12, marginBottom: 12, overflow: "hidden" },
-    secHeader: { display: "flex", alignItems: "center", gap: 10, padding: "12px 18px", background: "#fafafa", borderBottom: "1px solid #f0f0f0" },
-    secNum: { fontSize: 12, fontWeight: 600, color: "#bbb", minWidth: 20 },
-    secTitleInput: { flex: 1, border: "1px solid #e5e5e5", borderRadius: 7, padding: "8px 12px", fontSize: 15, fontWeight: 600, color: "#111", outline: "none", background: "#fff", fontFamily: "inherit" },
+    emptyTitle: { fontSize: 20, fontWeight: 700, color: "#1a1035", marginBottom: 8 },
+    emptyText: { fontSize: 14, color: "#a78bfa", marginBottom: 28 },
+    emptyIcon: { fontSize: 48, marginBottom: 20, opacity: 0.3 },
+    back: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, color: "#7c6fa0", cursor: "pointer", marginBottom: 32, background: "none", border: "none", padding: 0 },
+    genSection: { border: "1.5px solid #ede9fe", borderRadius: 14, padding: "28px", marginBottom: 16, background: "#faf9ff" },
+    sectionLabel: {
+      fontSize: 10, fontWeight: 700, color: "#a78bfa",
+      textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16
+    },
+    fieldLabel: { display: "block", fontSize: 13, fontWeight: 600, color: "#4b3d80", marginBottom: 8 },
+    input: {
+      width: "100%", border: "1.5px solid #ddd6fe", borderRadius: 10,
+      padding: "10px 14px", fontSize: 15, color: "#1a1035", outline: "none",
+      background: "#fff", fontFamily: "inherit", transition: "border-color 0.15s"
+    },
+    secCard: { border: "1.5px solid #ede9fe", borderRadius: 14, marginBottom: 12, overflow: "hidden" },
+    secHeader: {
+      display: "flex", alignItems: "center", gap: 10, padding: "12px 18px",
+      background: "linear-gradient(135deg, #faf9ff 0%, #f5f0ff 100%)",
+      borderBottom: "1.5px solid #ede9fe"
+    },
+    secNum: { fontSize: 11, fontWeight: 700, color: "#a78bfa", minWidth: 20 },
+    secTitleInput: {
+      flex: 1, border: "1.5px solid #ddd6fe", borderRadius: 8,
+      padding: "8px 12px", fontSize: 14, fontWeight: 600, color: "#1a1035",
+      outline: "none", background: "#fff", fontFamily: "inherit"
+    },
     secActions: { display: "flex", gap: 4, flexShrink: 0 },
-    iconBtn: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 13, padding: "4px 6px", borderRadius: 5, lineHeight: 1 },
-    removeSec: { background: "none", border: "none", color: "#ddd", cursor: "pointer", fontSize: 18, padding: "2px 6px", lineHeight: 1 },
-    tasksArea: { padding: "10px 18px 14px" },
-    itemRow: { display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid #f5f5f5", borderRadius: 8, padding: "9px 11px", marginBottom: 6 },
-    itemNum: { fontSize: 12, color: "#ddd", minWidth: 18, textAlign: "right", flexShrink: 0 },
-    itemInput: { flex: 1, border: "1px solid #e5e5e5", borderRadius: 7, padding: "7px 10px", fontSize: 14, color: "#111", outline: "none", background: "#fafafa", fontFamily: "inherit", minWidth: 0 },
+    iconBtn: {
+      background: "#f5f0ff", border: "1px solid #ddd6fe",
+      color: "#a78bfa", cursor: "pointer", fontSize: 12,
+      padding: "4px 8px", borderRadius: 6, lineHeight: 1
+    },
+    removeSec: {
+      background: "#fef2f2", border: "1px solid #fecaca",
+      color: "#f87171", cursor: "pointer", fontSize: 16,
+      padding: "2px 8px", lineHeight: 1, borderRadius: 6
+    },
+    tasksArea: { padding: "10px 18px 14px", background: "#fff" },
+    itemRow: {
+      display: "flex", alignItems: "center", gap: 8,
+      background: "#faf9ff", border: "1px solid #ede9fe",
+      borderRadius: 10, padding: "9px 11px", marginBottom: 6
+    },
+    itemNum: { fontSize: 11, color: "#c4b5fd", minWidth: 18, textAlign: "right", flexShrink: 0 },
+    itemInput: {
+      flex: 1, border: "1.5px solid #e9e4f8", borderRadius: 8,
+      padding: "7px 10px", fontSize: 14, color: "#1a1035", outline: "none",
+      background: "#fff", fontFamily: "inherit", minWidth: 0
+    },
     moveBtns: { display: "flex", flexDirection: "column", gap: 1, flexShrink: 0 },
-    moveBtn: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 12, padding: "1px 4px", lineHeight: 1 },
-    removeBtn: { background: "none", border: "none", color: "#ddd", cursor: "pointer", fontSize: 18, padding: "2px 5px", lineHeight: 1, flexShrink: 0 },
-    addTaskBtn: { width: "100%", border: "1.5px dashed #e5e5e5", borderRadius: 8, padding: 10, fontSize: 13, color: "#bbb", background: "none", cursor: "pointer", marginTop: 4, fontFamily: "inherit" },
-    addSecBtn: { width: "100%", border: "1.5px dashed #d5d5d5", borderRadius: 12, padding: "13px 12px", fontSize: 14, color: "#aaa", background: "none", cursor: "pointer", marginTop: 4, fontFamily: "inherit", fontWeight: 500 },
-    footer: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, marginTop: 20 },
-    errText: { flex: 1, fontSize: 13, color: "#dc2626" },
-    cancelBtn: { fontSize: 14, color: "#666", background: "#f7f7f7", border: "1px solid #e5e5e5", borderRadius: 8, padding: "10px 18px", cursor: "pointer", fontFamily: "inherit" },
-    saveBtn: { fontSize: 14, fontWeight: 600, color: "#fff", background: "#111", border: "none", borderRadius: 8, padding: "10px 22px", cursor: "pointer", fontFamily: "inherit" },
+    moveBtn: { background: "none", border: "none", color: "#c4b5fd", cursor: "pointer", fontSize: 11, padding: "1px 4px", lineHeight: 1 },
+    removeBtn: {
+      background: "none", border: "none", color: "#fca5a5",
+      cursor: "pointer", fontSize: 16, padding: "2px 5px", lineHeight: 1, flexShrink: 0
+    },
+    addTaskBtn: {
+      width: "100%", border: "1.5px dashed #ddd6fe", borderRadius: 10,
+      padding: 10, fontSize: 13, color: "#a78bfa", background: "none",
+      cursor: "pointer", marginTop: 4, fontFamily: "inherit"
+    },
+    addSecBtn: {
+      width: "100%", border: "1.5px dashed #c4b5fd", borderRadius: 14,
+      padding: "13px 12px", fontSize: 14, color: "#7c6fa0", background: "none",
+      cursor: "pointer", marginTop: 4, fontFamily: "inherit", fontWeight: 500
+    },
+    footer: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, marginTop: 24 },
+    errText: { flex: 1, fontSize: 13, color: "#dc2626", fontWeight: 500 },
+    cancelBtn: {
+      fontSize: 14, color: "#7c6fa0", background: "#f5f0ff",
+      border: "1.5px solid #ddd6fe", borderRadius: 10,
+      padding: "10px 18px", cursor: "pointer", fontFamily: "inherit"
+    },
+    saveBtn: {
+      fontSize: 14, fontWeight: 600, color: "#fff",
+      background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)",
+      border: "none", borderRadius: 10, padding: "10px 24px",
+      cursor: "pointer", fontFamily: "inherit",
+      boxShadow: "0 2px 10px rgba(109,40,217,0.3)"
+    },
   };
 
   return (
@@ -170,10 +245,10 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
             <button style={S.newBtn} onClick={startCreate}>+ New checklist</button>
           </div>
           {loading ? (
-            <div style={{ padding: "80px 0", textAlign: "center", fontSize: 14, color: "#ccc" }}>Loading…</div>
+            <div style={{ padding: "80px 0", textAlign: "center", fontSize: 14, color: "#c4b5fd" }}>Loading…</div>
           ) : checklists.length === 0 ? (
             <div style={S.emptyWrap}>
-              <div style={{ fontSize: 40, marginBottom: 20, opacity: 0.2 }}>☑</div>
+              <div style={S.emptyIcon}>☑</div>
               <div style={S.emptyTitle}>No checklists yet</div>
               <div style={S.emptyText}>Create your first checklist to get started.</div>
               <button style={S.newBtn} onClick={startCreate}>+ New checklist</button>
@@ -186,8 +261,8 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
             const extra = allTasks.length - preview.length;
             return (
               <div key={cl.id} style={S.card}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = "#e0e0e0")}
-                onMouseLeave={e => (e.currentTarget.style.borderColor = "#f0f0f0")}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "#c4b5fd"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(79,53,190,0.12)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "#ede9fe"; e.currentTarget.style.boxShadow = "0 2px 12px rgba(79,53,190,0.06)"; }}
               >
                 <div style={S.cardRow}>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -210,7 +285,7 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
                   {preview.map((it, i) => (
                     <span key={i} style={S.chip}>{it.label}</span>
                   ))}
-                  {extra > 0 && <span style={{ fontSize: 12, color: "#ccc", padding: "2px 4px" }}>+{extra} more</span>}
+                  {extra > 0 && <span style={{ fontSize: 12, color: "#a78bfa", padding: "3px 6px" }}>+{extra} more</span>}
                 </div>
               </div>
             );
@@ -227,7 +302,10 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
           <div style={S.genSection}>
             <div style={S.sectionLabel}>General</div>
             <label style={S.fieldLabel}>Title</label>
-            <input style={S.input} placeholder="e.g. Office Closing Checklist" value={title} onChange={e => setTitle(e.target.value)} />
+            <input style={S.input} placeholder="e.g. Office Closing Checklist" value={title} onChange={e => setTitle(e.target.value)}
+              onFocus={e => (e.target.style.borderColor = "#a78bfa")}
+              onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
+            />
           </div>
           <div style={{ ...S.sectionLabel, marginBottom: 12 }}>Sections & Tasks</div>
           {sections.map((sec, si) => (
