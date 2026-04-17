@@ -120,24 +120,24 @@ function FieldRow({
         />
 
         {isPassword && (
-          <button style={S.eyeBtn} onClick={() => setShowPw(p => !p)} title={showPw ? "Hide" : "Show"}>
+          <button style={S.eyeBtn} onClick={() => setShowPw(p => !p)} title={showPw ? "非表示" : "表示"}>
             {showPw ? "🚫" : "👁"}
           </button>
         )}
 
         {!editing ? (
-          <button style={S.editBtn} onClick={handleEdit}>Edit</button>
+          <button style={S.editBtn} onClick={handleEdit}>編集</button>
         ) : (
           <>
-            <button style={S.cancelBtn} onClick={handleCancel} disabled={saving}>Cancel</button>
+            <button style={S.cancelBtn} onClick={handleCancel} disabled={saving}>キャンセル</button>
             <button style={S.saveBtn}   onClick={handleSave}  disabled={saving}>
-              {saving ? "Saving…" : "Save"}
+              {saving ? "保存中…" : "保存"}
             </button>
           </>
         )}
       </div>
 
-      {saved  && <div style={S.savedBadge}>✓ Saved</div>}
+      {saved  && <div style={S.savedBadge}>✓ 保存しました</div>}
       {error  && <div style={S.errText}>⚠ {error}</div>}
     </div>
   );
@@ -152,7 +152,7 @@ export function SettingsTab() {
     fetch("/api/settings")
       .then(r => r.json())
       .then(data => { setFields({ ...EMPTY, ...data }); setLoading(false); })
-      .catch(() => { setLoadError("Failed to load settings."); setLoading(false); });
+      .catch(() => { setLoadError("設定の読み込みに失敗しました。"); setLoading(false); });
   }, []);
 
   const handleSaveField = async (key: FieldKey, val: string) => {
@@ -162,7 +162,7 @@ export function SettingsTab() {
       body: JSON.stringify({ [key]: val }),
     });
     const result = await res.json();
-    if (!res.ok) throw new Error(result.error || "Save failed");
+    if (!res.ok) throw new Error(result.error || "保存に失敗しました");
     setFields(p => ({ ...p, [key]: val }));
   };
 
@@ -184,19 +184,19 @@ export function SettingsTab() {
 
   return (
     <div style={S.main}>
-      <div style={S.pageTitle}>Settings</div>
-      <div style={S.pageSub}>Configure Slack integration tokens and webhook URLs.</div>
+      <div style={S.pageTitle}>設定</div>
+      <div style={S.pageSub}>Slack連携のトークンとWebhook URLを設定します。</div>
 
       {loading ? (
-        <div style={{ padding: "80px 0", textAlign: "center", fontSize: 14, color: "#c4b5fd" }}>Loading…</div>
+        <div style={{ padding: "80px 0", textAlign: "center", fontSize: 14, color: "#c4b5fd" }}>読み込み中…</div>
       ) : loadError ? (
         <div style={{ fontSize: 13, color: "#dc2626", fontWeight: 500 }}>⚠ {loadError}</div>
       ) : (
         <div style={S.section}>
-          <div style={S.secLabel}>Slack Configuration</div>
+          <div style={S.secLabel}>Slack設定</div>
 
           <FieldRow
-            label="Bot Token"
+            label="ボットトークン"
             fieldKey="bot_token"
             value={fields.bot_token}
             placeholder="xoxb-..."
@@ -205,7 +205,7 @@ export function SettingsTab() {
           />
           <div style={S.divider} />
           <FieldRow
-            label="Approval Channel Webhook URL"
+            label="承認チャンネル Webhook URL"
             fieldKey="approval_url"
             value={fields.approval_url}
             placeholder="https://hooks.slack.com/services/..."
@@ -213,7 +213,7 @@ export function SettingsTab() {
           />
           <div style={S.divider} />
           <FieldRow
-            label="Security Channel Webhook URL"
+            label="セキュリティチャンネル Webhook URL"
             fieldKey="security_url"
             value={fields.security_url}
             placeholder="https://hooks.slack.com/services/..."
@@ -221,7 +221,7 @@ export function SettingsTab() {
           />
           <div style={S.divider} />
           <FieldRow
-            label="Reminder Channel Webhook URL"
+            label="リマインダーチャンネル Webhook URL"
             fieldKey="reminder_url"
             value={fields.reminder_url}
             placeholder="https://hooks.slack.com/services/..."

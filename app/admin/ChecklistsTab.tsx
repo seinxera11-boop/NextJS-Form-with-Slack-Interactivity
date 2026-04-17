@@ -82,11 +82,11 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
     }));
 
   const handleSave = async () => {
-    if (!title.trim()) { setSaveError("Title is required."); return; }
+    if (!title.trim()) { setSaveError("タイトルは必須です。"); return; }
     for (const sec of sections) {
-      if (!sec.title.trim()) { setSaveError("All sections need a title."); return; }
+      if (!sec.title.trim()) { setSaveError("すべてのセクションにタイトルを入力してください。"); return; }
       for (const task of sec.tasks) {
-        if (!task.label.trim()) { setSaveError("All tasks need a label."); return; }
+        if (!task.label.trim()) { setSaveError("すべてのタスクにラベルを入力してください。"); return; }
       }
     }
     setSaving(true); setSaveError("");
@@ -100,14 +100,14 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
         }
       );
       const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Save failed");
+      if (!res.ok) throw new Error(result.error || "保存に失敗しました");
       await fetchChecklists(); setView("list");
     } catch (err: any) { setSaveError(err.message); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this checklist?")) return;
+    if (!confirm("このチェックリストを削除しますか？")) return;
     await fetch(`/api/checklists/${id}`, { method: "DELETE" });
     await fetchChecklists();
   };
@@ -238,20 +238,20 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
     <div style={S.main}>
       {view === "list" && (
         <>
-          <div style={S.pageTitle}>Checklists</div>
-          <div style={S.pageSubtitle}>Create and manage checklists for your team.</div>
+          <div style={S.pageTitle}>チェックリスト</div>
+          <div style={S.pageSubtitle}>チームのチェックリストを作成・管理します。</div>
           <div style={S.toolbar}>
-            <span style={S.countLabel}>{checklists.length} checklist{checklists.length !== 1 ? "s" : ""}</span>
-            <button style={S.newBtn} onClick={startCreate}>+ New checklist</button>
+            <span style={S.countLabel}>{checklists.length}件のチェックリスト</span>
+            <button style={S.newBtn} onClick={startCreate}>＋ 新規作成</button>
           </div>
           {loading ? (
-            <div style={{ padding: "80px 0", textAlign: "center", fontSize: 14, color: "#c4b5fd" }}>Loading…</div>
+            <div style={{ padding: "80px 0", textAlign: "center", fontSize: 14, color: "#c4b5fd" }}>読み込み中…</div>
           ) : checklists.length === 0 ? (
             <div style={S.emptyWrap}>
               <div style={S.emptyIcon}>☑</div>
-              <div style={S.emptyTitle}>No checklists yet</div>
-              <div style={S.emptyText}>Create your first checklist to get started.</div>
-              <button style={S.newBtn} onClick={startCreate}>+ New checklist</button>
+              <div style={S.emptyTitle}>チェックリストがありません</div>
+              <div style={S.emptyText}>最初のチェックリストを作成して始めましょう。</div>
+              <button style={S.newBtn} onClick={startCreate}>＋ 新規作成</button>
             </div>
           ) : checklists.map(cl => {
             const allTasks = (cl.checklist_sections || [])
@@ -268,24 +268,24 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={S.cardTitle}>{cl.title}</div>
                     <div style={S.cardMeta}>
-                      {(cl.checklist_sections || []).length} section{(cl.checklist_sections || []).length !== 1 ? "s" : ""} · {allTasks.length} tasks · {cl.created_by} ·{" "}
-                      {new Date(cl.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      {(cl.checklist_sections || []).length}セクション · {allTasks.length}タスク · {cl.created_by} ·{" "}
+                      {new Date(cl.created_at).toLocaleDateString("ja-JP", { month: "short", day: "numeric", year: "numeric" })}
                     </div>
                   </div>
                   <div style={S.cardBtns}>
                     <button style={S.shareBtn} onClick={() => {
                       const url = `${window.location.origin}/office-checklist/${cl.id}`;
-                      navigator.clipboard.writeText(url).then(() => alert("Link copied: " + url));
-                    }}>Copy link</button>
-                    <button style={S.editBtn} onClick={() => startEdit(cl)}>Edit</button>
-                    <button style={S.delBtn} onClick={() => handleDelete(cl.id)}>Delete</button>
+                      navigator.clipboard.writeText(url).then(() => alert("リンクをコピーしました: " + url));
+                    }}>リンクをコピー</button>
+                    <button style={S.editBtn} onClick={() => startEdit(cl)}>編集</button>
+                    <button style={S.delBtn} onClick={() => handleDelete(cl.id)}>削除</button>
                   </div>
                 </div>
                 <div style={S.chipsRow}>
                   {preview.map((it, i) => (
                     <span key={i} style={S.chip}>{it.label}</span>
                   ))}
-                  {extra > 0 && <span style={{ fontSize: 12, color: "#a78bfa", padding: "3px 6px" }}>+{extra} more</span>}
+                  {extra > 0 && <span style={{ fontSize: 12, color: "#a78bfa", padding: "3px 6px" }}>他{extra}件</span>}
                 </div>
               </div>
             );
@@ -294,25 +294,25 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
       )}
       {(view === "create" || view === "edit") && (
         <>
-          <button style={S.back} onClick={() => setView("list")}>← Back to checklists</button>
-          <div style={S.pageTitle}>{view === "create" ? "New checklist" : "Edit checklist"}</div>
+          <button style={S.back} onClick={() => setView("list")}>← チェックリストに戻る</button>
+          <div style={S.pageTitle}>{view === "create" ? "新規チェックリスト" : "チェックリストを編集"}</div>
           <div style={{ ...S.pageSubtitle, marginBottom: 32 }}>
-            {view === "create" ? "Add sections and define tasks your team will complete." : "Update sections, tasks and settings."}
+            {view === "create" ? "セクションを追加し、チームが実施するタスクを定義します。" : "セクション・タスク・設定を更新します。"}
           </div>
           <div style={S.genSection}>
-            <div style={S.sectionLabel}>General</div>
-            <label style={S.fieldLabel}>Title</label>
-            <input style={S.input} placeholder="e.g. Office Closing Checklist" value={title} onChange={e => setTitle(e.target.value)}
+            <div style={S.sectionLabel}>基本情報</div>
+            <label style={S.fieldLabel}>タイトル</label>
+            <input style={S.input} placeholder="例）オフィス閉館チェックリスト" value={title} onChange={e => setTitle(e.target.value)}
               onFocus={e => (e.target.style.borderColor = "#a78bfa")}
               onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
             />
           </div>
-          <div style={{ ...S.sectionLabel, marginBottom: 12 }}>Sections & Tasks</div>
+          <div style={{ ...S.sectionLabel, marginBottom: 12 }}>セクション＆タスク</div>
           {sections.map((sec, si) => (
             <div key={si} style={S.secCard}>
               <div style={S.secHeader}>
                 <span style={S.secNum}>{si + 1}</span>
-                <input style={S.secTitleInput} placeholder="Section title (e.g. Closing Tasks)" value={sec.title} onChange={e => updateSectionTitle(si, e.target.value)} />
+                <input style={S.secTitleInput} placeholder="セクションタイトル（例）閉館作業" value={sec.title} onChange={e => updateSectionTitle(si, e.target.value)} />
                 <div style={S.secActions}>
                   <button style={S.iconBtn} onClick={() => moveSection(si, -1)}>↑</button>
                   <button style={S.iconBtn} onClick={() => moveSection(si, 1)}>↓</button>
@@ -325,7 +325,7 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
                     <span style={S.itemNum}>{ti + 1}</span>
                     <input
                       style={S.itemInput}
-                      placeholder="Task label"
+                      placeholder="タスク名"
                       value={task.label}
                       onChange={e => updateTaskLabel(si, ti, e.target.value)}
                     />
@@ -338,16 +338,16 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
                     )}
                   </div>
                 ))}
-                <button style={S.addTaskBtn} onClick={() => addTask(si)}>+ Add task</button>
+                <button style={S.addTaskBtn} onClick={() => addTask(si)}>＋ タスクを追加</button>
               </div>
             </div>
           ))}
-          <button style={S.addSecBtn} onClick={addSection}>+ Add section</button>
+          <button style={S.addSecBtn} onClick={addSection}>＋ セクションを追加</button>
           <div style={S.footer}>
             {saveError && <span style={S.errText}>⚠ {saveError}</span>}
-            <button style={S.cancelBtn} onClick={() => setView("list")}>Cancel</button>
+            <button style={S.cancelBtn} onClick={() => setView("list")}>キャンセル</button>
             <button style={S.saveBtn} onClick={handleSave} disabled={saving}>
-              {saving ? "Saving…" : view === "create" ? "Create" : "Save changes"}
+              {saving ? "保存中…" : view === "create" ? "作成" : "変更を保存"}
             </button>
           </div>
         </>

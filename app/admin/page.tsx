@@ -35,7 +35,7 @@ export default function AdminDashboardWrapper() {
       background: "linear-gradient(135deg, #faf9ff 0%, #f0ebff 100%)",
       fontFamily: "system-ui, sans-serif", fontSize: 15, color: "#a78bfa"
     }}>
-      Loading…
+      読み込み中…
     </div>
   );
   if (!session?.user?.email) return null;
@@ -89,12 +89,12 @@ function AdminDashboard({ userEmail }: { userEmail: string }) {
     <div style={S.root}>
       <nav style={S.nav}>
         <div style={S.navLeft}>
-          <div style={S.navLogo}><div style={S.navDot} />Office Admin</div>
+          <div style={S.navLogo}><div style={S.navDot} />管理画面</div>
           <TabNav tab={tab} setTab={setTab} />
         </div>
         <div style={S.navRight}>
           <span style={S.navEmail}>{userEmail}</span>
-          <button style={S.signOutBtn} onClick={handleSignOut}>Sign out</button>
+          <button style={S.signOutBtn} onClick={handleSignOut}>ログアウト</button>
         </div>
       </nav>
       {tab === "checklists"  && <ChecklistsTab userEmail={userEmail} />}
@@ -109,11 +109,11 @@ function AdminDashboard({ userEmail }: { userEmail: string }) {
 // ─── Tab nav ─────────────────────────────────────────────────────────────────
 function TabNav({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
   const tabs: { key: Tab; label: string }[] = [
-    { key: "checklists",  label: "Checklists"  },
-    { key: "responses",   label: "Responses"   },
-    { key: "approvals",   label: "Approvals"   },
-    { key: "departments", label: "Departments" },
-    { key: "settings",    label: "Settings"    },
+    { key: "checklists",  label: "チェックリスト"  },
+    { key: "responses",   label: "回答一覧"         },
+    { key: "approvals",   label: "承認"             },
+    { key: "departments", label: "部署"             },
+    { key: "settings",    label: "設定"             },
   ];
   return (
     <div style={{ display: "flex", gap: 4 }}>

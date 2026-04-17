@@ -23,9 +23,10 @@ export async function GET(req: NextRequest) {
 
   return new NextResponse(
     `<!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
-  <title>Slack Installed</title>
+  <meta charset="UTF-8" />
+  <title>Slackのインストール完了</title>
   <style>
     body {
       font-family: 'Inter', system-ui, sans-serif;
@@ -97,18 +98,19 @@ export async function GET(req: NextRequest) {
   <nav>
     <div class="nav-logo">
       <div class="nav-dot"></div>
-      OfficeAdmin
+      
+オフィス管理者
     </div>
   </nav>
 
-  <h2>Slack installed</h2>
-  <div class="sub">Copy these values and paste them into Admin › Settings.</div>
+  <h2>Slackのインストールが完了しました</h2>
+  <div class="sub">以下の値をコピーして、管理画面 › 設定に貼り付けてください。</div>
 
   <div class="field">
-    <label>Bot Token</label>
+    <label>ボットトークン</label>
     <div class="row">
       <input id="botToken" type="text" value="${botToken}" readonly />
-      <button onclick="copy('botToken', this)">Copy</button>
+      <button onclick="copy('botToken', this)">コピー</button>
     </div>
   </div>
 
@@ -116,29 +118,28 @@ export async function GET(req: NextRequest) {
     <label>Webhook URL</label>
     <div class="row">
       <input id="webhookUrl" type="text" value="${webhookUrl}" readonly />
-      <button onclick="copy('webhookUrl', this)">Copy</button>
+      <button onclick="copy('webhookUrl', this)">コピー</button>
     </div>
   </div>
 
   <div class="note">
-    Slack returns one webhook per OAuth install. To get separate URLs for the
-    Approval, Security and Reminder channels, install the app three times
-    (once per channel) and paste each URL into the correct field in
-    Admin › Settings.
+    SlackはOAuthインストールごとにWebhookを1つ発行します。承認・セキュリティ・リマインダーの各チャンネルに個別のURLを設定するには、アプリを3回インストール（チャンネルごとに1回）し、それぞれのURLを管理画面 › 設定の該当フィールドに貼り付けてください。
   </div>
 
   <script>
     function copy(id, btn) {
       const val = document.getElementById(id).value;
       navigator.clipboard.writeText(val).then(() => {
-        btn.textContent = "Copied!";
+        btn.textContent = "コピーしました！";
         btn.style.background = "#7c3aed";
-        setTimeout(() => { btn.textContent = "Copy"; btn.style.background = "#4f35be"; }, 1500);
+        setTimeout(() => { btn.textContent = "コピー"; btn.style.background = "#4f35be"; }, 1500);
       });
     }
   </script>
 </body>
 </html>`,
-    { headers: { "Content-Type": "text/html" } }
+    { headers: {
+        "Content-Type": "text/html; charset=utf-8",
+      }, }
   );
 }

@@ -54,7 +54,7 @@ export default function OfficeChecklist() {
 
   const handleSubmit = async () => {
     if (!submittedBy.trim()) {
-      alert("Please enter your name before submitting.");
+      alert("送信前にお名前を入力してください。");
       return;
     }
     setSubmitting(true);
@@ -83,9 +83,9 @@ export default function OfficeChecklist() {
       setSubmittedBy("");
       setSubmittedReason("");
       window.scrollTo({ top: 0, behavior: "smooth" });
-      alert("Checklist submitted successfully!");
+      alert("チェックリストを送信しました！");
     } catch (err: any) {
-      alert("Failed to submit: " + err.message);
+      alert("送信に失敗しました：" + err.message);
     } finally {
       setSubmitting(false);
     }
@@ -94,7 +94,7 @@ export default function OfficeChecklist() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <p className="text-gray-500 text-base">Loading checklist...</p>
+        <p className="text-gray-500 text-base">チェックリストを読み込み中...</p>
       </div>
     );
   }
@@ -102,7 +102,7 @@ export default function OfficeChecklist() {
   if (error || !checklist) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <p className="text-red-500 text-base">Error: {error || "Checklist not found"}</p>
+        <p className="text-red-500 text-base">エラー：{error || "チェックリストが見つかりません"}</p>
       </div>
     );
   }
@@ -117,7 +117,7 @@ export default function OfficeChecklist() {
           </CardHeader>
           <CardContent>
             <p className="text-base mb-2">
-              Progress: {completedCount} / {totalCount} tasks checked
+              進捗：{completedCount} / {totalCount} 項目完了
             </p>
             <Progress value={progress} />
           </CardContent>
@@ -151,22 +151,22 @@ export default function OfficeChecklist() {
           <CardContent className="pt-6 space-y-4">
             <div className="space-y-1">
               <label className="text-base font-medium">
-                Your Name <span className="text-red-400">*</span>
+                お名前 <span className="text-red-400">*</span>
               </label>
               <Input
                 className="text-base"
                 value={submittedBy}
                 onChange={(e: any) => setSubmittedBy(e.target.value)}
-                placeholder="Who is submitting this checklist?"
+                placeholder="このチェックリストを送信する方のお名前"
               />
             </div>
             <div className="space-y-1">
-              <label className="text-base font-medium">Reason</label>
+              <label className="text-base font-medium">理由</label>
               <Textarea
                 className="text-base"
                 value={submittedReason}
                 onChange={(e: any) => setSubmittedReason(e.target.value)}
-                placeholder="Why are you submitting this checklist?"
+                placeholder="このチェックリストを送信する理由を入力してください"
                 rows={3}
               />
             </div>
@@ -174,7 +174,7 @@ export default function OfficeChecklist() {
         </Card>
 
         <Button className="w-full text-base py-6" onClick={handleSubmit} disabled={submitting}>
-          {submitting ? "Submitting..." : "Submit Checklist"}
+          {submitting ? "送信中..." : "チェックリストを送信"}
         </Button>
       </div>
     </div>

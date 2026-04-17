@@ -63,11 +63,11 @@ export default function AdminAuthCallback() {
         <>
           <div style={{ fontSize: 20, color: "#dc2626" }}>✕</div>
           <div style={{ fontSize: 14, color: "#dc2626" }}>{error}</div>
-          <div style={{ fontSize: 12, color: "#aaa" }}>Redirecting to login…</div>
+          <div style={{ fontSize: 12, color: "#aaa" }}>ログインページにリダイレクトしています…</div>
         </>
       ) : (
         <>
-          <div style={{ fontSize: 14, color: "#999" }}>Logging you in…</div>
+          <div style={{ fontSize: 14, color: "#999" }}>ログインしています…</div>
           <div style={{
             width: 24, height: 24,
             border: "2px solid #f0f0f0",

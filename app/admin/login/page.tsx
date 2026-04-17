@@ -10,8 +10,8 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    if (p.get("error") === "session_failed") setError("Sign-in failed. Please try again.");
-    if (p.get("error") === "no_token") setError("Invalid or expired link. Please request a new one.");
+    if (p.get("error") === "session_failed") setError("ログインに失敗しました。もう一度お試しください。");
+    if (p.get("error") === "no_token") setError("リンクが無効または期限切れです。新しいリンクをリクエストしてください。");
   }, []);
 
   const handleSubmit = async () => {
@@ -24,7 +24,7 @@ export default function AdminLoginPage() {
         body: JSON.stringify({ email }),
       });
       const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Failed to send link");
+      if (!res.ok) throw new Error(result.error || "リンクの送信に失敗しました");
       setSent(true);
     } catch (err: any) {
       setError(err.message);
@@ -51,7 +51,8 @@ export default function AdminLoginPage() {
             width: 9, height: 9, borderRadius: "50%",
             background: "linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)",
           }} />
-          <span style={{ fontSize: 15, fontWeight: 700, color: "#4f35be", letterSpacing: "-0.02em" }}>OfficeAdmin</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: "#4f35be", letterSpacing: "-0.02em" }}>
+オフィス管理者</span>
         </div>
 
         {sent ? (
@@ -64,31 +65,31 @@ export default function AdminLoginPage() {
               ✉
             </div>
             <div style={{ fontSize: 22, fontWeight: 700, color: "#1a1035", letterSpacing: "-0.02em", marginBottom: 8 }}>
-              Check your inbox
+              メールをご確認ください
             </div>
             <p style={{ fontSize: 14, color: "#9688c0", lineHeight: 1.7, marginBottom: 24 }}>
-              We sent a sign-in link to <strong style={{ color: "#4f35be", fontWeight: 500 }}>{email}</strong>.<br />
-              Click it to access the admin dashboard.
+              <strong style={{ color: "#4f35be", fontWeight: 500 }}>{email}</strong> にログインリンクを送信しました。<br />
+              リンクをクリックして管理ダッシュボードにアクセスしてください。
             </p>
             <button
               onClick={() => setSent(false)}
               style={{ fontSize: 14, color: "#9688c0", background: "none", border: "none", padding: 0, cursor: "pointer" }}
             >
-              ← Use a different email
+              ← 別のメールアドレスを使用する
             </button>
           </div>
         ) : (
           <div>
             <div style={{ fontSize: 28, fontWeight: 700, color: "#1a1035", letterSpacing: "-0.03em", marginBottom: 6 }}>
-              Sign in
+              ログイン
             </div>
             <p style={{ fontSize: 14, color: "#9688c0", marginBottom: 32, lineHeight: 1.6 }}>
-              Enter your admin email to receive a magic sign-in link.
+              管理者メールアドレスを入力すると、マジックリンクが送信されます。
             </p>
 
             <div style={{ marginBottom: 14 }}>
               <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#7c6fa0", marginBottom: 7 }}>
-                Email address
+                メールアドレス
               </label>
               <input
                 type="email"
@@ -135,12 +136,12 @@ export default function AdminLoginPage() {
                 letterSpacing: "-0.01em",
               }}
             >
-              {loading ? "Sending…" : "Send magic link"}
+              {loading ? "送信中…" : "マジックリンクを送信"}
             </button>
 
             <p style={{ fontSize: 12, color: "#c4b5fd", marginTop: 20, lineHeight: 1.7, textAlign: "center" }}>
-              No password required. Only authorised admins can sign in.<br />
-              Link expires after 1 hour.
+              パスワード不要。許可された管理者のみログインできます。<br />
+              リンクの有効期限は1時間です。
             </p>
           </div>
         )}

@@ -88,13 +88,13 @@ export default function ChecklistPage() {
     setValues(p => ({ ...p, [id]: val }));
 
   const handleDeptContinue = () => {
-    if (!selectedDeptId) { alert("Please select a department."); return; }
+    if (!selectedDeptId) { alert("部署を選択してください。"); return; }
     setStep("user");
   };
 
   const handleUserContinue = () => {
-    if (!isOther && !selectedUserId) { alert("Please select a user or choose Other."); return; }
-    if (isOther && !otherName.trim()) { alert("Please enter your name."); return; }
+    if (!isOther && !selectedUserId) { alert("ユーザーを選択するか、「その他」を選んでください。"); return; }
+    if (isOther && !otherName.trim()) { alert("お名前を入力してください。"); return; }
     setStep("form");
   };
 
@@ -103,7 +103,7 @@ export default function ChecklistPage() {
       it => it.required && it.type !== "checkbox" && !values[it.id]?.trim()
     );
     if (missing.length > 0) {
-      alert(`Please fill in: ${missing.map(m => m.label).join(", ")}`);
+      alert(`以下の項目を入力してください：${missing.map(m => m.label).join("、")}`);
       return;
     }
 
@@ -132,7 +132,7 @@ export default function ChecklistPage() {
       setSubmittedBy(resolvedName);
       setSubmitted(true);
     } catch (err: any) {
-      alert("Failed to submit: " + err.message);
+      alert("送信に失敗しました：" + err.message);
     } finally {
       setSubmitting(false);
     }
@@ -267,18 +267,18 @@ export default function ChecklistPage() {
     },
   };
 
-  if (loading) return <div style={S.root}><div style={S.centerMsg}>Loading…</div></div>;
-  if (error || !checklist) return <div style={S.root}><div style={S.centerMsg}>Checklist not found.</div></div>;
+  if (loading) return <div style={S.root}><div style={S.centerMsg}>読み込み中…</div></div>;
+  if (error || !checklist) return <div style={S.root}><div style={S.centerMsg}>チェックリストが見つかりません。</div></div>;
 
   if (submitted) return (
     <div style={S.root}>
-      <div style={S.header}><div style={S.headerDot} /><span style={S.headerName}>OfficeAdmin</span></div>
+      <div style={S.header}><div style={S.headerDot} /><span style={S.headerName}>オフィス管理者</span></div>
       <div style={S.main}>
         <div style={S.successWrap}>
           <div style={S.successIcon}>✓</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#1a1035", marginBottom: 10 }}>Submitted successfully</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "#1a1035", marginBottom: 10 }}>送信が完了しました</div>
           <p style={{ fontSize: 14, color: "#7c6fa0", lineHeight: 1.8, marginBottom: 36 }}>
-            Your response has been recorded.<br />Thank you, <strong style={{ color: "#4f35be" }}>{submittedBy}</strong>.
+            回答が記録されました。<br /><strong style={{ color: "#4f35be" }}>{submittedBy}</strong>さん、ありがとうございました。
           </p>
           <button
             style={{
@@ -288,7 +288,7 @@ export default function ChecklistPage() {
             }}
             onClick={handleReset}
           >
-            Submit another response
+            別の回答を送信する
           </button>
         </div>
       </div>
@@ -300,14 +300,15 @@ export default function ChecklistPage() {
 
   return (
     <div style={S.root}>
-      <div style={S.header}><div style={S.headerDot} /><span style={S.headerName}>OfficeAdmin</span></div>
+      <div style={S.header}><div style={S.headerDot} /><span style={S.headerName}>
+オフィス管理者</span></div>
       <div style={S.main}>
         <div style={S.title}>{checklist.title}</div>
 
         {/* ── STEP 1: Department ── */}
         {step === "department" && (
           <div style={S.selCard}>
-            <label style={S.selLabel}>Department <span style={{ color: "#dc2626" }}>*</span></label>
+            <label style={S.selLabel}>部署 <span style={{ color: "#dc2626" }}>*</span></label>
             <select
               style={S.select}
               value={selectedDeptId}
@@ -315,13 +316,13 @@ export default function ChecklistPage() {
               onFocus={e => (e.target.style.borderColor = "#a78bfa")}
               onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
             >
-              <option value="">Select a department…</option>
+              <option value="">部署を選択してください…</option>
               {departments.map(d => (
                 <option key={d.id} value={d.id}>{d.name}</option>
               ))}
             </select>
             <button style={S.continueBtn} onClick={handleDeptContinue}>
-              Continue
+              次へ
             </button>
           </div>
         )}
@@ -332,9 +333,9 @@ export default function ChecklistPage() {
             <button style={S.backLink} onClick={() => setStep("department")}>
               ← {deptName}
             </button>
-            <label style={S.selLabel}>User <span style={{ color: "#dc2626" }}>*</span></label>
+            <label style={S.selLabel}>ユーザー <span style={{ color: "#dc2626" }}>*</span></label>
             {loadingUsers ? (
-              <div style={{ fontSize: 14, color: "#c4b5fd", padding: "8px 0" }}>Loading users…</div>
+              <div style={{ fontSize: 14, color: "#c4b5fd", padding: "8px 0" }}>ユーザーを読み込み中…</div>
             ) : (
               <>
                 <select
@@ -343,7 +344,7 @@ export default function ChecklistPage() {
                   onChange={e => { setSelectedUserId(e.target.value); setIsOther(false); }}
                   disabled={isOther}
                 >
-                  <option value="">Select a user…</option>
+                  <option value="">ユーザーを選択してください…</option>
                   {orgUsers.map(u => (
                     <option key={u.id} value={u.id}>{u.name}</option>
                   ))}
@@ -354,10 +355,10 @@ export default function ChecklistPage() {
                     style={isOther ? S.otherBtnActive : S.otherBtn}
                     onClick={() => { setIsOther(!isOther); setSelectedUserId(""); setOtherName(""); }}
                   >
-                    {isOther ? "✓ Other" : "Other"}
+                    {isOther ? "✓ その他" : "その他"}
                   </button>
                   {isOther && (
-                    <span style={{ fontSize: 13, color: "#9688c0" }}>Enter your name below</span>
+                    <span style={{ fontSize: 13, color: "#9688c0" }}>以下にお名前を入力してください</span>
                   )}
                 </div>
 
@@ -365,7 +366,7 @@ export default function ChecklistPage() {
                   <input
                     type="text"
                     style={{ ...S.textInput, marginTop: 10 }}
-                    placeholder="Enter your name…"
+                    placeholder="お名前を入力してください…"
                     value={otherName}
                     onChange={e => setOtherName(e.target.value)}
                     autoFocus
@@ -376,7 +377,7 @@ export default function ChecklistPage() {
               </>
             )}
             <button style={S.continueBtn} onClick={handleUserContinue}>
-              Continue
+              次へ
             </button>
           </div>
         )}
@@ -386,23 +387,23 @@ export default function ChecklistPage() {
           <>
             <div style={{ marginBottom: 24, display: "flex", gap: 8, flexWrap: "wrap" as const }}>
               <span style={S.summaryChip}>
-                <span style={{ color: "#a78bfa" }}>dept</span> {deptName}
+                <span style={{ color: "#a78bfa" }}>部署</span> {deptName}
               </span>
               <span style={S.summaryChip}>
-                <span style={{ color: "#a78bfa" }}>user</span> {userName}
+                <span style={{ color: "#a78bfa" }}>ユーザー</span> {userName}
               </span>
               <button
                 style={{ ...S.backLink, margin: 0, alignSelf: "center" }}
                 onClick={() => setStep("user")}
               >
-                Change
+                変更
               </button>
             </div>
 
             {total > 0 && (
               <div style={S.progressWrap}>
                 <div style={S.progressLabel}>
-                  <span>Progress</span><span style={{ color: "#7c3aed", fontWeight: 600 }}>{checked}/{total} checked</span>
+                  <span>進捗</span><span style={{ color: "#7c3aed", fontWeight: 600 }}>{checked}/{total} 完了</span>
                 </div>
                 <div style={S.progressTrack}>
                   <div style={{ ...S.progressFill, width: `${pct}%` }} />
@@ -438,7 +439,7 @@ export default function ChecklistPage() {
                             <input
                               type="text"
                               style={S.textInput}
-                              placeholder="Your answer…"
+                              placeholder="回答を入力してください…"
                               value={values[item.id] || ""}
                               onChange={e => handleText(item.id, e.target.value)}
                               onFocus={e => (e.target.style.borderColor = "#a78bfa")}
@@ -452,7 +453,7 @@ export default function ChecklistPage() {
                             </div>
                             <textarea
                               style={{ ...S.textInput, minHeight: 80 }}
-                              placeholder="Your answer…"
+                              placeholder="回答を入力してください…"
                               value={values[item.id] || ""}
                               onChange={e => handleText(item.id, e.target.value)}
                               onFocus={e => (e.target.style.borderColor = "#a78bfa")}
@@ -468,10 +469,10 @@ export default function ChecklistPage() {
             })}
 
             <div style={S.nameCard}>
-              <label style={S.nameLabel}>Reason</label>
+              <label style={S.nameLabel}>理由</label>
               <textarea
                 style={{ ...S.textInput, minHeight: 80 }}
-                placeholder="Submit reason"
+                placeholder="送信理由を入力してください"
                 value={reason}
                 onChange={e => setReason(e.target.value)}
                 onFocus={e => (e.target.style.borderColor = "#a78bfa")}
@@ -484,7 +485,7 @@ export default function ChecklistPage() {
               onClick={handleSubmit}
               disabled={submitting}
             >
-              {submitting ? "Submitting…" : "Submit checklist"}
+              {submitting ? "送信中…" : "チェックリストを送信"}
             </button>
           </>
         )}

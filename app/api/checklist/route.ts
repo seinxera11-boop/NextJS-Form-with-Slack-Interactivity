@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     } = body;
 
     if (!checklist_id || !submitted_by || !values) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json({ error: "必須項目が不足しています" }, { status: 400 });
     }
 
     // 1. Insert response
@@ -88,7 +88,9 @@ export async function POST(req: NextRequest) {
     );
 
     const checkboxItems  = allItems.filter((i: any) => i.type === "checkbox");
-    const incompleteTasks = checkboxItems.filter((i: any) => values[i.id] !== "true").map((i: any) => i.label);
+    const incompleteTasks = checkboxItems
+      .filter((i: any) => values[i.id] !== "true")
+      .map((i: any) => i.label);
 
     // 6. Fetch webhook URLs
     const { approvalUrl, securityUrl } = await getWebhookUrls();
@@ -99,10 +101,10 @@ export async function POST(req: NextRequest) {
       text: {
         type: "mrkdwn",
         text: [
-          `*Checklist:* ${checklistData?.title || "Untitled"}`,
-          `*Submitted by:* ${submitted_by}`,
-          departmentName ? `*Department:* ${departmentName}` : null,
-          `*Progress:* ${completedItems}/${totalItems} tasks checked`,
+          `*チェックリスト:* ${checklistData?.title || "未設定"}`,
+          `*提出者:* ${submitted_by}`,
+          departmentName ? `*部署:* ${departmentName}` : null,
+          `*進捗:* ${completedItems}/${totalItems} 件完了`,
         ].filter(Boolean).join("\n"),
       },
     };
@@ -116,8 +118,7 @@ export async function POST(req: NextRequest) {
         if (item.type === "checkbox") {
           return `${values[item.id] === "true" ? "✅" : "❌"} ${item.label}`;
         }
-        // text / textarea
-        return `*${item.label}:* ${values[item.id]?.trim() || "_No response_"}`;
+        return `*${item.label}:* ${values[item.id]?.trim() || "_未入力_"}`;
       });
       return {
         type: "section",
@@ -127,42 +128,42 @@ export async function POST(req: NextRequest) {
 
     // ── Shared: reason block ──────────────────────────────────────────────────
     const reasonBlock = reason?.trim()
-      ? { type: "section", text: { type: "mrkdwn", text: `*📝 Submission Reason:*\n${reason}` } }
+      ? { type: "section", text: { type: "mrkdwn", text: `*📝 提出理由:*\n${reason}` } }
       : null;
 
     // ── Approval channel only: interactive input + button ─────────────────────
     const actionBlocks: any[] = [
-  {
-    type: "input",
-    block_id: "reason_block",
-    element: {
-      type: "plain_text_input",
-      action_id: "reason_input",
-      placeholder: { type: "plain_text", text: "Enter message " },
-    },
-    label: { type: "plain_text", text: "Message" },
-    optional: true, // 👈 important so it's not required
-  },
-  {
-    type: "actions",
-    block_id: "actions_block",
-    elements: [
       {
-        type: "button",
-        text: { type: "plain_text", text: "Approve" },
-        style: "primary",
-        action_id: "submit_reason",
-        value: JSON.stringify({
-          response_id: responseId,
-          checklist_id,
-          submitted_by,
-        }),
+        type: "input",
+        block_id: "reason_block",
+        element: {
+          type: "plain_text_input",
+          action_id: "reason_input",
+          placeholder: { type: "plain_text", text: "メッセージを入力" },
+        },
+        label: { type: "plain_text", text: "メッセージ" },
+        optional: true,
       },
-    ],
-  },
-];
+      {
+        type: "actions",
+        block_id: "actions_block",
+        elements: [
+          {
+            type: "button",
+            text: { type: "plain_text", text: "承認する" },
+            style: "primary",
+            action_id: "submit_reason",
+            value: JSON.stringify({
+              response_id: responseId,
+              checklist_id,
+              submitted_by,
+            }),
+          },
+        ],
+      },
+    ];
 
-    // ── Base blocks shared by both channels (no interactive elements) ─────────
+    // ── Base blocks shared by both channels ───────────────────────────────────
     const sharedBlocks: any[] = [
       headerBlock,
       { type: "divider" },
@@ -170,7 +171,7 @@ export async function POST(req: NextRequest) {
       ...(reasonBlock ? [reasonBlock] : []),
     ];
 
-    // ── Send to Approval channel (with interactive approve button) ────────────
+    // ── Send to Approval channel ──────────────────────────────────────────────
     if (approvalUrl) {
       await fetch(approvalUrl, {
         method: "POST",
@@ -181,20 +182,20 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ── Send to Security channel (identical layout, no button) ────────────────
+    // ── Send to Security channel ──────────────────────────────────────────────
     if (securityUrl) {
       await fetch(securityUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          blocks: sharedBlocks,   // same blocks, just without actionBlocks
+          blocks: sharedBlocks,
         }),
       });
     }
 
     return NextResponse.json({ success: true, responseId });
   } catch (err: any) {
-    console.error("❌ Submission error:", err);
-    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
+    console.error("❌ 送信エラー:", err);
+    return NextResponse.json({ error: err.message || "サーバーエラー" }, { status: 500 });
   }
 }

@@ -80,25 +80,25 @@ export function ResponsesTab() {
 
   return (
     <div style={S.main}>
-      <div style={S.pageTitle}>Responses</div>
-      <div style={S.pageSubtitle}>All submitted checklist responses.</div>
+      <div style={S.pageTitle}>回答一覧</div>
+      <div style={S.pageSubtitle}>提出されたすべてのチェックリスト回答です。</div>
       <div style={S.toolbar}>
-        <span style={S.countLabel}>{filtered.length} response{filtered.length !== 1 ? "s" : ""}</span>
+        <span style={S.countLabel}>{filtered.length}件の回答</span>
         <div style={{ display: "flex", gap: 8 }}>
           <select style={S.filterSelect} value={filterDept} onChange={e => setFilterDept(e.target.value)}>
-            <option value="all">All departments</option>
+            <option value="all">すべての部署</option>
             {departments.map(d => <option key={d.id} value={String(d.id)}>{d.name}</option>)}
           </select>
           <select style={S.filterSelect} value={filterChecklist} onChange={e => setFilterChecklist(e.target.value)}>
-            <option value="all">All checklists</option>
+            <option value="all">すべてのチェックリスト</option>
             {checklists.map(cl => <option key={cl.id} value={String(cl.id)}>{cl.title}</option>)}
           </select>
         </div>
       </div>
       {loading ? (
-        <div style={{ padding: "80px 0", textAlign: "center", fontSize: 14, color: "#c4b5fd" }}>Loading…</div>
+        <div style={{ padding: "80px 0", textAlign: "center", fontSize: 14, color: "#c4b5fd" }}>読み込み中…</div>
       ) : filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "80px 0", fontSize: 14, color: "#c4b5fd" }}>No responses yet.</div>
+        <div style={{ textAlign: "center", padding: "80px 0", fontSize: 14, color: "#c4b5fd" }}>回答がまだありません。</div>
       ) : filtered.map(resp => {
         const isExpanded = expanded === resp.id;
         const isApproved = (resp.response_approvals || []).length > 0;
@@ -114,14 +114,14 @@ export function ResponsesTab() {
               <div style={S.cardHeaderLeft}>
                 <div style={S.cardTitle}>
                   {resp.submitted_by}
-                  {resp.other_user_name && <span style={{ fontWeight: 400, color: "#a78bfa", marginLeft: 6 }}>(other)</span>}
-                  <span style={{ fontWeight: 400, color: "#9688c0", marginLeft: 8 }}>— {resp.checklists?.title || "Unknown checklist"}</span>
+                  {resp.other_user_name && <span style={{ fontWeight: 400, color: "#a78bfa", marginLeft: 6 }}>(その他)</span>}
+                  <span style={{ fontWeight: 400, color: "#9688c0", marginLeft: 8 }}>— {resp.checklists?.title || "不明なチェックリスト"}</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   {resp.departments?.name && <span style={S.deptBadge}>{resp.departments.name}</span>}
                   <span style={S.cardMeta}>
-                    {new Date(resp.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                    {" · "}{completedCount}/{checkboxItems.length} tasks checked
+                    {new Date(resp.created_at).toLocaleDateString("ja-JP", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    {" · "}タスク完了 {completedCount}/{checkboxItems.length}
                   </span>
                 </div>
               </div>
@@ -134,7 +134,7 @@ export function ResponsesTab() {
                   color: isApproved ? "#166534" : "#9a3412",
                   border: `1px solid ${isApproved ? "#bbf7d0" : "#fed7aa"}`
                 }}>
-                  {isApproved ? "Approved" : "Pending"}
+                  {isApproved ? "承認済み" : "承認待ち"}
                 </span>
                 <span style={S.expandBtn}>{isExpanded ? "▲" : "▼"}</span>
               </div>
@@ -142,10 +142,10 @@ export function ResponsesTab() {
             {isExpanded && (
               <div style={S.cardBody}>
                 {resp.reason?.trim() && (
-                  <><div style={S.sectionTitle}>Submission Reason</div><div style={S.reasonBox}>{resp.reason}</div></>
+                  <><div style={S.sectionTitle}>提出理由</div><div style={S.reasonBox}>{resp.reason}</div></>
                 )}
                 {checkboxItems.length > 0 && (
-                  <><div style={S.sectionTitle}>Tasks</div>
+                  <><div style={S.sectionTitle}>タスク</div>
                     {checkboxItems.map(item => (
                       <div key={item.id} style={S.itemRow}>
                         <span style={{ fontSize: 15 }}>{item.value === "true" ? "✅" : "❌"}</span>
@@ -154,22 +154,22 @@ export function ResponsesTab() {
                     ))}</>
                 )}
                 {textItems.length > 0 && (
-                  <><div style={S.sectionTitle}>Text Responses</div>
+                  <><div style={S.sectionTitle}>テキスト回答</div>
                     {textItems.map(item => (
                       <div key={item.id} style={S.itemRow}>
                         <span style={S.itemLabel}>{item.checklist_items?.label}</span>
-                        <span style={S.itemValue}>{item.value || <em style={{ color: "#c4b5fd" }}>No response</em>}</span>
+                        <span style={S.itemValue}>{item.value || <em style={{ color: "#c4b5fd" }}>未回答</em>}</span>
                       </div>
                     ))}</>
                 )}
                 {isApproved && (resp.response_approvals || []).map(ap => (
                   <div key={ap.id}>
-                    <div style={S.sectionTitle}>Approval</div>
+                    <div style={S.sectionTitle}>承認情報</div>
                     <div style={S.reasonBox}>
-                      <div style={{ fontSize: 14, color: "#1a1035", marginBottom: 4 }}><strong>Approved by:</strong> {ap.approved_by || "—"}</div>
-                      {ap.reason && <div style={{ fontSize: 14, color: "#4b3d80" }}><strong>Reason:</strong> {ap.reason}</div>}
+                      <div style={{ fontSize: 14, color: "#1a1035", marginBottom: 4 }}><strong>承認者：</strong> {ap.approved_by || "—"}</div>
+                      {ap.reason && <div style={{ fontSize: 14, color: "#4b3d80" }}><strong>理由：</strong> {ap.reason}</div>}
                       <div style={{ fontSize: 12, color: "#a78bfa", marginTop: 6 }}>
-                        {new Date(ap.approved_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        {new Date(ap.approved_at).toLocaleDateString("ja-JP", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </div>
                     </div>
                   </div>
