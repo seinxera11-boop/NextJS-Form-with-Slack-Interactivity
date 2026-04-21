@@ -17,12 +17,20 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { title, sections, created_by } = await req.json();
+  const { title, sections, created_by, is_large_checklist, department_id } = await req.json();
   const checklistId = Number((await params).id);
+
+  // Only attach department_id for small checklists
+  const resolvedDeptId = is_large_checklist ? null : (department_id ?? null);
 
   const { error: clErr } = await supabase
     .from("checklists")
-    .update({ title, created_by })
+    .update({
+      title,
+      created_by,
+      is_large_checklist: is_large_checklist ?? false,
+      department_id: resolvedDeptId,
+    })
     .eq("id", checklistId);
   if (clErr) return NextResponse.json({ error: clErr.message }, { status: 500 });
 
@@ -31,9 +39,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     .select("id")
     .eq("checklist_id", checklistId);
 
-  const existingSectionIds = (existingSections || []).map((s) => s.id);
-  const incomingSectionIds = sections.filter((s: any) => s.id).map((s: any) => s.id);
-  const sectionsToDelete = existingSectionIds.filter((id) => !incomingSectionIds.includes(id));
+  const existingSectionIds  = (existingSections || []).map((s) => s.id);
+  const incomingSectionIds  = sections.filter((s: any) => s.id).map((s: any) => s.id);
+  const sectionsToDelete    = existingSectionIds.filter((id) => !incomingSectionIds.includes(id));
 
   if (sectionsToDelete.length) {
     const { error } = await supabase
@@ -70,7 +78,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     const existingItemIds = (existingItems || []).map((i) => i.id);
     const incomingItemIds = (sec.tasks || []).filter((t: any) => t.id).map((t: any) => t.id);
-    const itemsToDelete = existingItemIds.filter((id) => !incomingItemIds.includes(id));
+    const itemsToDelete   = existingItemIds.filter((id) => !incomingItemIds.includes(id));
 
     if (itemsToDelete.length) {
       const { error } = await supabase

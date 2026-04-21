@@ -24,7 +24,7 @@ function getMonthRange(now: Date): { start: string; end: string; label: string }
   // const start = new Date(Date.UTC(year, month, 1, 0, 0, 0)).toISOString();
   // const end   = new Date(Date.UTC(year, month + 1, 1, 0, 0, 0)).toISOString();
 
-// Report on PREVIOUS month
+// // Report on PREVIOUS month
 const start = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0)).toISOString();
 const end   = new Date(Date.UTC(year, month,     1, 0, 0, 0)).toISOString();
 
@@ -119,10 +119,10 @@ async function sendReportEmail(csv: string, label: string, rowCount: number): Pr
   await transporter.sendMail({
     from:    `"OfficeAdmin Reports" <${process.env.SMTP_USER}>`,
     to:      adminEmail,
-    subject: `Monthly Report — ${label}`,
+    subject: `月次報告書 — ${label}`,
     html: `
       <div style="font-family: sans-serif; max-width: 480px;">
-        <h2 style="color: #111;">Monthly Report — ${label}</h2>
+        <h2 style="color: #111;">月次報告書— ${label}</h2>
         <p>お疲れ様です。先月分の戸締り確認履歴でございます。必要に応じて（ダウンロード
           等）活用ください
         </p>

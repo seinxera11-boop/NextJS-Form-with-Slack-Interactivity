@@ -49,8 +49,21 @@ async function getTodayEvents(): Promise<CalendarEvent[]> {
 
 // ─── Holiday & Weekend ───────────────────────────────────────────────────────
 
+// ✅ FIXED: Only treat real holidays as holidays
 function isHoliday(events: CalendarEvent[]): boolean {
-  return events.length > 0;
+  const holidayKeywords = [
+    "holiday",
+    "public holiday",
+    "day off",
+    "leave",
+    "company off",
+  ];
+
+  return events.some(event => {
+    const title = event.summary.toLowerCase();
+
+    return holidayKeywords.some(keyword => title.includes(keyword));
+  });
 }
 
 function isWeekend(date: Date): boolean {
@@ -86,8 +99,6 @@ async function hasSubmissionToday(): Promise<boolean> {
 // ─── Slack notification ───────────────────────────────────────────────────────
 
 async function sendSlackReminder(reminderUrl: string): Promise<void> {
-  const today = new Date().toUTCString().split(" ").slice(0, 4).join(" ");
-
   const res = await fetch(reminderUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -97,9 +108,8 @@ async function sendSlackReminder(reminderUrl: string): Promise<void> {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: [
-              "本日、最終退社フォームの提出を確認できませんでした。状況を確認いただけますか？",
-            ].join("\n"),
+            text:
+              "<!channel>\n 本日、最終退社フォームの提出を確認できませんでした。状況を確認いただけますか？",
           },
         },
       ],
@@ -147,6 +157,9 @@ export async function GET(req: NextRequest) {
 
     // 2. Holiday check
     const events = await getTodayEvents();
+
+    console.log("📅 Today's events:", events.map(e => e.summary));
+
     const holiday = isHoliday(events);
 
     if (holiday) {

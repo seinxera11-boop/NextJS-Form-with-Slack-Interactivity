@@ -29,6 +29,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "必須項目が不足しています" }, { status: 400 });
     }
 
+    // Fetch checklist to determine is_large_checklist and fixed department_id
+    const { data: checklistData, error: checklistFetchErr } = await supabaseAdmin
+      .from("checklists")
+      .select("title, is_large_checklist, department_id")
+      .eq("id", checklist_id)
+      .single();
+    if (checklistFetchErr) throw checklistFetchErr;
+
+    // For small checklists, always use the department from the checklist row
+    const resolvedDeptId = checklistData.is_large_checklist
+      ? (department_id || null)
+      : (checklistData.department_id || null);
+
     // 1. Insert response
     const { data: responseData, error: responseError } = await supabaseAdmin
       .from("responses")
@@ -36,7 +49,7 @@ export async function POST(req: NextRequest) {
         checklist_id,
         submitted_by,
         reason,
-        department_id: department_id || null,
+        department_id: resolvedDeptId,
         user_id: user_id || null,
       })
       .select()
@@ -46,9 +59,9 @@ export async function POST(req: NextRequest) {
 
     // 2. Insert response_items
     const itemsToInsert = Object.entries(values).map(([itemId, value]) => ({
-      response_id: responseId,
+      response_id:       responseId,
       checklist_item_id: itemId,
-      value: String(value),
+      value:             String(value),
     }));
     if (itemsToInsert.length) {
       const { error: itemsError } = await supabaseAdmin
@@ -57,25 +70,18 @@ export async function POST(req: NextRequest) {
       if (itemsError) throw itemsError;
     }
 
-    // 3. Fetch checklist title
-    const { data: checklistData } = await supabaseAdmin
-      .from("checklists")
-      .select("title")
-      .eq("id", checklist_id)
-      .single();
-
-    // 4. Fetch department name
+    // 3. Fetch department name
     let departmentName = "";
-    if (department_id) {
+    if (resolvedDeptId) {
       const { data: deptData } = await supabaseAdmin
         .from("departments")
         .select("name")
-        .eq("id", department_id)
+        .eq("id", resolvedDeptId)
         .single();
       departmentName = deptData?.name || "";
     }
 
-    // 5. Fetch sections with items
+    // 4. Fetch sections with items
     const { data: sections } = await supabaseAdmin
       .from("checklist_sections")
       .select("*, checklist_items(*)")
@@ -83,102 +89,91 @@ export async function POST(req: NextRequest) {
       .order("order_index");
 
     const sortedSections = (sections || []).sort((a, b) => a.order_index - b.order_index);
-    const allItems = sortedSections.flatMap((sec) =>
-      [...(sec.checklist_items || [])].sort((a: any, b: any) => a.order_index - b.order_index)
-    );
 
-    const checkboxItems  = allItems.filter((i: any) => i.type === "checkbox");
-    const incompleteTasks = checkboxItems
-      .filter((i: any) => values[i.id] !== "true")
-      .map((i: any) => i.label);
-
-    // 6. Fetch webhook URLs
-    const { approvalUrl, securityUrl } = await getWebhookUrls();
-
-    // ── Shared: header block ───────────────────────────────────────────────────
-    const headerBlock: any = {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: [
-          `*チェックリスト:* ${checklistData?.title || "未設定"}`,
-          `*提出者:* ${submitted_by}`,
-          departmentName ? `*部署:* ${departmentName}` : null,
-          `*進捗:* ${completedItems}/${totalItems} 件完了`,
-        ].filter(Boolean).join("\n"),
-      },
-    };
-
-    // ── Shared: one block per section showing every item ──────────────────────
-    const sectionBreakdownBlocks: any[] = sortedSections.map((sec) => {
+    // Build missing items with section name in parentheses: "Task label (Section title)"
+    const missingItems: string[] = [];
+    for (const sec of sortedSections) {
       const secItems = [...(sec.checklist_items || [])].sort(
         (a: any, b: any) => a.order_index - b.order_index
       );
-      const lines = secItems.map((item: any) => {
-        if (item.type === "checkbox") {
-          return `${values[item.id] === "true" ? "✅" : "❌"} ${item.label}`;
+      for (const item of secItems) {
+        if (item.type === "checkbox" && values[item.id] !== "true") {
+          missingItems.push(`${item.label} (${sec.title})`);
         }
-        return `*${item.label}:* ${values[item.id]?.trim() || "_未入力_"}`;
-      });
-      return {
-        type: "section",
-        text: { type: "mrkdwn", text: `*${sec.title}*\n${lines.join("\n")}` },
-      };
-    });
+      }
+    }
 
-    // ── Shared: reason block ──────────────────────────────────────────────────
-    const reasonBlock = reason?.trim()
-      ? { type: "section", text: { type: "mrkdwn", text: `*📝 提出理由:*\n${reason}` } }
-      : null;
+    const reasonText = reason?.trim() || "";
+    const hasMissing = missingItems.length > 0;
 
-    // ── Approval channel only: interactive input + button ─────────────────────
-    const actionBlocks: any[] = [
-      {
-        type: "input",
-        block_id: "reason_block",
-        element: {
-          type: "plain_text_input",
-          action_id: "reason_input",
-          placeholder: { type: "plain_text", text: "メッセージを入力" },
+    // 5. Fetch webhook URLs
+    const { approvalUrl, securityUrl } = await getWebhookUrls();
+
+    // ── Approval channel payload ───────────────────────────────────────────────
+    const approvalBodyText = hasMissing
+      ? `${missingItems.join("\n")} はチェックしませんでした。\n 理由： ${reasonText}`
+      : `\nすべてのタスクが完了しました\n コメント：${reasonText}`;
+
+    const approvalPayload = {
+      blocks: [
+        {
+          type: "section",
+          text: { type: "mrkdwn", text: "<!channel> " },
         },
-        label: { type: "plain_text", text: "メッセージ" },
-        optional: true,
-      },
-      {
-        type: "actions",
-        block_id: "actions_block",
-        elements: [
-          {
-            type: "button",
-            text: { type: "plain_text", text: "承認する" },
-            style: "primary",
-            action_id: "submit_reason",
-            value: JSON.stringify({
-              response_id: responseId,
-              checklist_id,
-              submitted_by,
-            }),
+        {
+          type: "header",
+          text: {
+            type: "plain_text",
+            text: `${submitted_by} さんから新しい提出があります`,
+            emoji: true,
           },
-        ],
-      },
-    ];
+        },
+        {
+          type: "section",
+          text: { type: "mrkdwn", text: approvalBodyText },
+        },
+        // block_id is required so the approval handler can filter these two blocks out
+        {
+          type: "input",
+          block_id: "reason_block",
+          element: {
+            type: "plain_text_input",
+            action_id: "input_reason",
+          },
+          label: {
+            type: "plain_text",
+            text: "承認の理由を教えてください",
+          },
+        },
+        {
+          type: "actions",
+          block_id: "actions_block",
+          elements: [
+            {
+              type: "button",
+              text: { type: "plain_text", emoji: true, text: "承認" },
+              style: "primary",
+              value: JSON.stringify({ response_id: responseId, checklist_id, submitted_by }),
+              action_id: "approve_action",
+            },
+          ],
+        },
+      ],
+    };
 
-    // ── Base blocks shared by both channels ───────────────────────────────────
-    const sharedBlocks: any[] = [
-      headerBlock,
-      { type: "divider" },
-      ...sectionBreakdownBlocks,
-      ...(reasonBlock ? [reasonBlock] : []),
-    ];
+    // ── Security channel payload ───────────────────────────────────────────────
+    const securityText = hasMissing
+      ? `*${departmentName}の ${submitted_by} が最終退出しました。\n${missingItems.join("\n")} はチェックしませんでした。 \n理由：${reasonText}*`
+      : `*${departmentName}の ${submitted_by} が最終退出しました。\nコメント：${reasonText}*`;
+
+    const securityPayload = { text: securityText };
 
     // ── Send to Approval channel ──────────────────────────────────────────────
     if (approvalUrl) {
       await fetch(approvalUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          blocks: [...sharedBlocks, ...actionBlocks],
-        }),
+        body: JSON.stringify(approvalPayload),
       });
     }
 
@@ -187,9 +182,7 @@ export async function POST(req: NextRequest) {
       await fetch(securityUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          blocks: sharedBlocks,
-        }),
+        body: JSON.stringify(securityPayload),
       });
     }
 

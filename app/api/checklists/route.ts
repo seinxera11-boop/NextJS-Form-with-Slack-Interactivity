@@ -16,11 +16,14 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const { title, sections, created_by } = await req.json();
+  const { title, sections, created_by, is_large_checklist, department_id } = await req.json();
+
+  // Only attach department_id for small checklists
+  const resolvedDeptId = is_large_checklist ? null : (department_id ?? null);
 
   const { data: cl, error: clErr } = await supabase
     .from("checklists")
-    .insert({ title, created_by })
+    .insert({ title, created_by, is_large_checklist: is_large_checklist ?? false, department_id: resolvedDeptId })
     .select()
     .single();
   if (clErr) return NextResponse.json({ error: clErr.message }, { status: 500 });
