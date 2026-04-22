@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getUserContext } from "@/lib/auth-helpers";
 
 export async function GET() {
   const { data, error } = await supabaseAdmin
@@ -11,6 +12,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const ctx = await getUserContext(req);
+  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const { name } = await req.json();
   if (!name?.trim()) return NextResponse.json({ error: "Name is required" }, { status: 400 });
   const { data, error } = await supabaseAdmin
@@ -23,6 +27,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const ctx = await getUserContext(req);
+  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const { id } = await req.json();
   const { error } = await supabaseAdmin.from("departments").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

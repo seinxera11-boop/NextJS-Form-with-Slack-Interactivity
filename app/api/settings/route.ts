@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getUserContext } from "@/lib/auth-helpers";
 
 const KEYS = ["bot_token", "approval_url", "security_url", "reminder_url"] as const;
 
@@ -16,6 +17,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const ctx = await getUserContext(req);
+  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const body = await req.json();
 
   const rows = KEYS

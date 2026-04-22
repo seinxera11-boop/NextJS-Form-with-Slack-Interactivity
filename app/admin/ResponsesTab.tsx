@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { type Response } from "./types";
 
-export function ResponsesTab() {
+type Props = {
+  isMainAdmin: boolean;
+  assignedDepartments: number[];
+};
+
+export function ResponsesTab({ isMainAdmin, assignedDepartments }: Props) {
   const [responses, setResponses] = useState<Response[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -17,14 +21,25 @@ export function ResponsesTab() {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [respData, clData, deptData] = await Promise.all([
-      supabase.from("responses").select(`*, checklists(title), departments(name), org_users(name), response_items(*, checklist_items(label, type)), response_approvals(*)`).order("created_at", { ascending: false }),
-      supabase.from("checklists").select("id, title").order("title"),
-      supabase.from("departments").select("id, name").order("name"),
+    const [respRes, clRes, deptRes] = await Promise.all([
+      fetch("/api/responses"),
+      fetch("/api/checklists"),
+      fetch("/api/departments"),
     ]);
-    setResponses(respData.data || []);
-    setChecklists(clData.data || []);
-    setDepartments(deptData.data || []);
+    const [respData, clData, deptData] = await Promise.all([
+      respRes.json(),
+      clRes.json(),
+      deptRes.json(),
+    ]);
+    setResponses(Array.isArray(respData) ? respData : []);
+    setChecklists(Array.isArray(clData) ? clData : []);
+    // Sub-admins only see their assigned departments in the filter.
+    const allDepts: { id: number; name: string }[] = Array.isArray(deptData) ? deptData : [];
+    setDepartments(
+      isMainAdmin
+        ? allDepts
+        : allDepts.filter(d => assignedDepartments.includes(d.id))
+    );
     setLoading(false);
   };
 

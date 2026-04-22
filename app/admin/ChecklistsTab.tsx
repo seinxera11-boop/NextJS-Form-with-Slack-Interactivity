@@ -1,12 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { type Checklist, type ChecklistSection, type ChecklistTask } from "./types";
 
 type Department = { id: number; name: string };
 
-export function ChecklistsTab({ userEmail }: { userEmail: string }) {
+export function ChecklistsTab({
+  userEmail,
+  isMainAdmin,
+  assignedDepartments,
+}: {
+  userEmail: string;
+  isMainAdmin: boolean;
+  assignedDepartments: number[];
+}) {
   const [checklists,   setChecklists]   = useState<Checklist[]>([]);
   const [departments,  setDepartments]  = useState<Department[]>([]);
   const [loading,      setLoading]      = useState(true);
@@ -25,15 +32,20 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
 
   useEffect(() => {
     fetchChecklists();
-    fetch("/api/departments").then(r => r.json()).then(d => setDepartments(d || []));
+    fetch("/api/departments")
+      .then(r => r.json())
+      .then((d: Department[]) => {
+        const all = d || [];
+        setDepartments(
+          isMainAdmin ? all : all.filter(dept => assignedDepartments.includes(dept.id))
+        );
+      });
   }, []);
 
   const fetchChecklists = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("checklists")
-      .select("*, checklist_sections(*, checklist_items(*))")
-      .order("created_at", { ascending: false });
+    const res = await fetch("/api/checklists");
+    const data = res.ok ? await res.json() : [];
     setChecklists(data || []);
     setLoading(false);
   };
@@ -216,7 +228,7 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
       <div style={S.pageSubtitle}>チームのチェックリストを作成・管理します。</div>
       <div style={S.toolbar}>
         <span style={S.countLabel}>{checklists.length}件のチェックリスト</span>
-        <button style={S.newBtn} onClick={startCreate}>＋ 新規作成</button>
+        {isMainAdmin && <button style={S.newBtn} onClick={startCreate}>＋ 新規作成</button>}
       </div>
       {loading ? (
         <div style={{ padding: "80px 0", textAlign: "center", fontSize: 14, color: "#c4b5fd" }}>読み込み中…</div>
@@ -224,8 +236,10 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
         <div style={S.emptyWrap}>
           <div style={S.emptyIcon}>☑</div>
           <div style={S.emptyTitle}>チェックリストがありません</div>
-          <div style={S.emptyText}>最初のチェックリストを作成して始めましょう。</div>
-          <button style={S.newBtn} onClick={startCreate}>＋ 新規作成</button>
+          <div style={S.emptyText}>
+            {isMainAdmin ? "最初のチェックリストを作成して始めましょう。" : "担当部署のチェックリストはありません。"}
+          </div>
+          {isMainAdmin && <button style={S.newBtn} onClick={startCreate}>＋ 新規作成</button>}
         </div>
       ) : checklists.map(cl => {
         const large     = (cl as any).is_large_checklist;
@@ -267,7 +281,7 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
                   navigator.clipboard.writeText(url).then(() => alert("リンクをコピーしました: " + url));
                 }}>リンクをコピー</button>
                 <button style={S.editBtn} onClick={() => startEdit(cl)}>編集</button>
-                <button style={S.delBtn}  onClick={() => handleDelete(cl.id)}>削除</button>
+                {isMainAdmin && <button style={S.delBtn} onClick={() => handleDelete(cl.id)}>削除</button>}
               </div>
             </div>
             <div style={S.chipsRow}>
@@ -302,32 +316,31 @@ export function ChecklistsTab({ userEmail }: { userEmail: string }) {
           onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
         />
 
-        {/* Toggle: is_large_checklist */}
-        <div style={S.toggleRow}>
-          <div
-            style={{ ...S.toggleTrack, background: isLarge ? "#6d28d9" : "#ddd6fe" }}
-            onClick={() => setIsLarge(v => !v)}
-          >
-            <div style={{ ...S.toggleThumb, left: isLarge ? 21 : 3 }} />
-          </div>
-          <div>
-            <div style={S.toggleLabel}>大規模チェックリスト</div>
-            <div style={S.toggleDesc}>
-              {/* {isLarge
-                ? "ステップ形式で表示（部署 → ユーザー → フォーム）"
-                : "フォームとユーザー選択を同時表示（部署は固定）"} */}
+        {/* Toggle: is_large_checklist (main admin only) */}
+        {isMainAdmin && (
+          <div style={S.toggleRow}>
+            <div
+              style={{ ...S.toggleTrack, background: isLarge ? "#6d28d9" : "#ddd6fe" }}
+              onClick={() => setIsLarge(v => !v)}
+            >
+              <div style={{ ...S.toggleThumb, left: isLarge ? 21 : 3 }} />
+            </div>
+            <div>
+              <div style={S.toggleLabel}>大規模チェックリスト</div>
+              <div style={S.toggleDesc} />
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Fixed department selector (only for small flow) */}
+        {/* Fixed department selector */}
         {!isLarge && (
           <div style={{ marginTop: 20 }}>
             <label style={S.fieldLabel}>部門 <span style={{ color: "#dc2626" }}>*</span></label>
             <select
-              style={S.select}
+              style={{ ...S.select, ...((!isMainAdmin) ? { background: "#f5f0ff", cursor: "not-allowed" } : {}) }}
               value={fixedDeptId}
-              onChange={e => setFixedDeptId(e.target.value)}
+              onChange={e => isMainAdmin && setFixedDeptId(e.target.value)}
+              disabled={!isMainAdmin}
               onFocus={e => (e.target.style.borderColor = "#a78bfa")}
               onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
             >

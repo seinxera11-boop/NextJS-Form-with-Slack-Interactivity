@@ -11,19 +11,29 @@ import { SettingsTab } from "./SettingsTab";
 
 type Tab = "checklists" | "responses" | "approvals" | "departments" | "settings";
 
+type UserContext = {
+  email: string;
+  isMainAdmin: boolean;
+  assignedDepartments: number[];
+};
+
 // ─── Auth wrapper ────────────────────────────────────────────────────────────
 export default function AdminDashboardWrapper() {
   const [session, setSession] = useState<Session | null>(null);
+  const [userCtx, setUserCtx] = useState<UserContext | null>(null);
   const [booting, setBooting] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       if (!data.session) { window.location.href = "/admin/login"; return; }
-      setSession(data.session); setBooting(false);
+      setSession(data.session);
+      const ctx = await fetchUserContext();
+      setUserCtx(ctx);
+      setBooting(false);
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) { window.location.href = "/admin/login"; return; }
-      setSession(session); setBooting(false);
+      setSession(session);
     });
     return () => listener.subscription.unsubscribe();
   }, []);
@@ -38,13 +48,36 @@ export default function AdminDashboardWrapper() {
       読み込み中…
     </div>
   );
-  if (!session?.user?.email) return null;
-  return <AdminDashboard userEmail={session.user.email} />;
+  if (!session?.user?.email || !userCtx) return null;
+  return <AdminDashboard userCtx={userCtx} />;
+}
+
+async function fetchUserContext(): Promise<UserContext> {
+  try {
+    const res = await fetch("/api/auth/me");
+    if (!res.ok) throw new Error("context fetch failed");
+    return await res.json();
+  } catch {
+    // Fallback: if context endpoint unreachable, treat as main admin so
+    // the dashboard still loads (auth is still enforced per-route on the server).
+    return { email: "", isMainAdmin: true, assignedDepartments: [] };
+  }
 }
 
 // ─── Shell ───────────────────────────────────────────────────────────────────
-function AdminDashboard({ userEmail }: { userEmail: string }) {
-  const [tab, setTab] = useState<Tab>("checklists");
+function AdminDashboard({ userCtx }: { userCtx: UserContext }) {
+  const { isMainAdmin, assignedDepartments } = userCtx;
+
+  const allTabs: { key: Tab; label: string; mainAdminOnly: boolean }[] = [
+    { key: "checklists",  label: "チェックリスト", mainAdminOnly: false },
+    { key: "responses",   label: "回答一覧",        mainAdminOnly: false },
+    { key: "approvals",   label: "承認",            mainAdminOnly: false },
+    { key: "departments", label: "部署",            mainAdminOnly: true  },
+    { key: "settings",    label: "設定",            mainAdminOnly: true  },
+  ];
+
+  const visibleTabs = allTabs.filter(t => isMainAdmin || !t.mainAdminOnly);
+  const [tab, setTab] = useState<Tab>(visibleTabs[0]?.key ?? "responses");
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -79,6 +112,14 @@ function AdminDashboard({ userEmail }: { userEmail: string }) {
     },
     navRight: { display: "flex", alignItems: "center", gap: 16 },
     navEmail: { fontSize: 12, color: "#9688c0", fontWeight: 500 },
+    roleBadge: {
+      fontSize: 10, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
+      background: isMainAdmin
+        ? "linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)"
+        : "linear-gradient(135deg, #fef9c3 0%, #fde68a 100%)",
+      color: isMainAdmin ? "#4f35be" : "#92400e",
+      border: isMainAdmin ? "1px solid #c4b5fd" : "1px solid #fbbf24",
+    },
     signOutBtn: {
       fontSize: 12, color: "#7c6fa0", background: "#f5f0ff",
       border: "1px solid #ddd6fe", borderRadius: 8, padding: "5px 14px", cursor: "pointer"
@@ -90,31 +131,47 @@ function AdminDashboard({ userEmail }: { userEmail: string }) {
       <nav style={S.nav}>
         <div style={S.navLeft}>
           <div style={S.navLogo}><div style={S.navDot} />管理画面</div>
-          <TabNav tab={tab} setTab={setTab} />
+          <TabNav tab={tab} setTab={setTab} tabs={visibleTabs} />
         </div>
         <div style={S.navRight}>
-          <span style={S.navEmail}>{userEmail}</span>
+          <span style={S.navEmail}>{userCtx.email}</span>
+          <span style={S.roleBadge}>{isMainAdmin ? "メイン管理者" : "サブ管理者"}</span>
           <button style={S.signOutBtn} onClick={handleSignOut}>ログアウト</button>
         </div>
       </nav>
-      {tab === "checklists"  && <ChecklistsTab userEmail={userEmail} />}
-      {tab === "responses"   && <ResponsesTab />}
-      {tab === "approvals"   && <ApprovalsTab userEmail={userEmail} />}
-      {tab === "departments" && <DepartmentsTab />}
-      {tab === "settings"    && <SettingsTab />}
+      {tab === "checklists"  && (
+        <ChecklistsTab
+          userEmail={userCtx.email}
+          isMainAdmin={isMainAdmin}
+          assignedDepartments={assignedDepartments}
+        />
+      )}
+      {tab === "responses"   && (
+        <ResponsesTab isMainAdmin={isMainAdmin} assignedDepartments={assignedDepartments} />
+      )}
+      {tab === "approvals"   && (
+        <ApprovalsTab
+          userEmail={userCtx.email}
+          isMainAdmin={isMainAdmin}
+          assignedDepartments={assignedDepartments}
+        />
+      )}
+      {tab === "departments" && isMainAdmin && <DepartmentsTab />}
+      {tab === "settings"    && isMainAdmin && <SettingsTab />}
     </div>
   );
 }
 
 // ─── Tab nav ─────────────────────────────────────────────────────────────────
-function TabNav({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
-  const tabs: { key: Tab; label: string }[] = [
-    { key: "checklists",  label: "チェックリスト"  },
-    { key: "responses",   label: "回答一覧"         },
-    { key: "approvals",   label: "承認"             },
-    { key: "departments", label: "部署"             },
-    { key: "settings",    label: "設定"             },
-  ];
+function TabNav({
+  tab,
+  setTab,
+  tabs,
+}: {
+  tab: Tab;
+  setTab: (t: Tab) => void;
+  tabs: { key: Tab; label: string }[];
+}) {
   return (
     <div style={{ display: "flex", gap: 4 }}>
       {tabs.map(t => (

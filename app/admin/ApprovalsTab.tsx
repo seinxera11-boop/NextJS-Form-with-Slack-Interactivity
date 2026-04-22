@@ -1,10 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { type Response } from "./types";
 
-export function ApprovalsTab({ userEmail }: { userEmail: string }) {
+type Props = {
+  userEmail: string;
+  isMainAdmin: boolean;
+  assignedDepartments: number[];
+};
+
+export function ApprovalsTab({ userEmail, isMainAdmin, assignedDepartments }: Props) {
   const [responses, setResponses] = useState<Response[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"pending" | "approved">("pending");
@@ -16,23 +21,27 @@ export function ApprovalsTab({ userEmail }: { userEmail: string }) {
 
   const fetchResponses = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("responses")
-      .select(`*, checklists(title), departments(name), org_users(name), response_items(*, checklist_items(label, type)), response_approvals(*)`)
-      .order("created_at", { ascending: false });
-    setResponses(data || []);
+    const res = await fetch("/api/approvals");
+    const data = await res.json();
+    setResponses(Array.isArray(data) ? data : []);
     setLoading(false);
   };
 
   const handleApprove = async (resp: Response) => {
     setApprovingId(resp.id);
     try {
-      const { error } = await supabase.from("response_approvals").insert({
-        response_id: resp.id,
-        reason: approvalReasons[resp.id] || "",
-        approved_by: userEmail,
+      const res = await fetch("/api/approvals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          response_id: resp.id,
+          reason: approvalReasons[resp.id] || "",
+        }),
       });
-      if (error) throw error;
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "承認に失敗しました");
+      }
       setApprovalReasons(p => { const n = { ...p }; delete n[resp.id]; return n; });
       await fetchResponses();
     } catch (err: any) {

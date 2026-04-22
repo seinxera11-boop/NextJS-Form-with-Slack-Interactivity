@@ -15,7 +15,15 @@ export async function POST(req: Request) {
     }
 
     if (ALLOWED_ADMINS.length > 0 && !ALLOWED_ADMINS.includes(email)) {
-      return NextResponse.json({ error: "Unauthorized email" }, { status: 403 });
+      // Also allow emails registered as sub-admins.
+      const { data: subAdmin } = await supabaseAdmin
+        .from("admin_users")
+        .select("id")
+        .eq("email", email.trim().toLowerCase())
+        .single();
+      if (!subAdmin) {
+        return NextResponse.json({ error: "Unauthorized email" }, { status: 403 });
+      }
     }
 
     // emailRedirectTo MUST point to /admin/auth/callback so our page.tsx
