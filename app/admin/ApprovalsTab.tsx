@@ -1,10 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { type Response } from "./types";
 
-export function ApprovalsTab({ userEmail }: { userEmail: string }) {
+type Props = {
+  userEmail: string;
+  isMainAdmin: boolean;
+  assignedDepartments: number[];
+};
+
+export function ApprovalsTab({ userEmail, isMainAdmin, assignedDepartments }: Props) {
   const [responses, setResponses] = useState<Response[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"pending" | "approved">("pending");
@@ -16,23 +21,27 @@ export function ApprovalsTab({ userEmail }: { userEmail: string }) {
 
   const fetchResponses = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("responses")
-      .select(`*, checklists(title), departments(name), org_users(name), response_items(*, checklist_items(label, type)), response_approvals(*)`)
-      .order("created_at", { ascending: false });
-    setResponses(data || []);
+    const res = await fetch("/api/approvals");
+    const data = await res.json();
+    setResponses(Array.isArray(data) ? data : []);
     setLoading(false);
   };
 
   const handleApprove = async (resp: Response) => {
     setApprovingId(resp.id);
     try {
-      const { error } = await supabase.from("response_approvals").insert({
-        response_id: resp.id,
-        reason: approvalReasons[resp.id] || "",
-        approved_by: userEmail,
+      const res = await fetch("/api/approvals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          response_id: resp.id,
+          reason: approvalReasons[resp.id] || "",
+        }),
       });
-      if (error) throw error;
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "承認に失敗しました");
+      }
       setApprovalReasons(p => { const n = { ...p }; delete n[resp.id]; return n; });
       await fetchResponses();
     } catch (err: any) {
@@ -47,65 +56,65 @@ export function ApprovalsTab({ userEmail }: { userEmail: string }) {
   const displayed = filter === "pending" ? pending : approved;
 
   const S: Record<string, React.CSSProperties> = {
-    main: { maxWidth: 860, margin: "0 auto", padding: "52px 32px" },
-    pageTitle: { fontSize: 28, fontWeight: 700, letterSpacing: "-0.04em", color: "#1a1035", marginBottom: 6 },
-    pageSubtitle: { fontSize: 14, color: "#7c6fa0", marginBottom: 32 },
-    filterRow: { display: "flex", gap: 6, marginBottom: 24 },
+    main: { maxWidth: 860, margin: "0 auto", padding: "56px 32px" },
+    pageTitle: { fontSize: 32, fontWeight: 700, letterSpacing: "-0.04em", color: "#1a1035", marginBottom: 8 },
+    pageSubtitle: { fontSize: 15, color: "#6a5d8e", marginBottom: 36 },
+    filterRow: { display: "flex", gap: 7, marginBottom: 26 },
     filterBtnActive: {
-      fontSize: 13, fontWeight: 600, color: "#4f35be",
+      fontSize: 14, fontWeight: 700, color: "#4f35be",
       background: "linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)",
-      border: "1.5px solid #c4b5fd", borderRadius: 10, padding: "7px 16px",
-      cursor: "pointer", fontFamily: "inherit", boxShadow: "0 1px 4px rgba(79,53,190,0.12)"
+      border: "1.5px solid #c4b5fd", borderRadius: 10, padding: "8px 18px",
+      cursor: "pointer", fontFamily: "inherit", boxShadow: "0 1px 6px rgba(79,53,190,0.14)"
     } as React.CSSProperties,
     filterBtnInactive: {
-      fontSize: 13, fontWeight: 400, color: "#9688c0",
-      background: "#faf9ff", border: "1.5px solid #ede9fe",
-      borderRadius: 10, padding: "7px 16px", cursor: "pointer", fontFamily: "inherit"
+      fontSize: 14, fontWeight: 400, color: "#7a6aaa",
+      background: "#faf9ff", border: "1.5px solid #dfd5fb",
+      borderRadius: 10, padding: "8px 18px", cursor: "pointer", fontFamily: "inherit"
     } as React.CSSProperties,
     card: {
-      border: "1.5px solid #ede9fe", borderRadius: 16, marginBottom: 12,
+      border: "1.5px solid #dfd5fb", borderRadius: 16, marginBottom: 12,
       overflow: "hidden", background: "#fff",
-      boxShadow: "0 2px 12px rgba(79,53,190,0.06)", transition: "all 0.18s ease"
+      boxShadow: "0 2px 14px rgba(79,53,190,0.09)", transition: "all 0.18s ease"
     },
-    cardHeader: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "18px 22px", cursor: "pointer" },
+    cardHeader: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "20px 24px", cursor: "pointer" },
     cardHeaderLeft: { flex: 1 },
-    cardTitle: { fontSize: 15, fontWeight: 600, color: "#1a1035", marginBottom: 4 },
-    cardMeta: { fontSize: 12, color: "#9688c0", marginBottom: 6 },
-    cardBody: { padding: "0 22px 22px", borderTop: "1.5px solid #f5f0ff" },
+    cardTitle: { fontSize: 17, fontWeight: 600, color: "#1a1035", marginBottom: 5 },
+    cardMeta: { fontSize: 13, color: "#7a6aaa", marginBottom: 7 },
+    cardBody: { padding: "0 24px 24px", borderTop: "1.5px solid #ede9fe" },
     sectionTitle: {
-      fontSize: 10, fontWeight: 700, color: "#a78bfa",
-      textTransform: "uppercase", letterSpacing: "0.12em", margin: "18px 0 10px"
+      fontSize: 12, fontWeight: 700, color: "#8c70e8",
+      textTransform: "uppercase", letterSpacing: "0.12em", margin: "20px 0 12px"
     },
-    itemRow: { display: "flex", alignItems: "flex-start", gap: 10, padding: "9px 0", borderBottom: "1px solid #faf8ff" },
-    itemLabel: { fontSize: 14, color: "#6b5fa0", minWidth: 200, flexShrink: 0 },
-    itemValue: { fontSize: 14, color: "#1a1035", flex: 1, fontWeight: 500 },
+    itemRow: { display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 0", borderBottom: "1px solid #f5f0fe" },
+    itemLabel: { fontSize: 15, color: "#5e5090", minWidth: 200, flexShrink: 0 },
+    itemValue: { fontSize: 15, color: "#1a1035", flex: 1, fontWeight: 500 },
     reasonInput: {
-      width: "100%", border: "1.5px solid #ddd6fe", borderRadius: 10,
-      padding: "10px 14px", fontSize: 14, color: "#1a1035", outline: "none",
+      width: "100%", border: "1.5px solid #ccc0fa", borderRadius: 10,
+      padding: "11px 15px", fontSize: 15, color: "#1a1035", outline: "none",
       background: "#faf9ff", fontFamily: "inherit", resize: "vertical",
-      marginTop: 8, boxSizing: "border-box" as const,
+      marginTop: 10, boxSizing: "border-box" as const,
       transition: "border-color 0.15s"
     },
     approveBtn: {
-      fontSize: 14, fontWeight: 600, color: "#fff",
+      fontSize: 15, fontWeight: 600, color: "#fff",
       background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
-      border: "none", borderRadius: 10, padding: "10px 20px",
-      cursor: "pointer", fontFamily: "inherit", marginTop: 10,
-      boxShadow: "0 2px 8px rgba(5,150,105,0.3)"
+      border: "none", borderRadius: 10, padding: "11px 22px",
+      cursor: "pointer", fontFamily: "inherit", marginTop: 12,
+      boxShadow: "0 2px 10px rgba(5,150,105,0.32)"
     },
     reasonBox: {
-      background: "linear-gradient(135deg, #faf9ff 0%, #f5f0ff 100%)",
-      border: "1.5px solid #ede9fe", borderRadius: 10,
-      padding: "12px 16px", fontSize: 14, color: "#4b3d80", marginTop: 8
+      background: "linear-gradient(135deg, #f5f0fe 0%, #ede9fe 100%)",
+      border: "1.5px solid #dfd5fb", borderRadius: 10,
+      padding: "14px 18px", fontSize: 15, color: "#4b3d80", marginTop: 10
     },
-    expandBtn: { fontSize: 12, color: "#a78bfa", background: "none", border: "none", cursor: "pointer", marginLeft: 8 },
+    expandBtn: { fontSize: 13, color: "#8c70e8", background: "none", border: "none", cursor: "pointer", marginLeft: 8 },
     deptBadge: {
-      fontSize: 11, background: "linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)",
+      fontSize: 12, background: "linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)",
       color: "#4f35be", border: "1px solid #c4b5fd",
-      borderRadius: 100, padding: "3px 10px", fontWeight: 600
+      borderRadius: 100, padding: "4px 12px", fontWeight: 600
     },
-    loadingWrap: { padding: "80px 0", textAlign: "center", fontSize: 14, color: "#c4b5fd" },
-    emptyWrap: { textAlign: "center", padding: "80px 0", fontSize: 14, color: "#c4b5fd" },
+    loadingWrap: { padding: "80px 0", textAlign: "center", fontSize: 15, color: "#a696f2" },
+    emptyWrap: { textAlign: "center", padding: "80px 0", fontSize: 15, color: "#a696f2" },
   };
 
   return (

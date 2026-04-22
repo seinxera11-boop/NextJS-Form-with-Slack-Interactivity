@@ -36,7 +36,7 @@ export default function AdminLoginPage() {
   return (
     <div style={{
       minHeight: "100vh",
-      background: "linear-gradient(180deg, #faf9ff 0%, #f8f5ff 100%)",
+      background: "linear-gradient(180deg, #f5f0fe 0%, #ede8fc 100%)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -46,49 +46,49 @@ export default function AdminLoginPage() {
       <div style={{ width: "100%", maxWidth: 380 }}>
 
         {/* Logo mark */}
-        <div style={{ marginBottom: 40, display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ marginBottom: 44, display: "flex", alignItems: "center", gap: 9 }}>
           <div style={{
-            width: 9, height: 9, borderRadius: "50%",
+            width: 11, height: 11, borderRadius: "50%",
             background: "linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)",
           }} />
-          <span style={{ fontSize: 15, fontWeight: 700, color: "#4f35be", letterSpacing: "-0.02em" }}>
+          <span style={{ fontSize: 17, fontWeight: 800, color: "#4f35be", letterSpacing: "-0.02em" }}>
 オフィス管理者</span>
         </div>
 
         {sent ? (
           <div>
             <div style={{
-              width: 44, height: 44, border: "1px solid #ede9fe", borderRadius: 10,
+              width: 52, height: 52, border: "1.5px solid #dfd5fb", borderRadius: 12,
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 20, marginBottom: 24, background: "#faf9ff",
+              fontSize: 22, marginBottom: 28, background: "#f5f0fe",
             }}>
               ✉
             </div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: "#1a1035", letterSpacing: "-0.02em", marginBottom: 8 }}>
+            <div style={{ fontSize: 26, fontWeight: 700, color: "#1a1035", letterSpacing: "-0.02em", marginBottom: 10 }}>
               メールをご確認ください
             </div>
-            <p style={{ fontSize: 14, color: "#9688c0", lineHeight: 1.7, marginBottom: 24 }}>
-              <strong style={{ color: "#4f35be", fontWeight: 500 }}>{email}</strong> にログインリンクを送信しました。<br />
+            <p style={{ fontSize: 15, color: "#7a6aaa", lineHeight: 1.7, marginBottom: 28 }}>
+              <strong style={{ color: "#4f35be", fontWeight: 600 }}>{email}</strong> にログインリンクを送信しました。<br />
               リンクをクリックして管理ダッシュボードにアクセスしてください。
             </p>
             <button
               onClick={() => setSent(false)}
-              style={{ fontSize: 14, color: "#9688c0", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+              style={{ fontSize: 15, color: "#7a6aaa", background: "none", border: "none", padding: 0, cursor: "pointer" }}
             >
               ← 別のメールアドレスを使用する
             </button>
           </div>
         ) : (
           <div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: "#1a1035", letterSpacing: "-0.03em", marginBottom: 6 }}>
+            <div style={{ fontSize: 34, fontWeight: 700, color: "#1a1035", letterSpacing: "-0.03em", marginBottom: 8 }}>
               ログイン
             </div>
-            <p style={{ fontSize: 14, color: "#9688c0", marginBottom: 32, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 15, color: "#7a6aaa", marginBottom: 36, lineHeight: 1.6 }}>
               管理者メールアドレスを入力すると、マジックリンクが送信されます。
             </p>
 
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#7c6fa0", marginBottom: 7 }}>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: "#6a5d8e", marginBottom: 8 }}>
                 メールアドレス
               </label>
               <input
@@ -99,10 +99,10 @@ export default function AdminLoginPage() {
                 onKeyDown={e => e.key === "Enter" && handleSubmit()}
                 style={{
                   width: "100%",
-                  border: "1px solid #ede9fe",
-                  borderRadius: 9,
-                  padding: "11px 14px",
-                  fontSize: 15,
+                  border: "1.5px solid #dfd5fb",
+                  borderRadius: 10,
+                  padding: "12px 16px",
+                  fontSize: 16,
                   color: "#1a1035",
                   outline: "none",
                   background: "#faf9ff",
@@ -110,12 +110,12 @@ export default function AdminLoginPage() {
                   boxSizing: "border-box",
                 }}
                 onFocus={e => { e.target.style.borderColor = "#6d28d9"; e.target.style.background = "#fff"; }}
-                onBlur={e => { e.target.style.borderColor = "#ede9fe"; e.target.style.background = "#faf9ff"; }}
+                onBlur={e => { e.target.style.borderColor = "#dfd5fb"; e.target.style.background = "#faf9ff"; }}
               />
             </div>
 
             {error && (
-              <p style={{ fontSize: 13, color: "#dc2626", marginBottom: 14 }}>⚠ {error}</p>
+              <p style={{ fontSize: 14, color: "#dc2626", marginBottom: 16 }}>⚠ {error}</p>
             )}
 
             <button
@@ -123,13 +123,13 @@ export default function AdminLoginPage() {
               disabled={loading || !email}
               style={{
                 width: "100%",
-                background: loading || !email ? "#ede9fe" : "#4f35be",
-                color: loading || !email ? "#c4b5fd" : "#fff",
+                background: loading || !email ? "#ddd6fe" : "#4f35be",
+                color: loading || !email ? "#a894f0" : "#fff",
                 border: "none",
-                borderRadius: 9,
-                padding: "12px 0",
-                fontSize: 15,
-                fontWeight: 600,
+                borderRadius: 10,
+                padding: "14px 0",
+                fontSize: 16,
+                fontWeight: 700,
                 cursor: loading || !email ? "not-allowed" : "pointer",
                 fontFamily: "inherit",
                 transition: "background 0.15s",
@@ -139,7 +139,7 @@ export default function AdminLoginPage() {
               {loading ? "送信中…" : "マジックリンクを送信"}
             </button>
 
-            <p style={{ fontSize: 12, color: "#c4b5fd", marginTop: 20, lineHeight: 1.7, textAlign: "center" }}>
+            <p style={{ fontSize: 13, color: "#a696f2", marginTop: 22, lineHeight: 1.7, textAlign: "center" }}>
               パスワード不要。許可された管理者のみログインできます。<br />
               リンクの有効期限は1時間です。
             </p>

@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { type Response } from "./types";
 
-export function ResponsesTab() {
+type Props = {
+  isMainAdmin: boolean;
+  assignedDepartments: number[];
+};
+
+export function ResponsesTab({ isMainAdmin, assignedDepartments }: Props) {
   const [responses, setResponses] = useState<Response[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -17,14 +21,25 @@ export function ResponsesTab() {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [respData, clData, deptData] = await Promise.all([
-      supabase.from("responses").select(`*, checklists(title), departments(name), org_users(name), response_items(*, checklist_items(label, type)), response_approvals(*)`).order("created_at", { ascending: false }),
-      supabase.from("checklists").select("id, title").order("title"),
-      supabase.from("departments").select("id, name").order("name"),
+    const [respRes, clRes, deptRes] = await Promise.all([
+      fetch("/api/responses"),
+      fetch("/api/checklists"),
+      fetch("/api/departments"),
     ]);
-    setResponses(respData.data || []);
-    setChecklists(clData.data || []);
-    setDepartments(deptData.data || []);
+    const [respData, clData, deptData] = await Promise.all([
+      respRes.json(),
+      clRes.json(),
+      deptRes.json(),
+    ]);
+    setResponses(Array.isArray(respData) ? respData : []);
+    setChecklists(Array.isArray(clData) ? clData : []);
+    // Sub-admins only see their assigned departments in the filter.
+    const allDepts: { id: number; name: string }[] = Array.isArray(deptData) ? deptData : [];
+    setDepartments(
+      isMainAdmin
+        ? allDepts
+        : allDepts.filter(d => assignedDepartments.includes(d.id))
+    );
     setLoading(false);
   };
 
@@ -33,49 +48,49 @@ export function ResponsesTab() {
     .filter(r => filterDept === "all" || String((r as any).department_id) === filterDept);
 
   const S: Record<string, React.CSSProperties> = {
-    main: { maxWidth: 860, margin: "0 auto", padding: "52px 32px" },
-    pageTitle: { fontSize: 28, fontWeight: 700, letterSpacing: "-0.04em", color: "#1a1035", marginBottom: 6 },
-    pageSubtitle: { fontSize: 14, color: "#7c6fa0", marginBottom: 32 },
+    main: { maxWidth: 860, margin: "0 auto", padding: "56px 32px" },
+    pageTitle: { fontSize: 32, fontWeight: 700, letterSpacing: "-0.04em", color: "#1a1035", marginBottom: 8 },
+    pageSubtitle: { fontSize: 15, color: "#6a5d8e", marginBottom: 36 },
     toolbar: {
       display: "flex", alignItems: "center", gap: 10,
-      justifyContent: "space-between", marginBottom: 22, flexWrap: "wrap" as const
+      justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap" as const
     },
     filterSelect: {
-      border: "1.5px solid #ddd6fe", borderRadius: 10, padding: "8px 14px",
-      fontSize: 13, color: "#4b3d80", background: "#faf9ff", outline: "none",
+      border: "1.5px solid #ccc0fa", borderRadius: 10, padding: "9px 15px",
+      fontSize: 14, color: "#4b3d80", background: "#faf9ff", outline: "none",
       cursor: "pointer", fontFamily: "inherit", fontWeight: 500
     },
     card: {
-      border: "1.5px solid #ede9fe", borderRadius: 16, marginBottom: 12,
+      border: "1.5px solid #dfd5fb", borderRadius: 16, marginBottom: 12,
       overflow: "hidden", background: "#fff",
-      boxShadow: "0 2px 12px rgba(79,53,190,0.06)", transition: "all 0.18s ease"
+      boxShadow: "0 2px 14px rgba(79,53,190,0.09)", transition: "all 0.18s ease"
     },
-    cardHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 22px", cursor: "pointer" },
-    cardHeaderLeft: { display: "flex", flexDirection: "column", gap: 4 },
-    cardTitle: { fontSize: 15, fontWeight: 600, color: "#1a1035" },
-    cardMeta: { fontSize: 12, color: "#9688c0" },
-    badge: { fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 100 },
-    expandBtn: { fontSize: 12, color: "#a78bfa", background: "none", border: "none", cursor: "pointer" },
-    cardBody: { padding: "0 22px 22px", borderTop: "1.5px solid #f5f0ff" },
+    cardHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", cursor: "pointer" },
+    cardHeaderLeft: { display: "flex", flexDirection: "column", gap: 5 },
+    cardTitle: { fontSize: 17, fontWeight: 600, color: "#1a1035" },
+    cardMeta: { fontSize: 13, color: "#7a6aaa" },
+    badge: { fontSize: 12, fontWeight: 700, padding: "4px 13px", borderRadius: 100 },
+    expandBtn: { fontSize: 13, color: "#8c70e8", background: "none", border: "none", cursor: "pointer" },
+    cardBody: { padding: "0 24px 24px", borderTop: "1.5px solid #ede9fe" },
     sectionTitle: {
-      fontSize: 10, fontWeight: 700, color: "#a78bfa",
-      textTransform: "uppercase", letterSpacing: "0.12em", margin: "18px 0 10px"
+      fontSize: 12, fontWeight: 700, color: "#8c70e8",
+      textTransform: "uppercase", letterSpacing: "0.12em", margin: "20px 0 12px"
     },
-    itemRow: { display: "flex", alignItems: "flex-start", gap: 10, padding: "9px 0", borderBottom: "1px solid #faf8ff" },
-    itemLabel: { fontSize: 14, color: "#6b5fa0", minWidth: 180, flexShrink: 0 },
-    itemValue: { fontSize: 14, color: "#1a1035", flex: 1, fontWeight: 500 },
+    itemRow: { display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 0", borderBottom: "1px solid #f5f0fe" },
+    itemLabel: { fontSize: 15, color: "#5e5090", minWidth: 180, flexShrink: 0 },
+    itemValue: { fontSize: 15, color: "#1a1035", flex: 1, fontWeight: 500 },
     reasonBox: {
-      background: "linear-gradient(135deg, #faf9ff 0%, #f5f0ff 100%)",
-      border: "1.5px solid #ede9fe", borderRadius: 10,
-      padding: "12px 16px", fontSize: 14, color: "#4b3d80", marginTop: 8
+      background: "linear-gradient(135deg, #f5f0fe 0%, #ede9fe 100%)",
+      border: "1.5px solid #dfd5fb", borderRadius: 10,
+      padding: "14px 18px", fontSize: 15, color: "#4b3d80", marginTop: 10
     },
     deptBadge: {
-      fontSize: 11, fontWeight: 600,
+      fontSize: 12, fontWeight: 600,
       background: "linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)",
       color: "#4f35be", border: "1px solid #c4b5fd",
-      borderRadius: 100, padding: "3px 10px"
+      borderRadius: 100, padding: "4px 12px"
     },
-    countLabel: { fontSize: 13, color: "#a78bfa", fontWeight: 500 },
+    countLabel: { fontSize: 14, color: "#8c70e8", fontWeight: 600 },
   };
 
   return (
