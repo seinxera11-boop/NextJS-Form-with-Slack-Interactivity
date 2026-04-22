@@ -47,43 +47,43 @@ function FieldRow({
   };
 
   const S: Record<string, React.CSSProperties> = {
-    wrap:       { marginBottom: 22 },
-    labelRow:   { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
-    label:      { fontSize: 13, fontWeight: 600, color: "#4b3d80" },
+    wrap:       { marginBottom: 26 },
+    labelRow:   { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 9 },
+    label:      { fontSize: 14, fontWeight: 600, color: "#4b3d80" },
     inputWrap:  { display: "flex", gap: 8, alignItems: "center" },
     input: {
-      flex: 1, border: `1.5px solid ${editing ? "#a78bfa" : "#ddd6fe"}`,
-      borderRadius: 10, padding: "10px 14px", fontSize: 14,
-      color: editing ? "#1a1035" : "#7c6fa0", outline: "none",
+      flex: 1, border: `1.5px solid ${editing ? "#a78bfa" : "#ccc0fa"}`,
+      borderRadius: 10, padding: "11px 15px", fontSize: 15,
+      color: editing ? "#1a1035" : "#6a5d8e", outline: "none",
       background: editing ? "#fff" : "#faf9ff",
       fontFamily: "monospace", boxSizing: "border-box" as const,
       transition: "all 0.15s",
-      boxShadow: editing ? "0 0 0 3px rgba(167,139,250,0.18)" : "none"
+      boxShadow: editing ? "0 0 0 3px rgba(167,139,250,0.2)" : "none"
     },
     eyeBtn: {
-      background: "#f5f0ff", border: "1.5px solid #ddd6fe",
-      borderRadius: 10, padding: "9px 12px", cursor: "pointer",
-      fontSize: 14, lineHeight: 1, color: "#7c6fa0", flexShrink: 0
+      background: "#ede9fe", border: "1.5px solid #ccc0fa",
+      borderRadius: 10, padding: "10px 13px", cursor: "pointer",
+      fontSize: 15, lineHeight: 1, color: "#6a5d8e", flexShrink: 0
     },
     editBtn: {
-      fontSize: 13, fontWeight: 500, color: "#4b3d80", background: "#f5f0ff",
-      border: "1.5px solid #ddd6fe", borderRadius: 10,
-      padding: "9px 16px", cursor: "pointer", fontFamily: "inherit", flexShrink: 0
+      fontSize: 14, fontWeight: 500, color: "#4b3d80", background: "#ede9fe",
+      border: "1.5px solid #ccc0fa", borderRadius: 10,
+      padding: "10px 18px", cursor: "pointer", fontFamily: "inherit", flexShrink: 0
     },
     saveBtn: {
-      fontSize: 13, fontWeight: 600, color: "#fff",
+      fontSize: 14, fontWeight: 600, color: "#fff",
       background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)",
-      border: "none", borderRadius: 10, padding: "9px 16px",
+      border: "none", borderRadius: 10, padding: "10px 18px",
       cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
-      boxShadow: "0 2px 8px rgba(109,40,217,0.25)"
+      boxShadow: "0 2px 10px rgba(109,40,217,0.28)"
     },
     cancelBtn: {
-      fontSize: 13, color: "#7c6fa0", background: "none",
-      border: "1.5px solid #ddd6fe", borderRadius: 10,
-      padding: "9px 14px", cursor: "pointer", fontFamily: "inherit", flexShrink: 0
+      fontSize: 14, color: "#6a5d8e", background: "none",
+      border: "1.5px solid #ccc0fa", borderRadius: 10,
+      padding: "10px 16px", cursor: "pointer", fontFamily: "inherit", flexShrink: 0
     },
-    savedBadge: { fontSize: 12, color: "#059669", fontWeight: 600, marginTop: 5, display: "flex", alignItems: "center", gap: 4 },
-    errText: { fontSize: 12, color: "#dc2626", marginTop: 5, fontWeight: 500 },
+    savedBadge: { fontSize: 13, color: "#059669", fontWeight: 600, marginTop: 6, display: "flex", alignItems: "center", gap: 4 },
+    errText: { fontSize: 13, color: "#dc2626", marginTop: 6, fontWeight: 500 },
   };
 
   const inputType = isPassword ? (showPw ? "text" : "password") : "text";
@@ -208,61 +208,61 @@ function SubAdminsSection() {
 
   const S: Record<string, React.CSSProperties> = {
     secLabel: {
-      fontSize: 10, fontWeight: 700, color: "#a78bfa",
-      textTransform: "uppercase" as const, letterSpacing: "0.12em", marginBottom: 20
+      fontSize: 13, fontWeight: 700, color: "#3e249e",
+      textTransform: "uppercase" as const, letterSpacing: "0.12em", marginBottom: 22
     },
-    addRow: { display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap" as const, marginBottom: 16 },
+    addRow: { display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap" as const, marginBottom: 18 },
     input: {
       flex: 1, minWidth: 220,
-      border: "1.5px solid #ddd6fe", borderRadius: 10, padding: "9px 14px",
-      fontSize: 14, color: "#1a1035", outline: "none", background: "#faf9ff",
+      border: "1.5px solid #ccc0fa", borderRadius: 10, padding: "10px 15px",
+      fontSize: 15, color: "#1a1035", outline: "none", background: "#faf9ff",
       fontFamily: "inherit",
     },
     addBtn: {
-      fontSize: 13, fontWeight: 600, color: "#fff",
+      fontSize: 14, fontWeight: 600, color: "#fff",
       background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)",
-      border: "none", borderRadius: 10, padding: "9px 18px",
+      border: "none", borderRadius: 10, padding: "10px 20px",
       cursor: "pointer", fontFamily: "inherit",
-      boxShadow: "0 2px 8px rgba(109,40,217,0.25)", flexShrink: 0
+      boxShadow: "0 2px 10px rgba(109,40,217,0.28)", flexShrink: 0
     },
-    deptPills: { display: "flex", gap: 6, flexWrap: "wrap" as const, marginTop: 8 },
+    deptPills: { display: "flex", gap: 7, flexWrap: "wrap" as const, marginTop: 10 },
     row: {
       display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-      padding: "14px 0", borderBottom: "1px solid #f5f0ff", gap: 12
+      padding: "16px 0", borderBottom: "1px solid #ede9fe", gap: 12
     },
-    email: { fontSize: 14, fontWeight: 500, color: "#1a1035", marginBottom: 6 },
-    deptList: { fontSize: 12, color: "#9688c0" },
+    email: { fontSize: 15, fontWeight: 500, color: "#1a1035", marginBottom: 7 },
+    deptList: { fontSize: 13, color: "#7a6aaa" },
     actionBtns: { display: "flex", gap: 6, flexShrink: 0 },
     editBtn: {
-      fontSize: 12, color: "#4b3d80", background: "#f5f0ff",
-      border: "1.5px solid #ddd6fe", borderRadius: 8,
-      padding: "5px 12px", cursor: "pointer", fontFamily: "inherit"
+      fontSize: 13, color: "#4b3d80", background: "#ede9fe",
+      border: "1.5px solid #ccc0fa", borderRadius: 8,
+      padding: "6px 14px", cursor: "pointer", fontFamily: "inherit"
     },
     deleteBtn: {
-      fontSize: 12, color: "#dc2626", background: "#fff5f5",
+      fontSize: 13, color: "#dc2626", background: "#fff5f5",
       border: "1.5px solid #fecaca", borderRadius: 8,
-      padding: "5px 12px", cursor: "pointer", fontFamily: "inherit"
+      padding: "6px 14px", cursor: "pointer", fontFamily: "inherit"
     },
     saveBtn: {
-      fontSize: 12, fontWeight: 600, color: "#fff",
+      fontSize: 13, fontWeight: 600, color: "#fff",
       background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
-      border: "none", borderRadius: 8, padding: "5px 14px",
+      border: "none", borderRadius: 8, padding: "6px 16px",
       cursor: "pointer", fontFamily: "inherit"
     },
     cancelBtn: {
-      fontSize: 12, color: "#7c6fa0", background: "none",
-      border: "1.5px solid #ddd6fe", borderRadius: 8,
-      padding: "5px 12px", cursor: "pointer", fontFamily: "inherit"
+      fontSize: 13, color: "#6a5d8e", background: "none",
+      border: "1.5px solid #ccc0fa", borderRadius: 8,
+      padding: "6px 14px", cursor: "pointer", fontFamily: "inherit"
     },
-    errText: { fontSize: 12, color: "#dc2626", marginTop: 6, fontWeight: 500 },
-    emptyText: { fontSize: 13, color: "#c4b5fd", padding: "20px 0", textAlign: "center" as const },
+    errText: { fontSize: 13, color: "#dc2626", marginTop: 7, fontWeight: 500 },
+    emptyText: { fontSize: 14, color: "#a696f2", padding: "22px 0", textAlign: "center" as const },
   };
 
   const pill = (active: boolean): React.CSSProperties => ({
-    fontSize: 12, fontWeight: 500, padding: "4px 12px", borderRadius: 100,
-    cursor: "pointer", border: `1.5px solid ${active ? "#c4b5fd" : "#e5e7eb"}`,
+    fontSize: 13, fontWeight: 500, padding: "5px 14px", borderRadius: 100,
+    cursor: "pointer", border: `1.5px solid ${active ? "#c4b5fd" : "#ccc0fa"}`,
     background: active ? "linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)" : "#faf9ff",
-    color: active ? "#4f35be" : "#9688c0",
+    color: active ? "#4f35be" : "#7a6aaa",
     transition: "all 0.12s",
   });
 
@@ -374,19 +374,19 @@ export function SettingsTab() {
   };
 
   const S: Record<string, React.CSSProperties> = {
-    main: { maxWidth: 600, margin: "0 auto", padding: "52px 32px" },
-    pageTitle: { fontSize: 28, fontWeight: 700, letterSpacing: "-0.04em", color: "#1a1035", marginBottom: 6 },
-    pageSub: { fontSize: 14, color: "#7c6fa0", marginBottom: 40 },
+    main: { maxWidth: 600, margin: "0 auto", padding: "56px 32px" },
+    pageTitle: { fontSize: 32, fontWeight: 700, letterSpacing: "-0.04em", color: "#1a1035", marginBottom: 8 },
+    pageSub: { fontSize: 15, color: "#6a5d8e", marginBottom: 44 },
     section: {
-      border: "1.5px solid #ede9fe", borderRadius: 16, padding: "28px",
-      marginBottom: 20, background: "#fff",
-      boxShadow: "0 2px 16px rgba(79,53,190,0.07)"
+      border: "1.5px solid #dfd5fb", borderRadius: 16, padding: "32px",
+      marginBottom: 22, background: "#fff",
+      boxShadow: "0 2px 18px rgba(79,53,190,0.10)"
     },
     secLabel: {
-      fontSize: 10, fontWeight: 700, color: "#a78bfa",
-      textTransform: "uppercase" as const, letterSpacing: "0.12em", marginBottom: 24
+      fontSize: 13, fontWeight: 700, color: "#3e249e",
+      textTransform: "uppercase" as const, letterSpacing: "0.12em", marginBottom: 26
     },
-    divider: { height: "1.5px", background: "linear-gradient(90deg, #ede9fe 0%, #f5f0ff 100%)", margin: "20px 0" },
+    divider: { height: "1.5px", background: "linear-gradient(90deg, #dfd5fb 0%, #ede9fe 100%)", margin: "22px 0" },
   };
 
   return (

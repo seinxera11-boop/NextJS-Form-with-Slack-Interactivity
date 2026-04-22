@@ -99,56 +99,56 @@ export function DepartmentsTab() {
   };
 
   const S: Record<string, React.CSSProperties> = {
-    main: { maxWidth: 860, margin: "0 auto", padding: "52px 32px" },
-    pageTitle: { fontSize: 28, fontWeight: 700, letterSpacing: "-0.04em", color: "#1a1035", marginBottom: 6 },
-    pageSubtitle: { fontSize: 14, color: "#7c6fa0", marginBottom: 32 },
-    back: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, color: "#7c6fa0", cursor: "pointer", marginBottom: 28, background: "none", border: "none", padding: 0 },
-    grid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 },
-    panel: { border: "1.5px solid #ede9fe", borderRadius: 14, overflow: "hidden", background: "#fff", boxShadow: "0 2px 12px rgba(79,53,190,0.06)" },
+    main: { maxWidth: 860, margin: "0 auto", padding: "56px 32px" },
+    pageTitle: { fontSize: 32, fontWeight: 700, letterSpacing: "-0.04em", color: "#1a1035", marginBottom: 8 },
+    pageSubtitle: { fontSize: 15, color: "#6a5d8e", marginBottom: 36 },
+    back: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 15, color: "#6a5d8e", cursor: "pointer", marginBottom: 30, background: "none", border: "none", padding: 0 },
+    grid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 },
+    panel: { border: "1.5px solid #dfd5fb", borderRadius: 14, overflow: "hidden", background: "#fff", boxShadow: "0 2px 14px rgba(79,53,190,0.09)" },
     panelHeader: {
-      padding: "14px 20px", borderBottom: "1.5px solid #ede9fe",
-      background: "linear-gradient(135deg, #faf9ff 0%, #f5f0ff 100%)",
-      fontSize: 11, fontWeight: 700, color: "#7c6fa0",
+      padding: "14px 22px", borderBottom: "1.5px solid #dfd5fb",
+      background: "linear-gradient(135deg, #f5f0fe 0%, #ede9fe 100%)",
+      fontSize: 12, fontWeight: 700, color: "#6a5d8e",
       textTransform: "uppercase" as const, letterSpacing: "0.1em"
     },
-    panelBody: { padding: "16px 20px" },
-    row: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #faf8ff" },
-    rowLast: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0" },
-    rowName: { fontSize: 14, color: "#1a1035", fontWeight: 600 },
-    rowMeta: { fontSize: 12, color: "#a78bfa" },
+    panelBody: { padding: "18px 22px" },
+    row: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0", borderBottom: "1px solid #f5f0fe" },
+    rowLast: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0" },
+    rowName: { fontSize: 15, color: "#1a1035", fontWeight: 600 },
+    rowMeta: { fontSize: 13, color: "#8c70e8" },
     rowBtns: { display: "flex", gap: 6, flexShrink: 0 },
-    viewBtn: { fontSize: 12, color: "#1d4ed8", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "4px 10px", cursor: "pointer" },
-    delBtn: { fontSize: 12, color: "#b91c1c", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "4px 10px", cursor: "pointer" },
-    addRow: { display: "flex", gap: 8, marginTop: 14 },
+    viewBtn: { fontSize: 13, color: "#1d4ed8", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "5px 12px", cursor: "pointer" },
+    delBtn: { fontSize: 13, color: "#b91c1c", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 12px", cursor: "pointer" },
+    addRow: { display: "flex", gap: 8, marginTop: 16 },
     addInput: {
-      flex: 1, border: "1.5px solid #ddd6fe", borderRadius: 10,
-      padding: "9px 12px", fontSize: 14, color: "#1a1035", outline: "none",
+      flex: 1, border: "1.5px solid #ccc0fa", borderRadius: 10,
+      padding: "10px 13px", fontSize: 15, color: "#1a1035", outline: "none",
       background: "#faf9ff", fontFamily: "inherit", transition: "border-color 0.15s"
     },
     addSelect: {
-      width: "100%", border: "1.5px solid #ddd6fe", borderRadius: 10,
-      padding: "9px 12px", fontSize: 14, color: "#4b3d80", outline: "none",
+      width: "100%", border: "1.5px solid #ccc0fa", borderRadius: 10,
+      padding: "10px 13px", fontSize: 15, color: "#4b3d80", outline: "none",
       background: "#faf9ff", fontFamily: "inherit", cursor: "pointer"
     },
     addBtn: {
-      fontSize: 14, fontWeight: 600, color: "#fff",
+      fontSize: 15, fontWeight: 600, color: "#fff",
       background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)",
-      border: "none", borderRadius: 10, padding: "9px 16px",
+      border: "none", borderRadius: 10, padding: "10px 18px",
       cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
-      boxShadow: "0 2px 8px rgba(109,40,217,0.25)"
+      boxShadow: "0 2px 10px rgba(109,40,217,0.28)"
     },
-    errText: { fontSize: 13, color: "#dc2626", marginTop: 6, fontWeight: 500 },
+    errText: { fontSize: 14, color: "#dc2626", marginTop: 7, fontWeight: 500 },
     deptCard: {
-      border: "1.5px solid #ede9fe", borderRadius: 14, padding: "18px 20px",
+      border: "1.5px solid #dfd5fb", borderRadius: 14, padding: "20px 22px",
       marginBottom: 10, background: "#fff",
-      boxShadow: "0 2px 8px rgba(79,53,190,0.05)", transition: "all 0.18s ease"
+      boxShadow: "0 2px 10px rgba(79,53,190,0.08)", transition: "all 0.18s ease"
     },
-    deptName: { fontSize: 15, fontWeight: 600, color: "#1a1035", marginBottom: 4 },
-    deptMeta: { fontSize: 12, color: "#a78bfa", fontWeight: 500 },
-    emptyText: { fontSize: 14, color: "#c4b5fd", padding: "20px 0", textAlign: "center" as const },
+    deptName: { fontSize: 17, fontWeight: 600, color: "#1a1035", marginBottom: 5 },
+    deptMeta: { fontSize: 13, color: "#8c70e8", fontWeight: 500 },
+    emptyText: { fontSize: 15, color: "#a696f2", padding: "22px 0", textAlign: "center" as const },
     secLabel: {
-      fontSize: 10, fontWeight: 700, color: "#a78bfa",
-      textTransform: "uppercase" as const, letterSpacing: "0.12em", marginBottom: 14
+      fontSize: 12, fontWeight: 700, color: "#8c70e8",
+      textTransform: "uppercase" as const, letterSpacing: "0.12em", marginBottom: 16
     },
   };
 

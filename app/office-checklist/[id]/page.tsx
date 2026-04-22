@@ -204,56 +204,56 @@ export default function ChecklistPage() {
   const S: Record<string, React.CSSProperties> = {
     root: {
       minHeight: "100vh",
-      background: "linear-gradient(160deg, #faf9ff 0%, #f0ebff 50%, #fdf4ff 100%)",
+      background: "linear-gradient(160deg, #f5f0fe 0%, #e8e0fc 50%, #f8f0ff 100%)",
       fontFamily: "'Inter', system-ui, sans-serif",
       color: "#1a1035",
     },
     header: {
-      borderBottom: "1.5px solid #ede9fe",
-      padding: "16px 32px",
+      borderBottom: "1.5px solid #dfd5fb",
+      padding: "18px 32px",
       display: "flex",
       alignItems: "center",
       gap: 10,
-      background: "rgba(255,255,255,0.85)",
+      background: "rgba(250,247,255,0.92)",
       backdropFilter: "blur(10px)",
     },
     headerDot: {
-      width: 8, height: 8, borderRadius: "50%",
+      width: 10, height: 10, borderRadius: "50%",
       background: "linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)",
     },
-    headerName: { fontSize: 15, fontWeight: 800, color: "#4f35be", letterSpacing: "-0.03em" },
-    main:       { maxWidth: 620, margin: "0 auto", padding: "48px 24px" },
-    title:      { fontSize: 26, fontWeight: 700, letterSpacing: "-0.04em", color: "#1a1035", marginBottom: 24 },
+    headerName: { fontSize: 17, fontWeight: 800, color: "#4f35be", letterSpacing: "-0.03em" },
+    main:       { maxWidth: 620, margin: "0 auto", padding: "52px 24px" },
+    title:      { fontSize: 30, fontWeight: 700, letterSpacing: "-0.04em", color: "#1a1035", marginBottom: 28 },
 
     // Progress bar
-    progressWrap:  { marginBottom: 32 },
-    progressLabel: { display: "flex", justifyContent: "space-between", fontSize: 12, color: "#9688c0", marginBottom: 8, fontWeight: 500 },
-    progressTrack: { height: 6, background: "#ede9fe", borderRadius: 100, overflow: "hidden" },
+    progressWrap:  { marginBottom: 36 },
+    progressLabel: { display: "flex", justifyContent: "space-between", fontSize: 13, color: "#7a6aaa", marginBottom: 9, fontWeight: 500 },
+    progressTrack: { height: 7, background: "#dfd5fb", borderRadius: 100, overflow: "hidden" },
     progressFill:  { height: "100%", background: "linear-gradient(90deg, #7c3aed 0%, #a78bfa 100%)", borderRadius: 100, transition: "width 0.3s" },
 
     // Selection cards
     selCard: {
-      border: "1.5px solid #ede9fe", borderRadius: 16, padding: "22px",
-      marginBottom: 16, background: "#fff",
-      boxShadow: "0 4px 20px rgba(79,53,190,0.08)",
+      border: "1.5px solid #dfd5fb", borderRadius: 16, padding: "24px",
+      marginBottom: 18, background: "#fff",
+      boxShadow: "0 4px 22px rgba(79,53,190,0.10)",
     },
-    selLabel: { fontSize: 13, fontWeight: 600, color: "#4b3d80", marginBottom: 10, display: "block" },
+    selLabel: { fontSize: 14, fontWeight: 600, color: "#4b3d80", marginBottom: 12, display: "block" },
 
     // Inputs
     select: {
-      width: "100%", border: "1.5px solid #ddd6fe", borderRadius: 10,
-      padding: "11px 14px", fontSize: 15, color: "#1a1035", outline: "none",
+      width: "100%", border: "1.5px solid #ccc0fa", borderRadius: 10,
+      padding: "12px 15px", fontSize: 16, color: "#1a1035", outline: "none",
       background: "#faf9ff", fontFamily: "inherit", cursor: "pointer",
       transition: "border-color 0.15s",
     },
     selectDisabled: {
-      width: "100%", border: "1.5px solid #f0ebff", borderRadius: 10,
-      padding: "11px 14px", fontSize: 15, color: "#c4b5fd", outline: "none",
+      width: "100%", border: "1.5px solid #dfd5fb", borderRadius: 10,
+      padding: "12px 15px", fontSize: 16, color: "#a696f2", outline: "none",
       background: "#faf9ff", fontFamily: "inherit", cursor: "not-allowed",
     },
     textInput: {
-      width: "100%", border: "1.5px solid #ddd6fe", borderRadius: 10,
-      padding: "10px 13px", fontSize: 15, color: "#1a1035", outline: "none",
+      width: "100%", border: "1.5px solid #ccc0fa", borderRadius: 10,
+      padding: "11px 14px", fontSize: 16, color: "#1a1035", outline: "none",
       background: "#faf9ff", fontFamily: "inherit",
       boxSizing: "border-box" as const, resize: "none" as const,
       transition: "border-color 0.15s",
@@ -261,101 +261,101 @@ export default function ChecklistPage() {
 
     // Other button
     otherBtn: {
-      marginTop: 10, fontSize: 13, color: "#6d28d9",
-      background: "#f5f0ff", border: "1.5px solid #ddd6fe",
-      borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontFamily: "inherit",
+      marginTop: 11, fontSize: 14, color: "#6d28d9",
+      background: "#ede9fe", border: "1.5px solid #ccc0fa",
+      borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: "inherit",
     },
     otherBtnActive: {
-      marginTop: 10, fontSize: 13, color: "#fff",
+      marginTop: 11, fontSize: 14, color: "#fff",
       background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
       border: "1.5px solid #7c3aed",
-      borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontFamily: "inherit",
+      borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: "inherit",
     },
 
     // User inline section (small flow)
     userInlineCard: {
-      border: "1.5px solid #ede9fe", borderRadius: 14, padding: "18px 22px",
-      marginBottom: 20, background: "#fff",
-      boxShadow: "0 2px 12px rgba(79,53,190,0.06)",
+      border: "1.5px solid #dfd5fb", borderRadius: 14, padding: "20px 24px",
+      marginBottom: 22, background: "#fff",
+      boxShadow: "0 2px 14px rgba(79,53,190,0.09)",
     },
 
     // Read-only dept chip (small flow)
     deptReadOnly: {
       display: "inline-flex", alignItems: "center", gap: 6,
-      background: "linear-gradient(135deg, #f5f0ff 0%, #ede9fe 100%)",
-      border: "1px solid #ddd6fe", borderRadius: 10, padding: "6px 14px",
-      fontSize: 13, color: "#4b3d80", fontWeight: 500, marginBottom: 20,
+      background: "linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)",
+      border: "1px solid #ccc0fa", borderRadius: 10, padding: "7px 16px",
+      fontSize: 14, color: "#4b3d80", fontWeight: 500, marginBottom: 22,
     },
 
     // Sections
     secCard: {
-      border: "1.5px solid #ede9fe", borderRadius: 14, overflow: "hidden",
-      marginBottom: 12, background: "#fff",
-      boxShadow: "0 2px 12px rgba(79,53,190,0.06)",
+      border: "1.5px solid #dfd5fb", borderRadius: 14, overflow: "hidden",
+      marginBottom: 13, background: "#fff",
+      boxShadow: "0 2px 14px rgba(79,53,190,0.09)",
     },
     secTitle: {
-      fontSize: 13, fontWeight: 600, color: "#6d28d9",
-      padding: "12px 20px", borderBottom: "1.5px solid #f5f0ff",
-      background: "linear-gradient(135deg, #faf9ff 0%, #f5f0ff 100%)",
+      fontSize: 15, fontWeight: 700, color: "#6d28d9",
+      padding: "13px 22px", borderBottom: "1.5px solid #ede9fe",
+      background: "linear-gradient(135deg, #f5f0fe 0%, #ede9fe 100%)",
     },
-    itemRow:     { display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 20px", borderBottom: "1.5px solid #faf8ff" },
-    itemRowLast: { display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 20px" },
-    checkbox:    { width: 16, height: 16, marginTop: 2, flexShrink: 0, cursor: "pointer", accentColor: "#7c3aed" },
-    itemLabel:   { fontSize: 15, color: "#1a1035", lineHeight: 1.5, flex: 1 },
-    itemLabelMuted: { fontSize: 15, color: "#c4b5fd", lineHeight: 1.5, flex: 1, textDecoration: "line-through" },
-    reqStar:     { color: "#dc2626", fontSize: 12, marginLeft: 3 },
+    itemRow:     { display: "flex", alignItems: "flex-start", gap: 12, padding: "16px 22px", borderBottom: "1.5px solid #f5f0fe" },
+    itemRowLast: { display: "flex", alignItems: "flex-start", gap: 12, padding: "16px 22px" },
+    checkbox:    { width: 17, height: 17, marginTop: 2, flexShrink: 0, cursor: "pointer", accentColor: "#7c3aed" },
+    itemLabel:   { fontSize: 16, color: "#1a1035", lineHeight: 1.55, flex: 1 },
+    itemLabelMuted: { fontSize: 16, color: "#b09af8", lineHeight: 1.55, flex: 1, textDecoration: "line-through" },
+    reqStar:     { color: "#dc2626", fontSize: 13, marginLeft: 3 },
 
     // Summary chips (large flow step 3)
     summaryChip: {
       display: "inline-flex", alignItems: "center", gap: 6,
-      background: "linear-gradient(135deg, #f5f0ff 0%, #ede9fe 100%)",
-      border: "1px solid #ddd6fe", borderRadius: 10, padding: "6px 14px",
-      fontSize: 13, color: "#4b3d80", fontWeight: 500,
+      background: "linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)",
+      border: "1px solid #ccc0fa", borderRadius: 10, padding: "7px 16px",
+      fontSize: 14, color: "#4b3d80", fontWeight: 500,
     },
 
     // Reason card
     nameCard: {
-      border: "1.5px solid #ede9fe", borderRadius: 14, padding: "22px",
-      marginBottom: 12, background: "#fff",
-      boxShadow: "0 2px 12px rgba(79,53,190,0.06)",
+      border: "1.5px solid #dfd5fb", borderRadius: 14, padding: "24px",
+      marginBottom: 13, background: "#fff",
+      boxShadow: "0 2px 14px rgba(79,53,190,0.09)",
     },
-    nameLabel: { fontSize: 13, fontWeight: 600, color: "#4b3d80", marginBottom: 10, display: "block" },
+    nameLabel: { fontSize: 14, fontWeight: 600, color: "#4b3d80", marginBottom: 11, display: "block" },
 
     // Buttons
     submitBtn: {
       width: "100%",
       background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)",
-      color: "#fff", border: "none", borderRadius: 12, padding: "14px 0",
-      fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-      boxShadow: "0 4px 16px rgba(109,40,217,0.35)", transition: "opacity 0.15s",
+      color: "#fff", border: "none", borderRadius: 12, padding: "16px 0",
+      fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+      boxShadow: "0 4px 18px rgba(109,40,217,0.38)", transition: "opacity 0.15s",
     },
     submitBtnDisabled: {
-      width: "100%", background: "#e9e4f8", color: "#b4a9d6",
-      border: "none", borderRadius: 12, padding: "14px 0",
-      fontSize: 15, fontWeight: 600, cursor: "not-allowed", fontFamily: "inherit",
+      width: "100%", background: "#ddd6fe", color: "#a894f0",
+      border: "none", borderRadius: 12, padding: "16px 0",
+      fontSize: 16, fontWeight: 700, cursor: "not-allowed", fontFamily: "inherit",
     },
     continueBtn: {
       width: "100%",
       background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)",
-      color: "#fff", border: "none", borderRadius: 12, padding: "13px 0",
-      fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-      marginTop: 12, boxShadow: "0 3px 12px rgba(109,40,217,0.3)",
+      color: "#fff", border: "none", borderRadius: 12, padding: "15px 0",
+      fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+      marginTop: 14, boxShadow: "0 3px 14px rgba(109,40,217,0.33)",
     },
     backLink: {
-      fontSize: 13, color: "#7c6fa0", background: "none", border: "none",
+      fontSize: 14, color: "#6a5d8e", background: "none", border: "none",
       cursor: "pointer", fontFamily: "inherit", padding: "8px 0",
-      display: "inline-block", marginBottom: 16,
+      display: "inline-block", marginBottom: 18,
     },
 
     // Success
     successWrap: { textAlign: "center" as const, padding: "80px 0" },
     successIcon: {
-      width: 64, height: 64, borderRadius: "50%",
+      width: 68, height: 68, borderRadius: "50%",
       background: "linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)",
       display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: 28, margin: "0 auto 24px", color: "#fff",
+      fontSize: 30, margin: "0 auto 28px", color: "#fff",
     },
-    centerMsg: { display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", fontSize: 15, color: "#a78bfa" },
+    centerMsg: { display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", fontSize: 16, color: "#8c70e8" },
   };
 
   // ── Loading / error ────────────────────────────────────────────────────────
@@ -371,13 +371,13 @@ export default function ChecklistPage() {
       <div style={S.main}>
         <div style={S.successWrap}>
           <div style={S.successIcon}>✓</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#1a1035", marginBottom: 10 }}>送信が完了しました</div>
-          <p style={{ fontSize: 14, color: "#7c6fa0", lineHeight: 1.8, marginBottom: 36 }}>
+          <div style={{ fontSize: 28, fontWeight: 700, color: "#1a1035", marginBottom: 12 }}>送信が完了しました</div>
+          <p style={{ fontSize: 15, color: "#6a5d8e", lineHeight: 1.8, marginBottom: 40 }}>
             回答が記録されました。<br />
             <strong style={{ color: "#4f35be" }}>{submittedBy}</strong>さん、ありがとうございました。
           </p>
           <button
-            style={{ fontSize: 14, color: "#4b3d80", background: "#f5f0ff", border: "1.5px solid #ddd6fe", borderRadius: 10, padding: "10px 22px", cursor: "pointer", fontFamily: "inherit" }}
+            style={{ fontSize: 15, color: "#4b3d80", background: "#ede9fe", border: "1.5px solid #ccc0fa", borderRadius: 10, padding: "12px 26px", cursor: "pointer", fontFamily: "inherit" }}
             onClick={handleReset}
           >
             別の回答を送信する
@@ -391,7 +391,7 @@ export default function ChecklistPage() {
   const renderUserSelector = () => (
     <div>
       {loadingUsers ? (
-        <div style={{ fontSize: 14, color: "#c4b5fd", padding: "8px 0" }}>ユーザーを読み込み中…</div>
+        <div style={{ fontSize: 15, color: "#a696f2", padding: "8px 0" }}>ユーザーを読み込み中…</div>
       ) : (
         <>
           <select
@@ -413,7 +413,7 @@ export default function ChecklistPage() {
             >
               {isOther ? "✓ その他" : "その他"}
             </button>
-            {isOther && <span style={{ fontSize: 13, color: "#9688c0" }}>以下にお名前を入力してください</span>}
+            {isOther && <span style={{ fontSize: 14, color: "#7a6aaa" }}>以下にお名前を入力してください</span>}
           </div>
 
           {isOther && (
@@ -440,7 +440,7 @@ export default function ChecklistPage() {
         <div style={S.progressWrap}>
           <div style={S.progressLabel}>
             <span>進捗</span>
-            <span style={{ color: "#7c3aed", fontWeight: 600 }}>{checked}/{total} 完了</span>
+            <span style={{ color: "#6d28d9", fontWeight: 700 }}>{checked}/{total} 完了</span>
           </div>
           <div style={S.progressTrack}>
             <div style={{ ...S.progressFill, width: `${pct}%` }} />
