@@ -99,7 +99,7 @@ export function DepartmentsTab() {
   };
 
   const S: Record<string, React.CSSProperties> = {
-    main: { maxWidth: 860, margin: "0 auto", padding: "56px 32px" },
+    main: { maxWidth: 860, margin: "-20px auto", padding: "56px 32px" },
     pageTitle: { fontSize: 32, fontWeight: 700, letterSpacing: "-0.04em", color: "#1a1035", marginBottom: 8 },
     pageSubtitle: { fontSize: 15, color: "#6a5d8e", marginBottom: 36 },
     back: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 15, color: "#6a5d8e", cursor: "pointer", marginBottom: 30, background: "none", border: "none", padding: 0 },
