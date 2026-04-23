@@ -374,7 +374,7 @@ export function SettingsTab() {
   };
 
   const S: Record<string, React.CSSProperties> = {
-    main: { maxWidth: 600, margin: "0 auto", padding: "56px 32px" },
+    main: { maxWidth: 600, margin: "-20px auto", padding: "56px 32px" },
     pageTitle: { fontSize: 32, fontWeight: 700, letterSpacing: "-0.04em", color: "#1a1035", marginBottom: 8 },
     pageSub: { fontSize: 15, color: "#6a5d8e", marginBottom: 44 },
     section: {
