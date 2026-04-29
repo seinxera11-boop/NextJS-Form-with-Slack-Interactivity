@@ -24,31 +24,3 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(data ?? []);
 }
 
-export async function POST(req: NextRequest) {
-  const ctx = await getUserContext(req);
-  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const { response_id, reason } = await req.json();
-  if (!response_id) return NextResponse.json({ error: "response_id required" }, { status: 400 });
-
-  if (!ctx.isMainAdmin) {
-    const { data: resp } = await supabaseAdmin
-      .from("responses")
-      .select("department_id")
-      .eq("id", response_id)
-      .single();
-
-    if (!resp || !ctx.assignedDepartments.includes(resp.department_id)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-  }
-
-  const { error } = await supabaseAdmin.from("response_approvals").insert({
-    response_id,
-    reason: reason || "",
-    approved_by: ctx.email,
-  });
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true });
-}

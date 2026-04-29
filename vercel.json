@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/daily-check",
-      "schedule": "0 20 * * 1-5"
+      "schedule": "15 14 * * 1-5"
     }
   ]
 }
