@@ -13,8 +13,6 @@ export function ApprovalsTab({ userEmail, isMainAdmin, assignedDepartments }: Pr
   const [responses, setResponses] = useState<Response[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"pending" | "approved">("pending");
-  const [approvingId, setApprovingId] = useState<number | null>(null);
-  const [approvalReasons, setApprovalReasons] = useState<Record<number, string>>({});
   const [expanded, setExpanded] = useState<number | null>(null);
 
   useEffect(() => { fetchResponses(); }, []);
@@ -25,30 +23,6 @@ export function ApprovalsTab({ userEmail, isMainAdmin, assignedDepartments }: Pr
     const data = await res.json();
     setResponses(Array.isArray(data) ? data : []);
     setLoading(false);
-  };
-
-  const handleApprove = async (resp: Response) => {
-    setApprovingId(resp.id);
-    try {
-      const res = await fetch("/api/approvals", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          response_id: resp.id,
-          reason: approvalReasons[resp.id] || "",
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "承認に失敗しました");
-      }
-      setApprovalReasons(p => { const n = { ...p }; delete n[resp.id]; return n; });
-      await fetchResponses();
-    } catch (err: any) {
-      alert("承認に失敗しました: " + err.message);
-    } finally {
-      setApprovingId(null);
-    }
   };
 
   const pending  = responses.filter(r => (r.response_approvals || []).length === 0);
@@ -88,20 +62,6 @@ export function ApprovalsTab({ userEmail, isMainAdmin, assignedDepartments }: Pr
     itemRow: { display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 0", borderBottom: "1px solid #f5f0fe" },
     itemLabel: { fontSize: 15, color: "#5e5090", minWidth: 200, flexShrink: 0 },
     itemValue: { fontSize: 15, color: "#1a1035", flex: 1, fontWeight: 500 },
-    reasonInput: {
-      width: "100%", border: "1.5px solid #ccc0fa", borderRadius: 10,
-      padding: "11px 15px", fontSize: 15, color: "#1a1035", outline: "none",
-      background: "#faf9ff", fontFamily: "inherit", resize: "vertical",
-      marginTop: 10, boxSizing: "border-box" as const,
-      transition: "border-color 0.15s"
-    },
-    approveBtn: {
-      fontSize: 15, fontWeight: 600, color: "#fff",
-      background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
-      border: "none", borderRadius: 10, padding: "11px 22px",
-      cursor: "pointer", fontFamily: "inherit", marginTop: 12,
-      boxShadow: "0 2px 10px rgba(5,150,105,0.32)"
-    },
     reasonBox: {
       background: "linear-gradient(135deg, #f5f0fe 0%, #ede9fe 100%)",
       border: "1.5px solid #dfd5fb", borderRadius: 10,
@@ -187,26 +147,6 @@ export function ApprovalsTab({ userEmail, isMainAdmin, assignedDepartments }: Pr
                         <span style={S.itemValue}>{item.value || <em style={{ color: "#c4b5fd" }}>未回答</em>}</span>
                       </div>
                     ))}</>
-                )}
-                {filter === "pending" && (
-                  <>
-                    <div style={S.sectionTitle}>承認</div>
-                    <textarea
-                      style={S.reasonInput} rows={2}
-                      placeholder="任意：承認に関するメモを入力…"
-                      value={approvalReasons[resp.id] || ""}
-                      onChange={e => setApprovalReasons(p => ({ ...p, [resp.id]: e.target.value }))}
-                      onFocus={e => (e.target.style.borderColor = "#a78bfa")}
-                      onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
-                    />
-                    <button
-                      style={{ ...S.approveBtn, opacity: approvingId === resp.id ? 0.6 : 1 }}
-                      onClick={() => handleApprove(resp)}
-                      disabled={approvingId === resp.id}
-                    >
-                      {approvingId === resp.id ? "承認中…" : "回答を承認する"}
-                    </button>
-                  </>
                 )}
                 {filter === "approved" && approval && (
                   <>

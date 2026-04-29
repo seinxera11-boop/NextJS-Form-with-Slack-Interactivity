@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 
   // 📝 Reason input
   const reason =
-    payload.state?.values?.reason_block?.reason_input?.value || "理由なし";
+    payload.state?.values?.reason_block?.input_reason?.value || "理由なし";
 
   // 📦 Get metadata from button
   const action = payload.actions?.[0];
