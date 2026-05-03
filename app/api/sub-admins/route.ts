@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from("admin_users")
-    .select("id, email, sub_admin_departments(department_id)")
+    .select("id, email, sub_admin_checklists(checklist_id)")
     .eq("is_main_admin", false)
     .order("email");
 
@@ -20,12 +20,11 @@ export async function POST(req: NextRequest) {
   const ctx = await getUserContext(req);
   if (!ctx?.isMainAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { email, department_ids } = await req.json();
+  const { email, checklist_ids } = await req.json();
   if (!email?.trim()) return NextResponse.json({ error: "Email required" }, { status: 400 });
 
   const lowerEmail = email.trim().toLowerCase();
 
-  // Check if this email is a main admin — prevent demotion.
   const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
     .split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
   if (ADMIN_EMAILS.includes(lowerEmail)) {
@@ -52,13 +51,12 @@ export async function POST(req: NextRequest) {
     subAdminId = inserted.id;
   }
 
-  // Replace department assignments atomically.
-  await supabaseAdmin.from("sub_admin_departments").delete().eq("sub_admin_id", subAdminId);
+  await supabaseAdmin.from("sub_admin_checklists").delete().eq("sub_admin_id", subAdminId);
 
-  if (Array.isArray(department_ids) && department_ids.length > 0) {
-    const rows = department_ids.map((d: number) => ({ sub_admin_id: subAdminId, department_id: d }));
-    const { error: deptError } = await supabaseAdmin.from("sub_admin_departments").insert(rows);
-    if (deptError) return NextResponse.json({ error: deptError.message }, { status: 500 });
+  if (Array.isArray(checklist_ids) && checklist_ids.length > 0) {
+    const rows = checklist_ids.map((c: number) => ({ sub_admin_id: subAdminId, checklist_id: c }));
+    const { error: insError } = await supabaseAdmin.from("sub_admin_checklists").insert(rows);
+    if (insError) return NextResponse.json({ error: insError.message }, { status: 500 });
   }
 
   return NextResponse.json({ id: subAdminId, email: lowerEmail }, { status: 201 });

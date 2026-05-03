@@ -3,13 +3,7 @@
 import { useEffect, useState } from "react";
 import { type Response } from "./types";
 
-type Props = {
-  userEmail: string;
-  isMainAdmin: boolean;
-  assignedDepartments: number[];
-};
-
-export function ApprovalsTab({ userEmail, isMainAdmin, assignedDepartments }: Props) {
+export function ApprovalsTab() {
   const [responses, setResponses] = useState<Response[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"pending" | "approved">("pending");

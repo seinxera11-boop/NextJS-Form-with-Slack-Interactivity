@@ -15,8 +15,8 @@ export async function GET(req: NextRequest) {
     .order("created_at", { ascending: false });
 
   if (!ctx.isMainAdmin) {
-    if (ctx.assignedDepartments.length === 0) return NextResponse.json([]);
-    query = query.in("department_id", ctx.assignedDepartments);
+    if (ctx.assignedChecklists.length === 0) return NextResponse.json([]);
+    query = query.in("checklist_id", ctx.assignedChecklists);
   }
 
   const { data, error } = await query;

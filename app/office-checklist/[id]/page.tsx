@@ -26,6 +26,7 @@ type Checklist = {
   is_large_checklist: boolean;
   department_id: number | null;
   checklist_sections: ChecklistSection[];
+  checklist_departments?: { department_id: number }[];
 };
 
 type Department = { id: number; name: string };
@@ -83,7 +84,15 @@ export default function ChecklistPage() {
       if (clData.error) throw new Error(clData.error);
 
       setChecklist(clData);
-      setDepartments(deptData || []);
+
+      // Filter to only the departments assigned to this checklist.
+      const allDepts: Department[] = deptData || [];
+      const assignedIds = new Set<number>(
+        clData.is_large_checklist
+          ? (clData.checklist_departments || []).map((cd: any) => cd.department_id)
+          : clData.department_id ? [clData.department_id] : []
+      );
+      setDepartments(allDepts.filter(d => assignedIds.has(d.id)));
 
       // Initialise form values
       const init: Record<number, string> = {};

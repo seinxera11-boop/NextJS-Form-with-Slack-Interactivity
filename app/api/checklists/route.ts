@@ -8,16 +8,17 @@ export async function GET(req: NextRequest) {
 
   let query = supabaseAdmin
     .from("checklists")
-    .select("*, checklist_sections(*, checklist_items(*))")
+    .select("*, checklist_sections(*, checklist_items(*)), checklist_departments(department_id)")
     .order("created_at", { ascending: false });
 
   if (!ctx.isMainAdmin) {
-    query = (query as any).in("department_id", ctx.assignedDepartments);
+    if (ctx.assignedChecklists.length === 0) return NextResponse.json([]);
+    query = query.in("id", ctx.assignedChecklists);
   }
 
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+  return NextResponse.json(data ?? []);
 }
 
 export async function POST(req: NextRequest) {
@@ -25,15 +26,45 @@ export async function POST(req: NextRequest) {
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!ctx.isMainAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { title, sections, created_by, is_large_checklist, department_id } = await req.json();
+  const { title, sections, created_by, is_large_checklist, department_id, department_ids } =
+    await req.json();
+
+  if (!is_large_checklist) {
+    if (!department_id) {
+      return NextResponse.json(
+        { error: "小規模チェックリストには部署の選択が必要です。" },
+        { status: 400 }
+      );
+    }
+  } else {
+    if (!Array.isArray(department_ids) || department_ids.length === 0) {
+      return NextResponse.json(
+        { error: "大規模チェックリストには少なくとも1つの部署を選択してください。" },
+        { status: 400 }
+      );
+    }
+  }
+
   const resolvedDeptId = is_large_checklist ? null : (department_id ?? null);
 
   const { data: cl, error: clErr } = await supabaseAdmin
     .from("checklists")
-    .insert({ title, created_by, is_large_checklist: is_large_checklist ?? false, department_id: resolvedDeptId })
+    .insert({
+      title,
+      created_by,
+      is_large_checklist: is_large_checklist ?? false,
+      department_id: resolvedDeptId,
+    })
     .select()
     .single();
   if (clErr) return NextResponse.json({ error: clErr.message }, { status: 500 });
+
+  if (is_large_checklist && Array.isArray(department_ids) && department_ids.length > 0) {
+    const { error: deptErr } = await supabaseAdmin
+      .from("checklist_departments")
+      .insert(department_ids.map((dId: number) => ({ checklist_id: cl.id, department_id: dId })));
+    if (deptErr) return NextResponse.json({ error: deptErr.message }, { status: 500 });
+  }
 
   for (const sec of sections) {
     const { data: secRow, error: secErr } = await supabaseAdmin
