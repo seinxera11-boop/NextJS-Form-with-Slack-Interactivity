@@ -123,39 +123,39 @@ function FieldRow({
 type SubAdmin = {
   id: string;
   email: string;
-  sub_admin_departments: { department_id: number }[];
+  sub_admin_checklists: { checklist_id: number }[];
 };
 
-type Department = { id: number; name: string };
+type Checklist = { id: number; title: string };
 
 function SubAdminsSection() {
-  const [subAdmins, setSubAdmins]     = useState<SubAdmin[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [loading, setLoading]         = useState(true);
-  const [newEmail, setNewEmail]       = useState("");
-  const [newDepts, setNewDepts]       = useState<number[]>([]);
-  const [adding, setAdding]           = useState(false);
-  const [addError, setAddError]       = useState("");
-  const [editingId, setEditingId]     = useState<string | null>(null);
-  const [editDepts, setEditDepts]     = useState<number[]>([]);
-  const [saving, setSaving]           = useState(false);
+  const [subAdmins,  setSubAdmins]  = useState<SubAdmin[]>([]);
+  const [checklists, setChecklists] = useState<Checklist[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [newEmail,   setNewEmail]   = useState("");
+  const [newCls,     setNewCls]     = useState<number[]>([]);
+  const [adding,     setAdding]     = useState(false);
+  const [addError,   setAddError]   = useState("");
+  const [editingId,  setEditingId]  = useState<string | null>(null);
+  const [editCls,    setEditCls]    = useState<number[]>([]);
+  const [saving,     setSaving]     = useState(false);
 
   useEffect(() => { fetchAll(); }, []);
 
   const fetchAll = async () => {
     setLoading(true);
-    const [saRes, deptRes] = await Promise.all([
+    const [saRes, clRes] = await Promise.all([
       fetch("/api/sub-admins"),
-      fetch("/api/departments"),
+      fetch("/api/checklists"),
     ]);
-    const [saData, deptData] = await Promise.all([saRes.json(), deptRes.json()]);
+    const [saData, clData] = await Promise.all([saRes.json(), clRes.json()]);
     setSubAdmins(Array.isArray(saData) ? saData : []);
-    setDepartments(Array.isArray(deptData) ? deptData : []);
+    setChecklists(Array.isArray(clData) ? clData : []);
     setLoading(false);
   };
 
-  const toggleDept = (list: number[], id: number): number[] =>
-    list.includes(id) ? list.filter(d => d !== id) : [...list, id];
+  const toggle = (list: number[], id: number): number[] =>
+    list.includes(id) ? list.filter(x => x !== id) : [...list, id];
 
   const handleAdd = async () => {
     if (!newEmail.trim()) return;
@@ -164,11 +164,11 @@ function SubAdminsSection() {
       const res = await fetch("/api/sub-admins", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: newEmail.trim(), department_ids: newDepts }),
+        body: JSON.stringify({ email: newEmail.trim(), checklist_ids: newCls }),
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "追加に失敗しました");
-      setNewEmail(""); setNewDepts([]);
+      setNewEmail(""); setNewCls([]);
       await fetchAll();
     } catch (err: any) {
       setAddError(err.message);
@@ -179,7 +179,7 @@ function SubAdminsSection() {
 
   const startEdit = (sa: SubAdmin) => {
     setEditingId(sa.id);
-    setEditDepts(sa.sub_admin_departments.map(d => d.department_id));
+    setEditCls(sa.sub_admin_checklists.map(c => c.checklist_id));
   };
 
   const handleSaveEdit = async (id: string) => {
@@ -188,7 +188,7 @@ function SubAdminsSection() {
       const res = await fetch(`/api/sub-admins/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ department_ids: editDepts }),
+        body: JSON.stringify({ checklist_ids: editCls }),
       });
       if (!res.ok) throw new Error("保存に失敗しました");
       setEditingId(null);
@@ -266,7 +266,7 @@ function SubAdminsSection() {
     transition: "all 0.12s",
   });
 
-  const deptName = (id: number) => departments.find(d => d.id === id)?.name ?? String(id);
+  const clTitle = (id: number) => checklists.find(c => c.id === id)?.title ?? String(id);
 
   return (
     <div>
@@ -287,11 +287,11 @@ function SubAdminsSection() {
             {adding ? "追加中…" : "+ 追加"}
           </button>
         </div>
-        <div style={{ fontSize: 12, color: "#7c6fa0", marginBottom: 8 }}>アクセス可能な部署を選択：</div>
+        <div style={{ fontSize: 12, color: "#7c6fa0", marginBottom: 8 }}>アクセス可能なチェックリストを選択：</div>
         <div style={S.deptPills}>
-          {departments.map(d => (
-            <button key={d.id} style={pill(newDepts.includes(d.id))} onClick={() => setNewDepts(p => toggleDept(p, d.id))}>
-              {d.name}
+          {checklists.map(cl => (
+            <button key={cl.id} style={pill(newCls.includes(cl.id))} onClick={() => setNewCls(p => toggle(p, cl.id))}>
+              {cl.title}
             </button>
           ))}
         </div>
@@ -307,22 +307,22 @@ function SubAdminsSection() {
         <div style={S.emptyText}>サブ管理者はまだ登録されていません。</div>
       ) : subAdmins.map(sa => {
         const isEditing = editingId === sa.id;
-        const assignedNames = sa.sub_admin_departments.map(d => deptName(d.department_id));
+        const assignedTitles = sa.sub_admin_checklists.map(c => clTitle(c.checklist_id));
         return (
           <div key={sa.id} style={S.row}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={S.email}>{sa.email}</div>
               {isEditing ? (
                 <div style={S.deptPills}>
-                  {departments.map(d => (
-                    <button key={d.id} style={pill(editDepts.includes(d.id))} onClick={() => setEditDepts(p => toggleDept(p, d.id))}>
-                      {d.name}
+                  {checklists.map(cl => (
+                    <button key={cl.id} style={pill(editCls.includes(cl.id))} onClick={() => setEditCls(p => toggle(p, cl.id))}>
+                      {cl.title}
                     </button>
                   ))}
                 </div>
               ) : (
                 <div style={S.deptList}>
-                  {assignedNames.length > 0 ? assignedNames.join(" · ") : "部署未割り当て"}
+                  {assignedTitles.length > 0 ? assignedTitles.join(" · ") : "チェックリスト未割り当て"}
                 </div>
               )}
             </div>

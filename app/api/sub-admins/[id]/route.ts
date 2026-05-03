@@ -10,14 +10,13 @@ export async function PATCH(
   if (!ctx?.isMainAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id: subAdminId } = await params;
-  const { department_ids } = await req.json();
+  const { checklist_ids } = await req.json();
 
-  // Replace all department assignments.
-  await supabaseAdmin.from("sub_admin_departments").delete().eq("sub_admin_id", subAdminId);
+  await supabaseAdmin.from("sub_admin_checklists").delete().eq("sub_admin_id", subAdminId);
 
-  if (Array.isArray(department_ids) && department_ids.length > 0) {
-    const rows = department_ids.map((d: number) => ({ sub_admin_id: subAdminId, department_id: d }));
-    const { error } = await supabaseAdmin.from("sub_admin_departments").insert(rows);
+  if (Array.isArray(checklist_ids) && checklist_ids.length > 0) {
+    const rows = checklist_ids.map((c: number) => ({ sub_admin_id: subAdminId, checklist_id: c }));
+    const { error } = await supabaseAdmin.from("sub_admin_checklists").insert(rows);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
@@ -33,7 +32,6 @@ export async function DELETE(
 
   const { id: subAdminId } = await params;
 
-  // sub_admin_departments rows cascade-delete via FK.
   const { error } = await supabaseAdmin
     .from("admin_users")
     .delete()

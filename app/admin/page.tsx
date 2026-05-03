@@ -14,7 +14,7 @@ type Tab = "checklists" | "responses" | "approvals" | "departments" | "settings"
 type UserContext = {
   email: string;
   isMainAdmin: boolean;
-  assignedDepartments: number[];
+  assignedChecklists: number[];
 };
 
 // ─── Auth wrapper ────────────────────────────────────────────────────────────
@@ -58,13 +58,13 @@ async function fetchUserContext(): Promise<UserContext> {
     if (!res.ok) throw new Error("context fetch failed");
     return await res.json();
   } catch {
-    return { email: "", isMainAdmin: true, assignedDepartments: [] };
+    return { email: "", isMainAdmin: true, assignedChecklists: [] };
   }
 }
 
 // ─── Shell ───────────────────────────────────────────────────────────────────
 function AdminDashboard({ userCtx }: { userCtx: UserContext }) {
-  const { isMainAdmin, assignedDepartments } = userCtx;
+  const { isMainAdmin } = userCtx;
 
   const allTabs: { key: Tab; label: string; mainAdminOnly: boolean }[] = [
     { key: "checklists",  label: "チェックリスト", mainAdminOnly: false },
@@ -344,19 +344,12 @@ function AdminDashboard({ userCtx }: { userCtx: UserContext }) {
         <ChecklistsTab
           userEmail={userCtx.email}
           isMainAdmin={isMainAdmin}
-          assignedDepartments={assignedDepartments}
         />
       )}
       {tab === "responses"   && (
-        <ResponsesTab isMainAdmin={isMainAdmin} assignedDepartments={assignedDepartments} />
+        <ResponsesTab isMainAdmin={isMainAdmin} />
       )}
-      {tab === "approvals"   && (
-        <ApprovalsTab
-          userEmail={userCtx.email}
-          isMainAdmin={isMainAdmin}
-          assignedDepartments={assignedDepartments}
-        />
-      )}
+      {tab === "approvals"   && <ApprovalsTab />}
       {tab === "departments" && isMainAdmin && <DepartmentsTab />}
       {tab === "settings"    && isMainAdmin && <SettingsTab />}
     </div>

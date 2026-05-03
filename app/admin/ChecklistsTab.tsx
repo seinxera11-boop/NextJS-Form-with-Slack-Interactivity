@@ -1,18 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { type Checklist, type ChecklistSection, type ChecklistTask } from "./types";
+import { type Checklist, type ChecklistSection } from "./types";
 
 type Department = { id: number; name: string };
 
 export function ChecklistsTab({
   userEmail,
   isMainAdmin,
-  assignedDepartments,
 }: {
   userEmail: string;
   isMainAdmin: boolean;
-  assignedDepartments: number[];
 }) {
   const [checklists,   setChecklists]   = useState<Checklist[]>([]);
   const [departments,  setDepartments]  = useState<Department[]>([]);
@@ -23,23 +21,20 @@ export function ChecklistsTab({
   // Form state
   const [title,            setTitle]            = useState("");
   const [isLarge,          setIsLarge]          = useState(false);
-  const [fixedDeptId,      setFixedDeptId]      = useState<string>("");
+  const [fixedDeptId,      setFixedDeptId]      = useState<string>("");     // small: single dept
+  const [selectedDeptIds,  setSelectedDeptIds]  = useState<number[]>([]);   // large: multi dept
   const [sections,         setSections]         = useState<ChecklistSection[]>([
     { title: "", order_index: 0, tasks: [{ label: "", order_index: 0 }] },
   ]);
   const [saving,     setSaving]     = useState(false);
   const [saveError,  setSaveError]  = useState("");
+  const [tooltipId,  setTooltipId]  = useState<number | null>(null);
 
   useEffect(() => {
     fetchChecklists();
     fetch("/api/departments")
       .then(r => r.json())
-      .then((d: Department[]) => {
-        const all = d || [];
-        setDepartments(
-          isMainAdmin ? all : all.filter(dept => assignedDepartments.includes(dept.id))
-        );
-      });
+      .then((d: Department[]) => setDepartments(d || []));
   }, []);
 
   const fetchChecklists = async () => {
@@ -51,15 +46,18 @@ export function ChecklistsTab({
   };
 
   const startCreate = () => {
-    setTitle(""); setIsLarge(false); setFixedDeptId("");
+    setTitle(""); setIsLarge(false); setFixedDeptId(""); setSelectedDeptIds([]);
     setSections([{ title: "", order_index: 0, tasks: [{ label: "", order_index: 0 }] }]);
     setSaveError(""); setEditTarget(null); setView("create");
   };
 
   const startEdit = (cl: Checklist) => {
     setTitle(cl.title);
-    setIsLarge((cl as any).is_large_checklist ?? false);
+    const large = (cl as any).is_large_checklist ?? false;
+    setIsLarge(large);
     setFixedDeptId((cl as any).department_id ? String((cl as any).department_id) : "");
+    const mappings: { department_id: number }[] = (cl as any).checklist_departments || [];
+    setSelectedDeptIds(mappings.map(m => m.department_id));
     const sorted = [...(cl.checklist_sections || [])].sort((a, b) => a.order_index - b.order_index);
     setSections(sorted.length
       ? sorted.map(sec => ({
@@ -100,9 +98,16 @@ export function ChecklistsTab({
   const updateTaskLabel = (si: number, ti: number, label: string) =>
     setSections(p => p.map((s, i) => i !== si ? s : { ...s, tasks: s.tasks.map((t, j) => j === ti ? { ...t, label } : t) }));
 
+  const toggleLargeDept = (deptId: number) => {
+    setSelectedDeptIds(prev =>
+      prev.includes(deptId) ? prev.filter(id => id !== deptId) : [...prev, deptId]
+    );
+  };
+
   const handleSave = async () => {
     if (!title.trim()) { setSaveError("タイトルは必須です。"); return; }
     if (!isLarge && !fixedDeptId) { setSaveError("小規模チェックリストには部署の選択が必要です。"); return; }
+    if (isLarge && selectedDeptIds.length === 0) { setSaveError("大規模チェックリストには少なくとも1つの部署を選択してください。"); return; }
     for (const sec of sections) {
       if (!sec.title.trim()) { setSaveError("すべてのセクションにタイトルを入力してください。"); return; }
       for (const task of sec.tasks) {
@@ -121,7 +126,8 @@ export function ChecklistsTab({
             sections,
             created_by: userEmail,
             is_large_checklist: isLarge,
-            department_id: isLarge ? null : (fixedDeptId ? Number(fixedDeptId) : null),
+            department_id:  isLarge ? null : (fixedDeptId ? Number(fixedDeptId) : null),
+            department_ids: isLarge ? selectedDeptIds : [],
           }),
         }
       );
@@ -219,6 +225,28 @@ export function ChecklistsTab({
     errText:      { flex: 1, fontSize: 14, color: "#dc2626", fontWeight: 500 },
     cancelBtn:    { fontSize: 15, color: "#6a5d8e", background: "#ede9fe", border: "1.5px solid #ccc0fa", borderRadius: 10, padding: "11px 20px", cursor: "pointer", fontFamily: "inherit" },
     saveBtn:      { fontSize: 15, fontWeight: 600, color: "#fff", background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)", border: "none", borderRadius: 10, padding: "11px 26px", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 12px rgba(109,40,217,0.32)" },
+    // Pill-toggle dept selector (large checklist)
+    pillWrap:       { display: "flex", flexWrap: "wrap" as const, gap: 8, marginTop: 4 },
+    pill:           { fontSize: 13, fontWeight: 500, padding: "7px 14px", borderRadius: 100, border: "1.5px solid #ccc0fa", background: "#fff", color: "#4b3d80", cursor: "pointer", transition: "all 0.15s", userSelect: "none" as const, lineHeight: 1.4 },
+    pillActive:     { background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)", borderColor: "transparent", color: "#fff", boxShadow: "0 2px 8px rgba(109,40,217,0.28)" },
+    pillCount:      { marginTop: 10, fontSize: 13, color: "#6d28d9", fontWeight: 600 },
+    // Badge tooltip — minimal dark
+    badgeWrap:  { position: "relative" as const, display: "inline-block" },
+    tooltip: {
+      position: "absolute" as const, bottom: "calc(100% + 8px)", left: "50%",
+      transform: "translateX(-50%)",
+      background: "#2a1f4a", borderRadius: 8,
+      padding: "8px 12px",
+      pointerEvents: "none" as const, zIndex: 50,
+      boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
+      whiteSpace: "nowrap" as const,
+    },
+    tooltipText: { fontSize: 12, color: "#e9e4fb", fontWeight: 500, lineHeight: 1.8, display: "block" as const },
+    tooltipArrow: {
+      position: "absolute" as const, top: "100%", left: "50%",
+      transform: "translateX(-50%)",
+      border: "5px solid transparent", borderTopColor: "#2a1f4a",
+    },
   };
 
   // ── List view ──────────────────────────────────────────────────────────────
@@ -243,7 +271,14 @@ export function ChecklistsTab({
         </div>
       ) : checklists.map(cl => {
         const large     = (cl as any).is_large_checklist;
-        const deptName  = departments.find(d => d.id === (cl as any).department_id)?.name;
+        const deptName  = !large
+          ? departments.find(d => d.id === (cl as any).department_id)?.name
+          : undefined;
+        const largeDepts = large
+          ? ((cl as any).checklist_departments || [])
+              .map((cd: any) => departments.find(d => d.id === cd.department_id)?.name)
+              .filter(Boolean) as string[]
+          : [];
         const allTasks  = (cl.checklist_sections || [])
           .sort((a, b) => a.order_index - b.order_index)
           .flatMap(s => [...(s.checklist_items || [])].sort((a, b) => a.order_index - b.order_index));
@@ -251,24 +286,39 @@ export function ChecklistsTab({
         const extra     = allTasks.length - preview.length;
         return (
           <div key={cl.id} style={S.card}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#c4b5fd"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(79,53,190,0.12)"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "#ede9fe"; e.currentTarget.style.boxShadow = "0 2px 12px rgba(79,53,190,0.06)"; }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = "#c4b5fd")}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = "#dfd5fb")}
           >
             <div style={S.cardRow}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                   <span style={S.cardTitle}>{cl.title}</span>
-                  <span style={{
-                    ...S.sizeChip,
-                    color:       large ? "#6d28d9" : "#0f6e56",
-                    background:  large ? "#f5f0ff" : "#e1f5ee",
-                    borderColor: large ? "#ddd6fe" : "#9fe1cb",
-                  }}>
-                    {large ? "大規模" : "小規模"}
+                  <span
+                    style={S.badgeWrap}
+                    onMouseEnter={() => setTooltipId(cl.id)}
+                    onMouseLeave={() => setTooltipId(null)}
+                  >
+                    <span style={{
+                      ...S.sizeChip,
+                      color:       large ? "#6d28d9" : "#0f6e56",
+                      background:  large ? "#f5f0ff" : "#e1f5ee",
+                      borderColor: large ? "#ddd6fe" : "#9fe1cb",
+                      cursor: "default",
+                    }}>
+                      {large ? "大規模" : "小規模"}
+                    </span>
+                    {tooltipId === cl.id && (
+                      <div style={S.tooltip}>
+                        {(large ? largeDepts : deptName ? [deptName] : []).length > 0
+                          ? (large ? largeDepts : [deptName!]).map(n => (
+                              <span key={n} style={S.tooltipText}>{n}</span>
+                            ))
+                          : <span style={{ ...S.tooltipText, opacity: 0.5 }}>未設定</span>
+                        }
+                        <span style={S.tooltipArrow} />
+                      </div>
+                    )}
                   </span>
-                  {!large && deptName && (
-                    <span style={{ fontSize: 12, color: "#9688c0" }}>· {deptName}</span>
-                  )}
                 </div>
                 <div style={S.cardMeta}>
                   {(cl.checklist_sections || []).length}セクション · {allTasks.length}タスク · {cl.created_by} ·{" "}
@@ -321,7 +371,7 @@ export function ChecklistsTab({
           <div style={S.toggleRow}>
             <div
               style={{ ...S.toggleTrack, background: isLarge ? "#6d28d9" : "#ddd6fe" }}
-              onClick={() => setIsLarge(v => !v)}
+              onClick={() => { setIsLarge(v => !v); setFixedDeptId(""); setSelectedDeptIds([]); }}
             >
               <div style={{ ...S.toggleThumb, left: isLarge ? 21 : 3 }} />
             </div>
@@ -332,7 +382,7 @@ export function ChecklistsTab({
           </div>
         )}
 
-        {/* Fixed department selector */}
+        {/* Small: single department selector */}
         {!isLarge && (
           <div style={{ marginTop: 20 }}>
             <label style={S.fieldLabel}>部門 <span style={{ color: "#dc2626" }}>*</span></label>
@@ -347,6 +397,38 @@ export function ChecklistsTab({
               <option value="">部署を選択してください…</option>
               {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
+          </div>
+        )}
+
+        {/* Large: pill-toggle multi-select */}
+        {isLarge && (
+          <div style={{ marginTop: 20 }}>
+            <label style={S.fieldLabel}>
+              部門（複数選択可） <span style={{ color: "#dc2626" }}>*</span>
+            </label>
+            {departments.length === 0 ? (
+              <div style={{ fontSize: 14, color: "#9688c0" }}>部署が登録されていません。</div>
+            ) : (
+              <div style={S.pillWrap}>
+                {departments.map(d => {
+                  const active = selectedDeptIds.includes(d.id);
+                  return (
+                    <button
+                      key={d.id}
+                      type="button"
+                      style={{ ...S.pill, ...(active ? S.pillActive : {}) }}
+                      onClick={() => toggleLargeDept(d.id)}
+                    >
+                      {active && <span style={{ marginRight: 5, fontSize: 11 }}>✓</span>}
+                      {d.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {selectedDeptIds.length > 0 && (
+              <div style={S.pillCount}>{selectedDeptIds.length}部署を選択中</div>
+            )}
           </div>
         )}
       </div>

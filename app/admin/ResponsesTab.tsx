@@ -5,10 +5,9 @@ import { type Response } from "./types";
 
 type Props = {
   isMainAdmin: boolean;
-  assignedDepartments: number[];
 };
 
-export function ResponsesTab({ isMainAdmin, assignedDepartments }: Props) {
+export function ResponsesTab({ isMainAdmin }: Props) {
   const [responses, setResponses] = useState<Response[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -31,15 +30,21 @@ export function ResponsesTab({ isMainAdmin, assignedDepartments }: Props) {
       clRes.json(),
       deptRes.json(),
     ]);
-    setResponses(Array.isArray(respData) ? respData : []);
-    setChecklists(Array.isArray(clData) ? clData : []);
-    // Sub-admins only see their assigned departments in the filter.
+    const respArr = Array.isArray(respData) ? respData : [];
     const allDepts: { id: number; name: string }[] = Array.isArray(deptData) ? deptData : [];
-    setDepartments(
-      isMainAdmin
-        ? allDepts
-        : allDepts.filter(d => assignedDepartments.includes(d.id))
-    );
+
+    setResponses(respArr);
+    setChecklists(Array.isArray(clData) ? clData : []);
+
+    if (isMainAdmin) {
+      setDepartments(allDepts);
+    } else {
+      // Responses are already server-filtered to the sub-admin's checklists.
+      // Show only the departments that actually appear in those responses.
+      const usedIds = new Set(respArr.map((r: any) => r.department_id).filter(Boolean));
+      setDepartments(allDepts.filter(d => usedIds.has(d.id)));
+    }
+
     setLoading(false);
   };
 

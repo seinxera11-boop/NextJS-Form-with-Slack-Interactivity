@@ -6,14 +6,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const ctx = await getUserContext(req);
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const checklistId = Number((await params).id);
+
   const { data, error } = await supabaseAdmin
     .from("checklists")
-    .select("*, checklist_sections(*, checklist_items(*))")
-    .eq("id", (await params).id)
+    .select("*, checklist_sections(*, checklist_items(*)), checklist_departments(department_id)")
+    .eq("id", checklistId)
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 404 });
 
-  if (!ctx.isMainAdmin && !ctx.assignedDepartments.includes(data.department_id)) {
+  if (!ctx.isMainAdmin && !ctx.assignedChecklists.includes(checklistId)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -24,20 +26,29 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const ctx = await getUserContext(req);
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { title, sections, created_by, is_large_checklist, department_id } = await req.json();
+  const { title, sections, created_by, is_large_checklist, department_id, department_ids } =
+    await req.json();
   const checklistId = Number((await params).id);
 
   if (!ctx.isMainAdmin) {
-    const { data: existing } = await supabaseAdmin
-      .from("checklists")
-      .select("department_id")
-      .eq("id", checklistId)
-      .single();
-    if (!existing || !ctx.assignedDepartments.includes(existing.department_id)) {
+    if (!ctx.assignedChecklists.includes(checklistId) || is_large_checklist) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    if (is_large_checklist) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (!is_large_checklist) {
+    if (!department_id) {
+      return NextResponse.json(
+        { error: "小規模チェックリストには部署の選択が必要です。" },
+        { status: 400 }
+      );
+    }
+  } else {
+    if (!Array.isArray(department_ids) || department_ids.length === 0) {
+      return NextResponse.json(
+        { error: "大規模チェックリストには少なくとも1つの部署を選択してください。" },
+        { status: 400 }
+      );
     }
   }
 
@@ -53,6 +64,23 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     })
     .eq("id", checklistId);
   if (clErr) return NextResponse.json({ error: clErr.message }, { status: 500 });
+
+  if (is_large_checklist) {
+    const { error: delErr } = await supabaseAdmin
+      .from("checklist_departments")
+      .delete()
+      .eq("checklist_id", checklistId);
+    if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
+
+    if (Array.isArray(department_ids) && department_ids.length > 0) {
+      const { error: insErr } = await supabaseAdmin
+        .from("checklist_departments")
+        .insert(department_ids.map((dId: number) => ({ checklist_id: checklistId, department_id: dId })));
+      if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
+    }
+  } else {
+    await supabaseAdmin.from("checklist_departments").delete().eq("checklist_id", checklistId);
+  }
 
   const { data: existingSections } = await supabaseAdmin
     .from("checklist_sections")
@@ -112,22 +140,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       if (task.id) {
         const { error } = await supabaseAdmin
           .from("checklist_items")
-          .update({
-            label:       task.label,
-            order_index: task.order_index,
-            section_id:  sectionId,
-          })
+          .update({ label: task.label, order_index: task.order_index, section_id: sectionId })
           .eq("id", task.id);
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       } else {
         const { error } = await supabaseAdmin
           .from("checklist_items")
-          .insert({
-            checklist_id: checklistId,
-            section_id:   sectionId,
-            label:        task.label,
-            order_index:  task.order_index,
-          });
+          .insert({ checklist_id: checklistId, section_id: sectionId, label: task.label, order_index: task.order_index });
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       }
     }

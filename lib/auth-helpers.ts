@@ -10,15 +10,10 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
 export type UserContext = {
   email: string;
   isMainAdmin: boolean;
-  /** Empty array means no restriction (main admin). Non-empty = allowed dept IDs. */
-  assignedDepartments: number[];
+  /** Empty array means no restriction (main admin). Non-empty = allowed checklist IDs. */
+  assignedChecklists: number[];
 };
 
-/**
- * Reads the Supabase session from request cookies and returns the caller's
- * admin context (main admin vs sub-admin + their department list).
- * Returns null if the request has no valid session or the email is not an admin.
- */
 export async function getUserContext(req: NextRequest): Promise<UserContext | null> {
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,22 +26,18 @@ export async function getUserContext(req: NextRequest): Promise<UserContext | nu
     }
   );
 
-  // getUser() contacts the Supabase Auth server to verify the token.
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) return null;
 
   const email = user.email.toLowerCase();
 
-  // Main admin check via env var (fastest path, no DB round-trip needed for identity).
   if (ADMIN_EMAILS.includes(email)) {
-    // Keep admin_users in sync so the table always reflects current admins.
     await supabaseAdmin
       .from("admin_users")
       .upsert({ email, is_main_admin: true }, { onConflict: "email" });
-    return { email, isMainAdmin: true, assignedDepartments: [] };
+    return { email, isMainAdmin: true, assignedChecklists: [] };
   }
 
-  // Sub-admin check via admin_users table.
   const { data: adminUser } = await supabaseAdmin
     .from("admin_users")
     .select("id, is_main_admin")
@@ -56,18 +47,17 @@ export async function getUserContext(req: NextRequest): Promise<UserContext | nu
   if (!adminUser) return null;
 
   if (adminUser.is_main_admin) {
-    return { email, isMainAdmin: true, assignedDepartments: [] };
+    return { email, isMainAdmin: true, assignedChecklists: [] };
   }
 
-  // Fetch assigned departments for sub-admin.
-  const { data: deptRows } = await supabaseAdmin
-    .from("sub_admin_departments")
-    .select("department_id")
+  const { data: rows } = await supabaseAdmin
+    .from("sub_admin_checklists")
+    .select("checklist_id")
     .eq("sub_admin_id", adminUser.id);
 
   return {
     email,
     isMainAdmin: false,
-    assignedDepartments: (deptRows || []).map((r) => r.department_id),
+    assignedChecklists: (rows || []).map((r) => r.checklist_id),
   };
 }

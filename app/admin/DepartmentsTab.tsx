@@ -16,9 +16,16 @@ export function DepartmentsTab() {
   const [deptError, setDeptError] = useState("");
 
   const [newUserName, setNewUserName] = useState("");
-  const [newUserDeptId, setNewUserDeptId] = useState<string>("");
   const [addingUser, setAddingUser] = useState(false);
   const [userError, setUserError] = useState("");
+
+  const [editingDeptId, setEditingDeptId] = useState<number | null>(null);
+  const [editDeptName, setEditDeptName] = useState("");
+  const [savingDept, setSavingDept] = useState(false);
+
+  const [editingUserId, setEditingUserId] = useState<number | null>(null);
+  const [editUserName, setEditUserName] = useState("");
+  const [savingUser, setSavingUser] = useState(false);
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -64,7 +71,7 @@ export function DepartmentsTab() {
   };
 
   const handleAddUser = async () => {
-    const deptId = activeDept ? activeDept.id : Number(newUserDeptId);
+    const deptId = activeDept?.id;
     if (!newUserName.trim()) { setUserError("名前は必須です。"); return; }
     if (!deptId) { setUserError("部署を選択してください。"); return; }
     setAddingUser(true); setUserError("");
@@ -92,6 +99,36 @@ export function DepartmentsTab() {
     else await fetchAll();
   };
 
+  const handleEditDept = async (id: number) => {
+    if (!editDeptName.trim()) return;
+    setSavingDept(true);
+    try {
+      const res = await fetch("/api/departments", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, name: editDeptName.trim() }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      setEditingDeptId(null);
+      await fetchAll();
+    } catch { /* silent */ }
+    finally { setSavingDept(false); }
+  };
+
+  const handleEditUser = async (id: number) => {
+    if (!editUserName.trim()) return;
+    setSavingUser(true);
+    try {
+      const res = await fetch("/api/org-users", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, name: editUserName.trim() }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      setEditingUserId(null);
+      if (activeDept) await fetchUsersForDept(activeDept.id);
+    } catch { /* silent */ }
+    finally { setSavingUser(false); }
+  };
+
   const openDept = (dept: Department) => {
     setActiveDept(dept);
     fetchUsersForDept(dept.id);
@@ -103,7 +140,6 @@ export function DepartmentsTab() {
     pageTitle: { fontSize: 32, fontWeight: 700, letterSpacing: "-0.04em", color: "#1a1035", marginBottom: 8 },
     pageSubtitle: { fontSize: 15, color: "#6a5d8e", marginBottom: 36 },
     back: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 15, color: "#6a5d8e", cursor: "pointer", marginBottom: 30, background: "none", border: "none", padding: 0 },
-    grid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 },
     panel: { border: "1.5px solid #dfd5fb", borderRadius: 14, overflow: "hidden", background: "#fff", boxShadow: "0 2px 14px rgba(79,53,190,0.09)" },
     panelHeader: {
       padding: "14px 22px", borderBottom: "1.5px solid #dfd5fb",
@@ -125,11 +161,6 @@ export function DepartmentsTab() {
       padding: "10px 13px", fontSize: 15, color: "#1a1035", outline: "none",
       background: "#faf9ff", fontFamily: "inherit", transition: "border-color 0.15s"
     },
-    addSelect: {
-      width: "100%", border: "1.5px solid #ccc0fa", borderRadius: 10,
-      padding: "10px 13px", fontSize: 15, color: "#4b3d80", outline: "none",
-      background: "#faf9ff", fontFamily: "inherit", cursor: "pointer"
-    },
     addBtn: {
       fontSize: 15, fontWeight: 600, color: "#fff",
       background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)",
@@ -150,6 +181,14 @@ export function DepartmentsTab() {
       fontSize: 12, fontWeight: 700, color: "#8c70e8",
       textTransform: "uppercase" as const, letterSpacing: "0.12em", marginBottom: 16
     },
+    editInput: {
+      flex: 1, border: "1.5px solid #a78bfa", borderRadius: 8,
+      padding: "6px 11px", fontSize: 15, color: "#1a1035", outline: "none",
+      background: "#faf9ff", fontFamily: "inherit",
+    },
+    saveBtn: { fontSize: 13, color: "#fff", background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)", border: "none", borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontWeight: 600 },
+    cancelBtn: { fontSize: 13, color: "#6a5d8e", background: "#ede9fe", border: "1px solid #ccc0fa", borderRadius: 8, padding: "5px 12px", cursor: "pointer" },
+    editBtn: { fontSize: 13, color: "#4f35be", background: "#ede9fe", border: "1px solid #ccc0fa", borderRadius: 8, padding: "5px 12px", cursor: "pointer" },
   };
 
   if (loading) return (
@@ -173,8 +212,27 @@ export function DepartmentsTab() {
               <div style={S.emptyText}>ユーザーがいません。下記から追加してください。</div>
             ) : deptUsers.map((u, i) => (
               <div key={u.id} style={i === deptUsers.length - 1 ? S.rowLast : S.row}>
-                <div style={S.rowName}>{u.name}</div>
-                <button style={S.delBtn} onClick={() => handleDeleteUser(u.id)}>削除</button>
+                {editingUserId === u.id ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, marginRight: 8 }}>
+                    <input
+                      style={S.editInput}
+                      value={editUserName}
+                      onChange={e => setEditUserName(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") handleEditUser(u.id); if (e.key === "Escape") setEditingUserId(null); }}
+                      autoFocus
+                    />
+                    <button style={S.saveBtn} onClick={() => handleEditUser(u.id)} disabled={savingUser}>{savingUser ? "…" : "保存"}</button>
+                    <button style={S.cancelBtn} onClick={() => setEditingUserId(null)}>キャンセル</button>
+                  </div>
+                ) : (
+                  <div style={S.rowName}>{u.name}</div>
+                )}
+                {editingUserId !== u.id && (
+                  <div style={S.rowBtns}>
+                    <button style={S.editBtn} onClick={() => { setEditingUserId(u.id); setEditUserName(u.name); }}>編集</button>
+                    <button style={S.delBtn} onClick={() => handleDeleteUser(u.id)}>削除</button>
+                  </div>
+                )}
               </div>
             ))}
             <div style={{ marginTop: 16, borderTop: "1.5px solid #f5f0ff", paddingTop: 16 }}>
@@ -206,85 +264,57 @@ export function DepartmentsTab() {
       <div style={S.pageTitle}>部署＆ユーザー</div>
       <div style={S.pageSubtitle}>部署と所属ユーザーを管理します。</div>
 
-      <div style={S.grid}>
-        <div>
-          <div style={S.secLabel}>部署 ({departments.length})</div>
-          {departments.length === 0 ? (
-            <div style={{ fontSize: 14, color: "#a78bfa", marginBottom: 16 }}>部署がまだありません。</div>
-          ) : departments.map(dept => (
-            <div key={dept.id} style={S.deptCard}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "#c4b5fd"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(79,53,190,0.1)"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "#ede9fe"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(79,53,190,0.05)"; }}
-            >
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={S.deptName}>{dept.name}</div>
-                  <div style={S.deptMeta}>{userCountByDept(dept.id)}名</div>
-                </div>
-                <div style={S.rowBtns}>
-                  <button style={S.viewBtn} onClick={() => openDept(dept)}>ユーザーを管理</button>
-                  <button style={S.delBtn} onClick={() => handleDeleteDept(dept.id)}>削除</button>
-                </div>
+      <div style={S.secLabel}>部署 ({departments.length})</div>
+      {departments.length === 0 ? (
+        <div style={{ fontSize: 14, color: "#a78bfa", marginBottom: 16 }}>部署がまだありません。</div>
+      ) : departments.map(dept => (
+        <div key={dept.id} style={S.deptCard}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "#c4b5fd"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(79,53,190,0.1)"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "#ede9fe"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(79,53,190,0.05)"; }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+            {editingDeptId === dept.id ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, marginRight: 8 }}>
+                <input
+                  style={S.editInput}
+                  value={editDeptName}
+                  onChange={e => setEditDeptName(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") handleEditDept(dept.id); if (e.key === "Escape") setEditingDeptId(null); }}
+                  autoFocus
+                />
+                <button style={S.saveBtn} onClick={() => handleEditDept(dept.id)} disabled={savingDept}>{savingDept ? "…" : "保存"}</button>
+                <button style={S.cancelBtn} onClick={() => setEditingDeptId(null)}>キャンセル</button>
               </div>
-            </div>
-          ))}
-          <div style={{ marginTop: 8 }}>
-            <div style={S.addRow}>
-              <input
-                style={S.addInput} placeholder="新しい部署名…"
-                value={newDeptName} onChange={e => setNewDeptName(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleAddDept()}
-                onFocus={e => (e.target.style.borderColor = "#a78bfa")}
-                onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
-              />
-              <button style={S.addBtn} onClick={handleAddDept} disabled={addingDept}>
-                {addingDept ? "追加中…" : "追加"}
-              </button>
-            </div>
-            {deptError && <div style={S.errText}>⚠ {deptError}</div>}
+            ) : (
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={S.deptName}>{dept.name}</div>
+                <div style={S.deptMeta}>{userCountByDept(dept.id)}名</div>
+              </div>
+            )}
+            {editingDeptId !== dept.id && (
+              <div style={S.rowBtns}>
+                <button style={S.editBtn} onClick={() => { setEditingDeptId(dept.id); setEditDeptName(dept.name); }}>編集</button>
+                <button style={S.viewBtn} onClick={() => openDept(dept)}>ユーザーを管理</button>
+                <button style={S.delBtn} onClick={() => handleDeleteDept(dept.id)}>削除</button>
+              </div>
+            )}
           </div>
         </div>
-
-        <div>
-          <div style={S.secLabel}>全ユーザー ({orgUsers.length})</div>
-          <div style={S.panel}>
-            <div style={S.panelBody}>
-              {orgUsers.length === 0 ? (
-                <div style={S.emptyText}>ユーザーがまだいません。</div>
-              ) : orgUsers.map((u, i) => (
-                <div key={u.id} style={i === orgUsers.length - 1 ? S.rowLast : S.row}>
-                  <div>
-                    <div style={S.rowName}>{u.name}</div>
-                    <div style={S.rowMeta}>{u.departments?.name || "—"}</div>
-                  </div>
-                  <button style={S.delBtn} onClick={() => handleDeleteUser(u.id)}>削除</button>
-                </div>
-              ))}
-              <div style={{ marginTop: 16, borderTop: "1.5px solid #f5f0ff", paddingTop: 16 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#4b3d80", marginBottom: 8 }}>ユーザーを追加</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <select style={S.addSelect} value={newUserDeptId} onChange={e => setNewUserDeptId(e.target.value)}>
-                    <option value="">部署を選択…</option>
-                    {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
-                  <div style={S.addRow}>
-                    <input
-                      style={S.addInput} placeholder="ユーザー名…"
-                      value={newUserName} onChange={e => setNewUserName(e.target.value)}
-                      onKeyDown={e => e.key === "Enter" && handleAddUser()}
-                      onFocus={e => (e.target.style.borderColor = "#a78bfa")}
-                      onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
-                    />
-                    <button style={S.addBtn} onClick={handleAddUser} disabled={addingUser}>
-                      {addingUser ? "追加中…" : "追加"}
-                    </button>
-                  </div>
-                </div>
-                {userError && <div style={S.errText}>⚠ {userError}</div>}
-              </div>
-            </div>
-          </div>
+      ))}
+      <div style={{ marginTop: 8 }}>
+        <div style={S.addRow}>
+          <input
+            style={S.addInput} placeholder="新しい部署名…"
+            value={newDeptName} onChange={e => setNewDeptName(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleAddDept()}
+            onFocus={e => (e.target.style.borderColor = "#a78bfa")}
+            onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
+          />
+          <button style={S.addBtn} onClick={handleAddDept} disabled={addingDept}>
+            {addingDept ? "追加中…" : "追加"}
+          </button>
         </div>
+        {deptError && <div style={S.errText}>⚠ {deptError}</div>}
       </div>
     </div>
   );
