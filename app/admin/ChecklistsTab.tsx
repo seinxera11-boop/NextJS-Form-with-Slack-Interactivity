@@ -305,7 +305,7 @@ export function ChecklistsTab({
                       borderColor: large ? "#ddd6fe" : "#9fe1cb",
                       cursor: "default",
                     }}>
-                      {large ? "大規模" : "小規模"}
+                      {large ? "複数の部署" : "１部署"}
                     </span>
                     {tooltipId === cl.id && (
                       <div style={S.tooltip}>
@@ -376,7 +376,7 @@ export function ChecklistsTab({
               <div style={{ ...S.toggleThumb, left: isLarge ? 21 : 3 }} />
             </div>
             <div>
-              <div style={S.toggleLabel}>大規模チェックリスト</div>
+              <div style={S.toggleLabel}>複数の部署</div>
               <div style={S.toggleDesc} />
             </div>
           </div>

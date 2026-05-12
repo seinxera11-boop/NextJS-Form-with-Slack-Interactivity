@@ -1,6 +1,103 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+
+type CustomSelectOption = { value: string; label: string };
+
+function CustomSelect({
+  options,
+  value,
+  onChange,
+  placeholder,
+  disabled,
+}: {
+  options: CustomSelectOption[];
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const selected = options.find(o => o.value === value);
+
+  return (
+    <div ref={ref} style={{ position: "relative", width: "100%" }}>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && setOpen(v => !v)}
+        style={{
+          width: "100%",
+          border: `1.5px solid ${open ? "#a78bfa" : disabled ? "#dfd5fb" : "#ccc0fa"}`,
+          borderRadius: 10,
+          padding: "12px 38px 12px 15px",
+          fontSize: 16,
+          color: selected ? "#1a1035" : disabled ? "#a696f2" : "#6b7280",
+          outline: "none",
+          background: disabled ? "#faf9ff" : "#faf9ff",
+          fontFamily: "inherit",
+          cursor: disabled ? "not-allowed" : "pointer",
+          textAlign: "left",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          transition: "border-color 0.15s",
+        }}
+      >
+        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {selected ? selected.label : placeholder}
+        </span>
+        <span style={{
+          position: "absolute", right: 14, top: "50%", transform: `translateY(-50%) rotate(${open ? 180 : 0}deg)`,
+          transition: "transform 0.2s", color: "#a78bfa", fontSize: 12, pointerEvents: "none",
+        }}>▼</span>
+      </button>
+
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 100,
+          background: "#fff", border: "1.5px solid #ccc0fa", borderRadius: 12,
+          boxShadow: "0 8px 32px rgba(79,53,190,0.18)",
+          maxHeight: 240, overflowY: "auto",
+        }}>
+          {options.map(opt => (
+            <div
+              key={opt.value}
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+              style={{
+                padding: "13px 18px",
+                fontSize: 15,
+                cursor: "pointer",
+                background: opt.value === value ? "linear-gradient(90deg,#6d28d9,#a78bfa)" : "transparent",
+                color: opt.value === value ? "#fff" : "#1a1035",
+                fontWeight: opt.value === value ? 600 : 400,
+                transition: "background 0.12s",
+              }}
+              onMouseEnter={e => {
+                if (opt.value !== value) (e.currentTarget as HTMLDivElement).style.background = "#f5f0fe";
+              }}
+              onMouseLeave={e => {
+                if (opt.value !== value) (e.currentTarget as HTMLDivElement).style.background = "transparent";
+              }}
+            >
+              {opt.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 import { useParams } from "next/navigation";
 
 type ItemType = "checkbox" | "text" | "textarea";
@@ -58,10 +155,11 @@ export default function ChecklistPage() {
   const [largeStep, setLargeStep] = useState<LargeStep>("department");
 
   // ── Submission ─────────────────────────────────────────────────────────────
-  const [reason,      setReason]      = useState("");
-  const [submitting,  setSubmitting]  = useState(false);
-  const [submitted,   setSubmitted]   = useState(false);
-  const [submittedBy, setSubmittedBy] = useState("");
+  const [reason,        setReason]        = useState("");
+  const [submitting,    setSubmitting]    = useState(false);
+  const [submitted,     setSubmitted]     = useState(false);
+  const [submittedBy,   setSubmittedBy]   = useState("");
+  const [confirmModal,  setConfirmModal]  = useState<string[] | null>(null);
 
   // ── Computed helpers ───────────────────────────────────────────────────────
   const sections = checklist
@@ -147,26 +245,12 @@ export default function ChecklistPage() {
     setLargeStep("form");
   };
 
-  const handleSubmit = async () => {
-    // Validate required text/textarea fields
-    const missing = allTasks.filter(
-      it => it.required && it.type !== "checkbox" && !values[it.id]?.trim()
-    );
-    if (missing.length > 0) {
-      alert(`以下の項目を入力してください：${missing.map(m => m.label).join("、")}`);
-      return;
-    }
-
-    // For small flow: user selection is inline so validate here too
-    if (!checklist?.is_large_checklist) {
-      if (!isOther && !selectedUserId) { alert("ユーザーを選択するか、「その他」を選んでください。"); return; }
-      if (isOther && !otherName.trim())  { alert("お名前を入力してください。"); return; }
-    }
-
+  const doSubmit = async () => {
     const resolvedName = isOther
       ? otherName.trim()
       : (orgUsers.find(u => String(u.id) === selectedUserId)?.name || "");
 
+    setConfirmModal(null);
     setSubmitting(true);
     try {
       const res = await fetch("/api/checklist", {
@@ -192,6 +276,32 @@ export default function ChecklistPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleSubmit = () => {
+    // Validate required text/textarea fields
+    const missing = allTasks.filter(
+      it => it.required && it.type !== "checkbox" && !values[it.id]?.trim()
+    );
+    if (missing.length > 0) {
+      alert(`以下の項目を入力してください：${missing.map(m => m.label).join("、")}`);
+      return;
+    }
+
+    // For small flow: user selection is inline so validate here too
+    if (!checklist?.is_large_checklist) {
+      if (!isOther && !selectedUserId) { alert("ユーザーを選択するか、「その他」を選んでください。"); return; }
+      if (isOther && !otherName.trim())  { alert("お名前を入力してください。"); return; }
+    }
+
+    // If any checkboxes are unchecked, show confirmation modal
+    const unchecked = checkboxTasks.filter(t => values[t.id] !== "true").map(t => t.label);
+    if (unchecked.length > 0) {
+      setConfirmModal(unchecked);
+      return;
+    }
+
+    doSubmit();
   };
 
   const handleReset = () => {
@@ -403,17 +513,13 @@ export default function ChecklistPage() {
         <div style={{ fontSize: 15, color: "#a696f2", padding: "8px 0" }}>ユーザーを読み込み中…</div>
       ) : (
         <>
-          <select
-            style={isOther ? S.selectDisabled : S.select}
+          <CustomSelect
+            options={orgUsers.map(u => ({ value: String(u.id), label: u.name }))}
             value={selectedUserId}
+            onChange={val => { setSelectedUserId(val); setIsOther(false); }}
+            placeholder="名前を選択してください"
             disabled={isOther}
-            onChange={e => { setSelectedUserId(e.target.value); setIsOther(false); }}
-            onFocus={e => (e.target.style.borderColor = "#a78bfa")}
-            onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
-          >
-            <option value="">ユーザーを選択してください…</option>
-            {orgUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-          </select>
+          />
 
           <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10 }}>
             <button
@@ -512,12 +618,82 @@ export default function ChecklistPage() {
   const deptName = departments.find(d => String(d.id) === selectedDeptId)?.name || "";
   const userName = isOther ? otherName : (orgUsers.find(u => String(u.id) === selectedUserId)?.name || "");
 
+  // ── Incomplete-task confirmation modal ─────────────────────────────────────
+  const renderConfirmModal = () => confirmModal && (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(26,16,53,0.55)", backdropFilter: "blur(4px)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      padding: "24px",
+    }}>
+      <div style={{
+        background: "#fff", borderRadius: 18, padding: "32px 28px",
+        maxWidth: 480, width: "100%",
+        boxShadow: "0 20px 60px rgba(79,53,190,0.28)",
+        border: "1.5px solid #dfd5fb",
+      }}>
+        <div style={{ fontSize: 22, fontWeight: 700, color: "#1a1035", marginBottom: 8 }}>
+          未完了のタスクがあります
+        </div>
+        <div style={{ fontSize: 14, color: "#6a5d8e", marginBottom: 18 }}>
+          以下の項目がまだチェックされていません。このまま送信しますか？
+        </div>
+
+        <div style={{
+          background: "#faf9ff", border: "1.5px solid #ede9fe", borderRadius: 12,
+          padding: "4px 0", maxHeight: 220, overflowY: "auto", marginBottom: 24,
+        }}>
+          {confirmModal.map((label, i) => (
+            <div key={i} style={{
+              display: "flex", alignItems: "flex-start", gap: 10,
+              padding: "11px 16px",
+              borderBottom: i < confirmModal.length - 1 ? "1px solid #ede9fe" : "none",
+            }}>
+              <span style={{
+                flexShrink: 0, width: 20, height: 20, borderRadius: 5,
+                border: "2px solid #ccc0fa", marginTop: 1,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: "#ede9fe",
+              }} />
+              <span style={{ fontSize: 14, color: "#4b3d80", lineHeight: 1.5 }}>{label}</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            onClick={() => setConfirmModal(null)}
+            style={{
+              flex: 1, padding: "13px 0", borderRadius: 10, fontSize: 15, fontWeight: 600,
+              background: "#ede9fe", color: "#6d28d9", border: "1.5px solid #ccc0fa",
+              cursor: "pointer", fontFamily: "inherit",
+            }}
+          >
+            戻る
+          </button>
+          <button
+            onClick={doSubmit}
+            style={{
+              flex: 1, padding: "13px 0", borderRadius: 10, fontSize: 15, fontWeight: 700,
+              background: "linear-gradient(135deg,#6d28d9 0%,#4f35be 100%)",
+              color: "#fff", border: "none", cursor: "pointer", fontFamily: "inherit",
+              boxShadow: "0 4px 14px rgba(109,40,217,0.35)",
+            }}
+          >
+            このまま送信
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   // ══════════════════════════════════════════════════════════════════════════
   // SMALL FLOW — form + user selector shown immediately, dept is hidden/fixed
   // ══════════════════════════════════════════════════════════════════════════
   if (!isLarge) {
     return (
       <div style={S.root}>
+        {renderConfirmModal()}
         <div style={S.header}><div style={S.headerDot} /><span style={S.headerName}>オフィス管理者</span></div>
         <div style={S.main}>
           <div style={S.title}>{checklist.title}</div>
@@ -533,7 +709,7 @@ export default function ChecklistPage() {
 
           {/* Inline user selector */}
           <div style={S.userInlineCard}>
-            <label style={S.selLabel}>ユーザー <span style={{ color: "#dc2626" }}>*</span></label>
+            <label style={S.selLabel}>名前 <span style={{ color: "#dc2626" }}>*</span></label>
             {renderUserSelector()}
           </div>
 
@@ -549,6 +725,7 @@ export default function ChecklistPage() {
   // ══════════════════════════════════════════════════════════════════════════
   return (
     <div style={S.root}>
+      {renderConfirmModal()}
       <div style={S.header}><div style={S.headerDot} /><span style={S.headerName}>オフィス管理者</span></div>
       <div style={S.main}>
         <div style={S.title}>{checklist.title}</div>
@@ -557,16 +734,12 @@ export default function ChecklistPage() {
         {largeStep === "department" && (
           <div style={S.selCard}>
             <label style={S.selLabel}>部署 <span style={{ color: "#dc2626" }}>*</span></label>
-            <select
-              style={S.select}
+            <CustomSelect
+              options={departments.map(d => ({ value: String(d.id), label: d.name }))}
               value={selectedDeptId}
-              onChange={e => setSelectedDeptId(e.target.value)}
-              onFocus={e => (e.target.style.borderColor = "#a78bfa")}
-              onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
-            >
-              <option value="">部署を選択してください…</option>
-              {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
+              onChange={setSelectedDeptId}
+              placeholder="部署を選択してください"
+            />
             <button style={S.continueBtn} onClick={handleDeptContinue}>次へ</button>
           </div>
         )}
@@ -575,7 +748,7 @@ export default function ChecklistPage() {
         {largeStep === "user" && (
           <div style={S.selCard}>
             <button style={S.backLink} onClick={() => setLargeStep("department")}>← {deptName}</button>
-            <label style={S.selLabel}>ユーザー <span style={{ color: "#dc2626" }}>*</span></label>
+            <label style={S.selLabel}>名前 <span style={{ color: "#dc2626" }}>*</span></label>
             {renderUserSelector()}
             <button style={S.continueBtn} onClick={handleUserContinue}>次へ</button>
           </div>
