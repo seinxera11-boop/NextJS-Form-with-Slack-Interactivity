@@ -31,64 +31,26 @@ function CustomSelect({
   const selected = options.find(o => o.value === value);
 
   return (
-    <div ref={ref} style={{ position: "relative", width: "100%" }}>
+    <div ref={ref} className="relative w-full">
       <button
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setOpen(v => !v)}
-        style={{
-          width: "100%",
-          border: `1.5px solid ${open ? "#a78bfa" : disabled ? "#dfd5fb" : "#ccc0fa"}`,
-          borderRadius: 10,
-          padding: "12px 38px 12px 15px",
-          fontSize: 16,
-          color: selected ? "#1a1035" : disabled ? "#a696f2" : "#6b7280",
-          outline: "none",
-          background: disabled ? "#faf9ff" : "#faf9ff",
-          fontFamily: "inherit",
-          cursor: disabled ? "not-allowed" : "pointer",
-          textAlign: "left",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          transition: "border-color 0.15s",
-        }}
+        className={`w-full border-[1.5px] ${open ? "border-[#a78bfa]" : disabled ? "border-[#dfd5fb]" : "border-[#ccc0fa]"} rounded-[10px] py-3 pr-9.5 pl-3.75 text-base ${selected ? "text-[#1a1035]" : disabled ? "text-[#a696f2]" : "text-[#6b7280]"} outline-none bg-[#faf9ff] font-[inherit] ${disabled ? "cursor-not-allowed" : "cursor-pointer"} text-left flex items-center justify-between transition-[border-color] duration-150`}
       >
-        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
           {selected ? selected.label : placeholder}
         </span>
-        <span style={{
-          position: "absolute", right: 14, top: "50%", transform: `translateY(-50%) rotate(${open ? 180 : 0}deg)`,
-          transition: "transform 0.2s", color: "#a78bfa", fontSize: 12, pointerEvents: "none",
-        }}>▼</span>
+        <span className={`absolute right-3.5 top-1/2 -translate-y-1/2 ${open ? "rotate-180" : "rotate-0"} transition-transform duration-200 text-[#a78bfa] text-xs pointer-events-none`}>▼</span>
       </button>
 
       {open && (
-        <div style={{
-          position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 100,
-          background: "#fff", border: "1.5px solid #ccc0fa", borderRadius: 12,
-          boxShadow: "0 8px 32px rgba(79,53,190,0.18)",
-          maxHeight: 240, overflowY: "auto",
-        }}>
+        <div className="absolute top-[calc(100%+6px)] left-0 right-0 z-100 bg-white border-[1.5px] border-[#ccc0fa] rounded-xl shadow-[0_8px_32px_rgba(79,53,190,0.18)] max-h-60 overflow-y-auto">
           {options.map(opt => (
             <div
               key={opt.value}
               onClick={() => { onChange(opt.value); setOpen(false); }}
-              style={{
-                padding: "13px 18px",
-                fontSize: 15,
-                cursor: "pointer",
-                background: opt.value === value ? "linear-gradient(90deg,#6d28d9,#a78bfa)" : "transparent",
-                color: opt.value === value ? "#fff" : "#1a1035",
-                fontWeight: opt.value === value ? 600 : 400,
-                transition: "background 0.12s",
-              }}
-              onMouseEnter={e => {
-                if (opt.value !== value) (e.currentTarget as HTMLDivElement).style.background = "#f5f0fe";
-              }}
-              onMouseLeave={e => {
-                if (opt.value !== value) (e.currentTarget as HTMLDivElement).style.background = "transparent";
-              }}
+              className={`py-3.25 px-4.5 text-sm cursor-pointer transition-[background] duration-120 ${opt.value === value ? "bg-[linear-gradient(90deg,#6d28d9,#a78bfa)] text-white font-semibold" : "bg-transparent hover:bg-[#f5f0fe] text-[#1a1035] font-normal"}`}
             >
               {opt.label}
             </div>
@@ -319,184 +281,43 @@ export default function ChecklistPage() {
     // Small flow: keep selectedDeptId (it comes from the DB, not the user)
   };
 
-  // ── Styles ─────────────────────────────────────────────────────────────────
-  const S: Record<string, React.CSSProperties> = {
-    root: {
-      minHeight: "100vh",
-      background: "linear-gradient(160deg, #f5f0fe 0%, #e8e0fc 50%, #f8f0ff 100%)",
-      fontFamily: "'Inter', system-ui, sans-serif",
-      color: "#1a1035",
-    },
-    header: {
-      borderBottom: "1.5px solid #dfd5fb",
-      padding: "18px 32px",
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      background: "rgba(250,247,255,0.92)",
-      backdropFilter: "blur(10px)",
-    },
-    headerDot: {
-      width: 10, height: 10, borderRadius: "50%",
-      background: "linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)",
-    },
-    headerName: { fontSize: 17, fontWeight: 800, color: "#4f35be", letterSpacing: "-0.03em" },
-    main:       { maxWidth: 620, margin: "0 auto", padding: "52px 24px" },
-    title:      { fontSize: 30, fontWeight: 700, letterSpacing: "-0.04em", color: "#1a1035", marginBottom: 28 },
-
-    // Progress bar
-    progressWrap:  { marginBottom: 36 },
-    progressLabel: { display: "flex", justifyContent: "space-between", fontSize: 13, color: "#7a6aaa", marginBottom: 9, fontWeight: 500 },
-    progressTrack: { height: 7, background: "#dfd5fb", borderRadius: 100, overflow: "hidden" },
-    progressFill:  { height: "100%", background: "linear-gradient(90deg, #7c3aed 0%, #a78bfa 100%)", borderRadius: 100, transition: "width 0.3s" },
-
-    // Selection cards
-    selCard: {
-      border: "1.5px solid #dfd5fb", borderRadius: 16, padding: "24px",
-      marginBottom: 18, background: "#fff",
-      boxShadow: "0 4px 22px rgba(79,53,190,0.10)",
-    },
-    selLabel: { fontSize: 14, fontWeight: 600, color: "#4b3d80", marginBottom: 12, display: "block" },
-
-    // Inputs
-    select: {
-      width: "100%", border: "1.5px solid #ccc0fa", borderRadius: 10,
-      padding: "12px 15px", fontSize: 16, color: "#1a1035", outline: "none",
-      background: "#faf9ff", fontFamily: "inherit", cursor: "pointer",
-      transition: "border-color 0.15s",
-    },
-    selectDisabled: {
-      width: "100%", border: "1.5px solid #dfd5fb", borderRadius: 10,
-      padding: "12px 15px", fontSize: 16, color: "#a696f2", outline: "none",
-      background: "#faf9ff", fontFamily: "inherit", cursor: "not-allowed",
-    },
-    textInput: {
-      width: "100%", border: "1.5px solid #ccc0fa", borderRadius: 10,
-      padding: "11px 14px", fontSize: 16, color: "#1a1035", outline: "none",
-      background: "#faf9ff", fontFamily: "inherit",
-      boxSizing: "border-box" as const, resize: "none" as const,
-      transition: "border-color 0.15s",
-    },
-
-    // Other button
-    otherBtn: {
-      marginTop: 11, fontSize: 14, color: "#6d28d9",
-      background: "#ede9fe", border: "1.5px solid #ccc0fa",
-      borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: "inherit",
-    },
-    otherBtnActive: {
-      marginTop: 11, fontSize: 14, color: "#fff",
-      background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
-      border: "1.5px solid #7c3aed",
-      borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: "inherit",
-    },
-
-    // User inline section (small flow)
-    userInlineCard: {
-      border: "1.5px solid #dfd5fb", borderRadius: 14, padding: "20px 24px",
-      marginBottom: 22, background: "#fff",
-      boxShadow: "0 2px 14px rgba(79,53,190,0.09)",
-    },
-
-    // Read-only dept chip (small flow)
-    deptReadOnly: {
-      display: "inline-flex", alignItems: "center", gap: 6,
-      background: "linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)",
-      border: "1px solid #ccc0fa", borderRadius: 10, padding: "7px 16px",
-      fontSize: 14, color: "#4b3d80", fontWeight: 500, marginBottom: 22,
-    },
-
-    // Sections
-    secCard: {
-      border: "1.5px solid #dfd5fb", borderRadius: 14, overflow: "hidden",
-      marginBottom: 13, background: "#fff",
-      boxShadow: "0 2px 14px rgba(79,53,190,0.09)",
-    },
-    secTitle: {
-      fontSize: 15, fontWeight: 700, color: "#6d28d9",
-      padding: "13px 22px", borderBottom: "1.5px solid #ede9fe",
-      background: "linear-gradient(135deg, #f5f0fe 0%, #ede9fe 100%)",
-    },
-    itemRow:     { display: "flex", alignItems: "flex-start", gap: 12, padding: "16px 22px", borderBottom: "1.5px solid #f5f0fe" },
-    itemRowLast: { display: "flex", alignItems: "flex-start", gap: 12, padding: "16px 22px" },
-    checkbox:    { width: 17, height: 17, marginTop: 2, flexShrink: 0, cursor: "pointer", accentColor: "#7c3aed" },
-    itemLabel:   { fontSize: 16, color: "#1a1035", lineHeight: 1.55, flex: 1 },
-    itemLabelMuted: { fontSize: 16, color: "#b09af8", lineHeight: 1.55, flex: 1, textDecoration: "line-through" },
-    reqStar:     { color: "#dc2626", fontSize: 13, marginLeft: 3 },
-
-    // Summary chips (large flow step 3)
-    summaryChip: {
-      display: "inline-flex", alignItems: "center", gap: 6,
-      background: "linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)",
-      border: "1px solid #ccc0fa", borderRadius: 10, padding: "7px 16px",
-      fontSize: 14, color: "#4b3d80", fontWeight: 500,
-    },
-
-    // Reason card
-    nameCard: {
-      border: "1.5px solid #dfd5fb", borderRadius: 14, padding: "24px",
-      marginBottom: 13, background: "#fff",
-      boxShadow: "0 2px 14px rgba(79,53,190,0.09)",
-    },
-    nameLabel: { fontSize: 14, fontWeight: 600, color: "#4b3d80", marginBottom: 11, display: "block" },
-
-    // Buttons
-    submitBtn: {
-      width: "100%",
-      background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)",
-      color: "#fff", border: "none", borderRadius: 12, padding: "16px 0",
-      fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-      boxShadow: "0 4px 18px rgba(109,40,217,0.38)", transition: "opacity 0.15s",
-    },
-    submitBtnDisabled: {
-      width: "100%", background: "#ddd6fe", color: "#a894f0",
-      border: "none", borderRadius: 12, padding: "16px 0",
-      fontSize: 16, fontWeight: 700, cursor: "not-allowed", fontFamily: "inherit",
-    },
-    continueBtn: {
-      width: "100%",
-      background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)",
-      color: "#fff", border: "none", borderRadius: 12, padding: "15px 0",
-      fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-      marginTop: 14, boxShadow: "0 3px 14px rgba(109,40,217,0.33)",
-    },
-    backLink: {
-      fontSize: 14, color: "#6a5d8e", background: "none", border: "none",
-      cursor: "pointer", fontFamily: "inherit", padding: "8px 0",
-      display: "inline-block", marginBottom: 18,
-    },
-
-    // Success
-    successWrap: { textAlign: "center" as const, padding: "80px 0" },
-    successIcon: {
-      width: 68, height: 68, borderRadius: "50%",
-      background: "linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: 30, margin: "0 auto 28px", color: "#fff",
-    },
-    centerMsg: { display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", fontSize: 16, color: "#8c70e8" },
-  };
+  // ── Shared class strings ───────────────────────────────────────────────────
+  const rootCls   = "min-h-screen bg-[linear-gradient(160deg,#f5f0fe_0%,#e8e0fc_50%,#f8f0ff_100%)] [font-family:'Inter',system-ui,sans-serif] text-[#1a1035]";
+  const headerCls = "[border-bottom:1.5px_solid_#dfd5fb] py-4.5 px-8 flex items-center gap-2.5 bg-[rgba(250,247,255,0.92)] backdrop-blur-[10px]";
+  const mainCls   = "max-w-155 mx-auto py-13 px-6";
+  const inputCls  = "w-full border-[1.5px] border-[#ccc0fa] focus:border-[#a78bfa] rounded-[10px] py-2.75 px-3.5 text-base text-[#1a1035] outline-none bg-[#faf9ff] font-[inherit] box-border transition-[border-color] duration-150";
 
   // ── Loading / error ────────────────────────────────────────────────────────
-  if (loading) return <div style={S.root}><div style={S.centerMsg}>読み込み中…</div></div>;
-  if (error || !checklist) return <div style={S.root}><div style={S.centerMsg}>チェックリストが見つかりません。</div></div>;
+  if (loading) return (
+    <div className={rootCls}>
+      <div className="flex items-center justify-center min-h-[60vh] text-base text-[#8c70e8]">読み込み中…</div>
+    </div>
+  );
+  if (error || !checklist) return (
+    <div className={rootCls}>
+      <div className="flex items-center justify-center min-h-[60vh] text-base text-[#8c70e8]">チェックリストが見つかりません。</div>
+    </div>
+  );
 
   const isLarge = checklist.is_large_checklist;
 
   // ── Success screen ─────────────────────────────────────────────────────────
   if (submitted) return (
-    <div style={S.root}>
-      <div style={S.header}><div style={S.headerDot} /><span style={S.headerName}>オフィス管理者</span></div>
-      <div style={S.main}>
-        <div style={S.successWrap}>
-          <div style={S.successIcon}>✓</div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: "#1a1035", marginBottom: 12 }}>送信が完了しました</div>
-          <p style={{ fontSize: 15, color: "#6a5d8e", lineHeight: 1.8, marginBottom: 40 }}>
+    <div className={rootCls}>
+      <div className={headerCls}>
+        <div className="w-2.5 h-2.5 rounded-full bg-[linear-gradient(135deg,#6d28d9_0%,#a78bfa_100%)]" />
+        <span className="text-lg font-extrabold text-[#4f35be] tracking-[-0.03em]">オフィス管理者</span>
+      </div>
+      <div className={mainCls}>
+        <div className="text-center py-20">
+          <div className="w-17 h-17 rounded-full bg-[linear-gradient(135deg,#7c3aed_0%,#a78bfa_100%)] flex items-center justify-center text-3xl mx-auto mb-7 text-white">✓</div>
+          <div className="text-2xl font-bold text-[#1a1035] mb-3">送信が完了しました</div>
+          <p className="text-sm text-[#6a5d8e] leading-[1.8] mb-10">
             回答が記録されました。<br />
-            <strong style={{ color: "#4f35be" }}>{submittedBy}</strong>さん、ありがとうございました。
+            <strong className="text-[#4f35be]">{submittedBy}</strong>さん、ありがとうございました。
           </p>
           <button
-            style={{ fontSize: 15, color: "#4b3d80", background: "#ede9fe", border: "1.5px solid #ccc0fa", borderRadius: 10, padding: "12px 26px", cursor: "pointer", fontFamily: "inherit" }}
+            className="text-sm text-[#4b3d80] bg-[#ede9fe] border-[1.5px] border-[#ccc0fa] rounded-[10px] py-3 px-6.5 cursor-pointer font-[inherit]"
             onClick={handleReset}
           >
             別の回答を送信する
@@ -510,7 +331,7 @@ export default function ChecklistPage() {
   const renderUserSelector = () => (
     <div>
       {loadingUsers ? (
-        <div style={{ fontSize: 15, color: "#a696f2", padding: "8px 0" }}>ユーザーを読み込み中…</div>
+        <div className="text-sm text-[#a696f2] py-2">ユーザーを読み込み中…</div>
       ) : (
         <>
           <CustomSelect
@@ -521,26 +342,27 @@ export default function ChecklistPage() {
             disabled={isOther}
           />
 
-          <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10 }}>
+          <div className="mt-2.5 flex items-center gap-2.5">
             <button
-              style={isOther ? S.otherBtnActive : S.otherBtn}
+              className={isOther
+                ? "mt-2.75 text-sm text-white bg-[linear-gradient(135deg,#7c3aed_0%,#6d28d9_100%)] border-[1.5px] border-[#7c3aed] rounded-lg py-2 px-4 cursor-pointer font-[inherit]"
+                : "mt-2.75 text-sm text-[#6d28d9] bg-[#ede9fe] border-[1.5px] border-[#ccc0fa] rounded-lg py-2 px-4 cursor-pointer font-[inherit]"
+              }
               onClick={() => { setIsOther(v => !v); setSelectedUserId(""); setOtherName(""); }}
             >
               {isOther ? "✓ その他" : "その他"}
             </button>
-            {isOther && <span style={{ fontSize: 14, color: "#7a6aaa" }}>以下にお名前を入力してください</span>}
+            {isOther && <span className="text-sm text-[#7a6aaa]">以下にお名前を入力してください</span>}
           </div>
 
           {isOther && (
             <input
               type="text"
-              style={{ ...S.textInput, marginTop: 10 }}
+              className={`${inputCls} mt-2.5`}
               placeholder="お名前を入力してください…"
               value={otherName}
               onChange={e => setOtherName(e.target.value)}
               autoFocus
-              onFocus={e => (e.target.style.borderColor = "#a78bfa")}
-              onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
             />
           )}
         </>
@@ -552,13 +374,16 @@ export default function ChecklistPage() {
   const renderForm = () => (
     <>
       {total > 0 && (
-        <div style={S.progressWrap}>
-          <div style={S.progressLabel}>
+        <div className="mb-9">
+          <div className="flex justify-between text-xs text-[#7a6aaa] mb-2.25 font-medium">
             <span>進捗</span>
-            <span style={{ color: "#6d28d9", fontWeight: 700 }}>{checked}/{total} 完了</span>
+            <span className="text-[#6d28d9] font-bold">{checked}/{total} 完了</span>
           </div>
-          <div style={S.progressTrack}>
-            <div style={{ ...S.progressFill, width: `${pct}%` }} />
+          <div className="h-1.75 bg-[#dfd5fb] rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[linear-gradient(90deg,#7c3aed_0%,#a78bfa_100%)] rounded-full transition-[width] duration-300"
+              style={{ width: `${pct}%` }}
+            />
           </div>
         </div>
       )}
@@ -566,27 +391,47 @@ export default function ChecklistPage() {
       {sections.map(sec => {
         const tasks = [...sec.checklist_items].sort((a, b) => a.order_index - b.order_index);
         return (
-          <div key={sec.id} style={S.secCard}>
-            <div style={S.secTitle}>{sec.title}</div>
+          <div key={sec.id} className="border-[1.5px] border-[#dfd5fb] rounded-[14px] overflow-hidden mb-3.25 bg-white shadow-[0_2px_14px_rgba(79,53,190,0.09)]">
+            <div className="text-sm font-bold text-[#6d28d9] py-3.25 px-5.5 [border-bottom:1.5px_solid_#ede9fe] bg-[linear-gradient(135deg,#f5f0fe_0%,#ede9fe_100%)]">{sec.title}</div>
             {tasks.map((item, idx) => {
               const isLast  = idx === tasks.length - 1;
               const isDone  = item.type === "checkbox" && values[item.id] === "true";
               return (
-                <div key={item.id} style={isLast ? S.itemRowLast : S.itemRow}>
+                <div key={item.id} className={`flex items-start gap-3 py-4 px-5.5${!isLast ? " [border-bottom:1.5px_solid_#f5f0fe]" : ""}`}>
                   {item.type === "checkbox" ? (
                     <>
-                      <input type="checkbox" style={S.checkbox} checked={values[item.id] === "true"} onChange={() => toggleCheck(item.id)} />
-                      <span style={isDone ? S.itemLabelMuted : S.itemLabel}>{item.label}</span>
+                      <input
+                        type="checkbox"
+                        className="w-4.25 h-4.25 mt-0.5 shrink-0 cursor-pointer accent-[#7c3aed]"
+                        checked={values[item.id] === "true"}
+                        onChange={() => toggleCheck(item.id)}
+                      />
+                      <span className={isDone ? "text-base text-[#b09af8] leading-[1.55] flex-1 line-through" : "text-base text-[#1a1035] leading-[1.55] flex-1"}>{item.label}</span>
                     </>
                   ) : item.type === "text" ? (
-                    <div style={{ flex: 1 }}>
-                      <div style={{ ...S.itemLabel, marginBottom: 8 }}>{item.label}{item.required && <span style={S.reqStar}>*</span>}</div>
-                      <input type="text" style={S.textInput} placeholder="回答を入力してください…" value={values[item.id] || ""} onChange={e => handleText(item.id, e.target.value)} onFocus={e => (e.target.style.borderColor = "#a78bfa")} onBlur={e => (e.target.style.borderColor = "#ddd6fe")} />
+                    <div className="flex-1">
+                      <div className="text-base text-[#1a1035] leading-[1.55] mb-2">
+                        {item.label}{item.required && <span className="text-[#dc2626] text-xs ml-0.75">*</span>}
+                      </div>
+                      <input
+                        type="text"
+                        className={inputCls}
+                        placeholder="回答を入力してください…"
+                        value={values[item.id] || ""}
+                        onChange={e => handleText(item.id, e.target.value)}
+                      />
                     </div>
                   ) : (
-                    <div style={{ flex: 1 }}>
-                      <div style={{ ...S.itemLabel, marginBottom: 8 }}>{item.label}{item.required && <span style={S.reqStar}>*</span>}</div>
-                      <textarea style={{ ...S.textInput, minHeight: 80 }} placeholder="回答を入力してください…" value={values[item.id] || ""} onChange={e => handleText(item.id, e.target.value)} onFocus={e => (e.target.style.borderColor = "#a78bfa")} onBlur={e => (e.target.style.borderColor = "#ddd6fe")} />
+                    <div className="flex-1">
+                      <div className="text-base text-[#1a1035] leading-[1.55] mb-2">
+                        {item.label}{item.required && <span className="text-[#dc2626] text-xs ml-0.75">*</span>}
+                      </div>
+                      <textarea
+                        className={`${inputCls} resize-none min-h-20`}
+                        placeholder="回答を入力してください…"
+                        value={values[item.id] || ""}
+                        onChange={e => handleText(item.id, e.target.value)}
+                      />
                     </div>
                   )}
                 </div>
@@ -596,19 +441,21 @@ export default function ChecklistPage() {
         );
       })}
 
-      <div style={S.nameCard}>
-        <label style={S.nameLabel}>理由</label>
+      <div className="border-[1.5px] border-[#dfd5fb] rounded-[14px] p-6 mb-3.25 bg-white shadow-[0_2px_14px_rgba(79,53,190,0.09)]">
+        <label className="text-sm font-semibold text-[#4b3d80] mb-2.75 block">理由</label>
         <textarea
-          style={{ ...S.textInput, minHeight: 80 }}
+          className={`${inputCls} resize-none min-h-20`}
           placeholder="送信理由を入力してください"
           value={reason}
           onChange={e => setReason(e.target.value)}
-          onFocus={e => (e.target.style.borderColor = "#a78bfa")}
-          onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
         />
       </div>
 
-      <button style={submitting ? S.submitBtnDisabled : S.submitBtn} onClick={handleSubmit} disabled={submitting}>
+      <button
+        className={`w-full ${submitting ? "bg-[#ddd6fe] text-[#a894f0] cursor-not-allowed" : "bg-[linear-gradient(135deg,#6d28d9_0%,#4f35be_100%)] text-white cursor-pointer shadow-[0_4px_18px_rgba(109,40,217,0.38)] transition-opacity duration-150"} border-none rounded-xl py-4 text-base font-bold font-[inherit]`}
+        onClick={handleSubmit}
+        disabled={submitting}
+      >
         {submitting ? "送信中…" : "チェックリストを送信"}
       </button>
     </>
@@ -620,65 +467,37 @@ export default function ChecklistPage() {
 
   // ── Incomplete-task confirmation modal ─────────────────────────────────────
   const renderConfirmModal = () => confirmModal && (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 1000,
-      background: "rgba(26,16,53,0.55)", backdropFilter: "blur(4px)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      padding: "24px",
-    }}>
-      <div style={{
-        background: "#fff", borderRadius: 18, padding: "32px 28px",
-        maxWidth: 480, width: "100%",
-        boxShadow: "0 20px 60px rgba(79,53,190,0.28)",
-        border: "1.5px solid #dfd5fb",
-      }}>
-        <div style={{ fontSize: 22, fontWeight: 700, color: "#1a1035", marginBottom: 8 }}>
+    <div className="fixed inset-0 z-1000 bg-[rgba(26,16,53,0.55)] backdrop-blur-sm flex items-center justify-center p-6">
+      <div className="bg-white rounded-[18px] py-8 px-7 max-w-120 w-full shadow-[0_20px_60px_rgba(79,53,190,0.28)] border-[1.5px] border-[#dfd5fb]">
+        <div className="text-xl font-bold text-[#1a1035] mb-2">
           未完了のタスクがあります
         </div>
-        <div style={{ fontSize: 14, color: "#6a5d8e", marginBottom: 18 }}>
+        <div className="text-sm text-[#6a5d8e] mb-4.5">
           以下の項目がまだチェックされていません。このまま送信しますか？
         </div>
 
-        <div style={{
-          background: "#faf9ff", border: "1.5px solid #ede9fe", borderRadius: 12,
-          padding: "4px 0", maxHeight: 220, overflowY: "auto", marginBottom: 24,
-        }}>
+        <div className="bg-[#faf9ff] border-[1.5px] border-[#ede9fe] rounded-xl py-1 max-h-55 overflow-y-auto mb-6">
           {confirmModal.map((label, i) => (
-            <div key={i} style={{
-              display: "flex", alignItems: "flex-start", gap: 10,
-              padding: "11px 16px",
-              borderBottom: i < confirmModal.length - 1 ? "1px solid #ede9fe" : "none",
-            }}>
-              <span style={{
-                flexShrink: 0, width: 20, height: 20, borderRadius: 5,
-                border: "2px solid #ccc0fa", marginTop: 1,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                background: "#ede9fe",
-              }} />
-              <span style={{ fontSize: 14, color: "#4b3d80", lineHeight: 1.5 }}>{label}</span>
+            <div
+              key={i}
+              className={`flex items-start gap-2.5 py-2.75 px-4${i < confirmModal.length - 1 ? " border-b border-b-[#ede9fe]" : ""}`}
+            >
+              <span className="shrink-0 w-5 h-5 rounded-[5px] border-2 border-[#ccc0fa] mt-px flex items-center justify-center bg-[#ede9fe]" />
+              <span className="text-sm text-[#4b3d80] leading-normal">{label}</span>
             </div>
           ))}
         </div>
 
-        <div style={{ display: "flex", gap: 10 }}>
+        <div className="flex gap-2.5">
           <button
             onClick={() => setConfirmModal(null)}
-            style={{
-              flex: 1, padding: "13px 0", borderRadius: 10, fontSize: 15, fontWeight: 600,
-              background: "#ede9fe", color: "#6d28d9", border: "1.5px solid #ccc0fa",
-              cursor: "pointer", fontFamily: "inherit",
-            }}
+            className="flex-1 py-3.25 rounded-[10px] text-sm font-semibold bg-[#ede9fe] text-[#6d28d9] border-[1.5px] border-[#ccc0fa] cursor-pointer font-[inherit]"
           >
             戻る
           </button>
           <button
             onClick={doSubmit}
-            style={{
-              flex: 1, padding: "13px 0", borderRadius: 10, fontSize: 15, fontWeight: 700,
-              background: "linear-gradient(135deg,#6d28d9 0%,#4f35be 100%)",
-              color: "#fff", border: "none", cursor: "pointer", fontFamily: "inherit",
-              boxShadow: "0 4px 14px rgba(109,40,217,0.35)",
-            }}
+            className="flex-1 py-3.25 rounded-[10px] text-sm font-bold bg-[linear-gradient(135deg,#6d28d9_0%,#4f35be_100%)] text-white border-none cursor-pointer font-[inherit] shadow-[0_4px_14px_rgba(109,40,217,0.35)]"
           >
             このまま送信
           </button>
@@ -692,24 +511,27 @@ export default function ChecklistPage() {
   // ══════════════════════════════════════════════════════════════════════════
   if (!isLarge) {
     return (
-      <div style={S.root}>
+      <div className={rootCls}>
         {renderConfirmModal()}
-        <div style={S.header}><div style={S.headerDot} /><span style={S.headerName}>オフィス管理者</span></div>
-        <div style={S.main}>
-          <div style={S.title}>{checklist.title}</div>
+        <div className={headerCls}>
+          <div className="w-2.5 h-2.5 rounded-full bg-[linear-gradient(135deg,#6d28d9_0%,#a78bfa_100%)]" />
+          <span className="text-lg font-extrabold text-[#4f35be] tracking-[-0.03em]">オフィス管理者</span>
+        </div>
+        <div className={mainCls}>
+          <div className="text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-7">{checklist.title}</div>
 
           {/* Read-only dept chip */}
           {deptName && (
-            <div style={{ marginBottom: 20 }}>
-              <span style={S.deptReadOnly}>
-                <span style={{ color: "#a78bfa" }}>部署</span> {deptName}
+            <div className="mb-5">
+              <span className="inline-flex items-center gap-1.5 bg-[linear-gradient(135deg,#ede9fe_0%,#ddd6fe_100%)] border border-[#ccc0fa] rounded-[10px] py-1.75 px-4 text-sm text-[#4b3d80] font-medium mb-5.5">
+                <span className="text-[#a78bfa]">部署</span> {deptName}
               </span>
             </div>
           )}
 
           {/* Inline user selector */}
-          <div style={S.userInlineCard}>
-            <label style={S.selLabel}>名前 <span style={{ color: "#dc2626" }}>*</span></label>
+          <div className="border-[1.5px] border-[#dfd5fb] rounded-[14px] py-5 px-6 mb-5.5 bg-white shadow-[0_2px_14px_rgba(79,53,190,0.09)]">
+            <label className="text-sm font-semibold text-[#4b3d80] mb-3 block">名前 <span className="text-[#dc2626]">*</span></label>
             {renderUserSelector()}
           </div>
 
@@ -724,43 +546,70 @@ export default function ChecklistPage() {
   // LARGE FLOW — step-by-step: dept → user → form
   // ══════════════════════════════════════════════════════════════════════════
   return (
-    <div style={S.root}>
+    <div className={rootCls}>
       {renderConfirmModal()}
-      <div style={S.header}><div style={S.headerDot} /><span style={S.headerName}>オフィス管理者</span></div>
-      <div style={S.main}>
-        <div style={S.title}>{checklist.title}</div>
+      <div className={headerCls}>
+        <div className="w-2.5 h-2.5 rounded-full bg-[linear-gradient(135deg,#6d28d9_0%,#a78bfa_100%)]" />
+        <span className="text-lg font-extrabold text-[#4f35be] tracking-[-0.03em]">オフィス管理者</span>
+      </div>
+      <div className={mainCls}>
+        <div className="text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-7">{checklist.title}</div>
 
         {/* ── Step 1: Department ── */}
         {largeStep === "department" && (
-          <div style={S.selCard}>
-            <label style={S.selLabel}>部署 <span style={{ color: "#dc2626" }}>*</span></label>
+          <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-6 mb-4.5 bg-white shadow-[0_4px_22px_rgba(79,53,190,0.10)]">
+            <label className="text-sm font-semibold text-[#4b3d80] mb-3 block">部署 <span className="text-[#dc2626]">*</span></label>
             <CustomSelect
               options={departments.map(d => ({ value: String(d.id), label: d.name }))}
               value={selectedDeptId}
               onChange={setSelectedDeptId}
               placeholder="部署を選択してください"
             />
-            <button style={S.continueBtn} onClick={handleDeptContinue}>次へ</button>
+            <button
+              className="w-full bg-[linear-gradient(135deg,#6d28d9_0%,#4f35be_100%)] text-white border-none rounded-xl py-3.75 text-base font-bold cursor-pointer font-[inherit] mt-3.5 shadow-[0_3px_14px_rgba(109,40,217,0.33)]"
+              onClick={handleDeptContinue}
+            >
+              次へ
+            </button>
           </div>
         )}
 
         {/* ── Step 2: User ── */}
         {largeStep === "user" && (
-          <div style={S.selCard}>
-            <button style={S.backLink} onClick={() => setLargeStep("department")}>← {deptName}</button>
-            <label style={S.selLabel}>名前 <span style={{ color: "#dc2626" }}>*</span></label>
+          <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-6 mb-4.5 bg-white shadow-[0_4px_22px_rgba(79,53,190,0.10)]">
+            <button
+              className="text-sm text-[#6a5d8e] bg-transparent border-none cursor-pointer font-[inherit] py-2 inline-block mb-4.5"
+              onClick={() => setLargeStep("department")}
+            >
+              ← {deptName}
+            </button>
+            <label className="text-sm font-semibold text-[#4b3d80] mb-3 block">名前 <span className="text-[#dc2626]">*</span></label>
             {renderUserSelector()}
-            <button style={S.continueBtn} onClick={handleUserContinue}>次へ</button>
+            <button
+              className="w-full bg-[linear-gradient(135deg,#6d28d9_0%,#4f35be_100%)] text-white border-none rounded-xl py-3.75 text-base font-bold cursor-pointer font-[inherit] mt-3.5 shadow-[0_3px_14px_rgba(109,40,217,0.33)]"
+              onClick={handleUserContinue}
+            >
+              次へ
+            </button>
           </div>
         )}
 
         {/* ── Step 3: Form ── */}
         {largeStep === "form" && (
           <>
-            <div style={{ marginBottom: 24, display: "flex", gap: 8, flexWrap: "wrap" as const }}>
-              <span style={S.summaryChip}><span style={{ color: "#a78bfa" }}>部署</span> {deptName}</span>
-              <span style={S.summaryChip}><span style={{ color: "#a78bfa" }}>ユーザー</span> {userName}</span>
-              <button style={{ ...S.backLink, margin: 0, alignSelf: "center" }} onClick={() => setLargeStep("user")}>変更</button>
+            <div className="mb-6 flex gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 bg-[linear-gradient(135deg,#ede9fe_0%,#ddd6fe_100%)] border border-[#ccc0fa] rounded-[10px] py-1.75 px-4 text-sm text-[#4b3d80] font-medium">
+                <span className="text-[#a78bfa]">部署</span> {deptName}
+              </span>
+              <span className="inline-flex items-center gap-1.5 bg-[linear-gradient(135deg,#ede9fe_0%,#ddd6fe_100%)] border border-[#ccc0fa] rounded-[10px] py-1.75 px-4 text-sm text-[#4b3d80] font-medium">
+                <span className="text-[#a78bfa]">ユーザー</span> {userName}
+              </span>
+              <button
+                className="text-sm text-[#6a5d8e] bg-transparent border-none cursor-pointer font-[inherit] py-2 inline-block m-0 self-center"
+                onClick={() => setLargeStep("user")}
+              >
+                変更
+              </button>
             </div>
             {renderForm()}
           </>
