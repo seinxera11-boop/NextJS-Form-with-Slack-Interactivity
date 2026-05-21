@@ -49,92 +49,64 @@ async function getTodayEvents(): Promise<CalendarEvent[]> {
 
 // ─── Holiday & Weekend ───────────────────────────────────────────────────────
 
-// ✅ FIXED: Only treat real holidays as holidays
 function isHoliday(events: CalendarEvent[]): boolean {
-  const holidayKeywords = [
-    "holiday",
-    "public holiday",
-    "day off",
-    "leave",
-    "company off",
-  ];
-
-  return events.some(event => {
-    const title = event.summary.toLowerCase();
-
-    return holidayKeywords.some(keyword => title.includes(keyword));
-  });
+  const holidayKeywords = ["holiday", "public holiday", "day off", "leave", "company off"];
+  return events.some(event =>
+    holidayKeywords.some(keyword => event.summary.toLowerCase().includes(keyword))
+  );
 }
 
 function isWeekend(date: Date): boolean {
-  const day = date.getUTCDay(); // 0 = Sunday, 6 = Saturday
+  const day = date.getUTCDay();
   return day === 0 || day === 6;
 }
 
-// ─── Submission check ─────────────────────────────────────────────────────────
+// ─── Per-workspace reminder ───────────────────────────────────────────────────
 
-async function hasSubmissionToday(): Promise<boolean> {
+async function processWorkspace(workspaceId: string): Promise<string> {
   const now = new Date();
-
   const todayStart = new Date(Date.UTC(
     now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0
   )).toISOString();
-
   const todayEnd = new Date(Date.UTC(
     now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59
   )).toISOString();
 
-  const { data, error } = await supabaseAdmin
+  // Check if submitted today
+  const { data } = await supabaseAdmin
     .from("responses")
     .select("id")
+    .eq("workspace_id", workspaceId)
     .gte("created_at", todayStart)
     .lte("created_at", todayEnd)
     .limit(1);
 
-  if (error) throw new Error(`DB check error: ${error.message}`);
+  if ((data || []).length > 0) return "already_submitted";
 
-  return (data || []).length > 0;
-}
+  // Get reminder URL for this workspace
+  const { data: configData } = await supabaseAdmin
+    .from("slack_configs")
+    .select("reminder_url")
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
 
-// ─── Slack notification ───────────────────────────────────────────────────────
+  if (!configData?.reminder_url) return "no_reminder_url";
 
-async function sendSlackReminder(reminderUrl: string): Promise<void> {
-  const res = await fetch(reminderUrl, {
+  await fetch(configData.reminder_url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      blocks: [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text:
-              "<!channel>\n 本日、最終退社フォームの提出を確認できませんでした。状況を確認いただけますか？",
-          },
+      blocks: [{
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: "<!channel>\n 本日、最終退社フォームの提出を確認できませんでした。状況を確認いただけますか？",
         },
-      ],
+      }],
     }),
   });
 
-  if (!res.ok) {
-    throw new Error(`Slack webhook failed: ${res.status} ${res.statusText}`);
-  }
-}
-
-// ─── Fetch reminder URL ───────────────────────────────────────────────────────
-
-async function getReminderUrl(): Promise<string> {
-  const { data, error } = await supabaseAdmin
-    .from("variables")
-    .select("value")
-    .eq("key", "reminder_url")
-    .single();
-
-  if (error || !data?.value) {
-    throw new Error("reminder_url not configured in variables table");
-  }
-
-  return data.value;
+  return "reminder_sent";
 }
 
 // ─── Route handler ────────────────────────────────────────────────────────────
@@ -150,45 +122,30 @@ export async function GET(req: NextRequest) {
   try {
     const now = new Date();
 
-    // 1. Weekend check
     if (isWeekend(now)) {
       return NextResponse.json({ skipped: true, reason: "weekend" });
     }
 
-    // 2. Holiday check
     const events = await getTodayEvents();
-
     console.log("📅 Today's events:", events.map(e => e.summary));
 
-    const holiday = isHoliday(events);
-
-    if (holiday) {
-      return NextResponse.json({
-        skipped: true,
-        reason: "holiday",
-        events: events.map(e => e.summary),
-      });
+    if (isHoliday(events)) {
+      return NextResponse.json({ skipped: true, reason: "holiday", events: events.map(e => e.summary) });
     }
 
-    // 3. Submission check
-    const submitted = await hasSubmissionToday();
+    // Fetch all workspaces
+    const { data: workspaces, error: wsErr } = await supabaseAdmin
+      .from("workspaces")
+      .select("id, name");
 
-    if (submitted) {
-      return NextResponse.json({
-        skipped: true,
-        reason: "already_submitted",
-      });
+    if (wsErr) throw new Error(wsErr.message);
+
+    const results: Record<string, string> = {};
+    for (const ws of workspaces || []) {
+      results[ws.name] = await processWorkspace(ws.id);
     }
 
-    // 4. Send Slack reminder
-    const reminderUrl = await getReminderUrl();
-    await sendSlackReminder(reminderUrl);
-
-    return NextResponse.json({
-      success: true,
-      reason: "reminder_sent",
-      events: events.map(e => e.summary),
-    });
+    return NextResponse.json({ success: true, results, events: events.map(e => e.summary) });
 
   } catch (err: any) {
     console.error("❌ Daily check error:", err.message);

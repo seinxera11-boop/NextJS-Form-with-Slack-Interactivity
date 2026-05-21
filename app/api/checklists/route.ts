@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
   let query = supabaseAdmin
     .from("checklists")
     .select("*, checklist_sections(*, checklist_items(*)), checklist_departments(department_id)")
+    .eq("workspace_id", ctx.workspaceId)
     .order("created_at", { ascending: false });
 
   if (!ctx.isMainAdmin) {
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
       created_by,
       is_large_checklist: is_large_checklist ?? false,
       department_id: resolvedDeptId,
+      workspace_id: ctx.workspaceId,
     })
     .select()
     .single();

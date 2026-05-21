@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
     .from("admin_users")
     .select("id, email, sub_admin_checklists(checklist_id)")
     .eq("is_main_admin", false)
+    .eq("workspace_id", ctx.workspaceId)
     .order("email");
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -25,16 +26,11 @@ export async function POST(req: NextRequest) {
 
   const lowerEmail = email.trim().toLowerCase();
 
-  const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
-    .split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
-  if (ADMIN_EMAILS.includes(lowerEmail)) {
-    return NextResponse.json({ error: "Cannot add a main admin as sub-admin" }, { status: 400 });
-  }
-
   const { data: existing } = await supabaseAdmin
     .from("admin_users")
     .select("id")
     .eq("email", lowerEmail)
+    .eq("workspace_id", ctx.workspaceId)
     .single();
 
   let subAdminId: string;
@@ -44,7 +40,7 @@ export async function POST(req: NextRequest) {
   } else {
     const { data: inserted, error: insertError } = await supabaseAdmin
       .from("admin_users")
-      .insert({ email: lowerEmail, is_main_admin: false })
+      .insert({ email: lowerEmail, is_main_admin: false, workspace_id: ctx.workspaceId })
       .select("id")
       .single();
     if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 });

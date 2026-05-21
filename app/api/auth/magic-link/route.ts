@@ -1,47 +1,48 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-
-const ALLOWED_ADMINS = (process.env.ADMIN_EMAILS || "")
-  .split(",")
-  .map((e) => e.trim())
-  .filter(Boolean);
+import { getSuperAdminEmails } from "@/lib/auth-helpers";
 
 export async function POST(req: Request) {
   try {
     const { email } = await req.json();
+    if (!email) return NextResponse.json({ error: "Email is required" }, { status: 400 });
 
-    if (!email) {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    const normalized = email.trim().toLowerCase();
+
+    // Allow super admins
+    const superAdminEmails = getSuperAdminEmails();
+    if (superAdminEmails.includes(normalized)) {
+      await supabaseAdmin.auth.signInWithOtp({
+        email: normalized,
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_PUBLIC_SITE_URL}/admin/login/callback`,
+        },
+      });
+      return NextResponse.json({ success: true });
     }
 
-    if (ALLOWED_ADMINS.length > 0 && !ALLOWED_ADMINS.includes(email)) {
-      // Also allow emails registered as sub-admins.
-      const { data: subAdmin } = await supabaseAdmin
-        .from("admin_users")
-        .select("id")
-        .eq("email", email.trim().toLowerCase())
-        .single();
-      if (!subAdmin) {
-        return NextResponse.json({ error: "Unauthorized email" }, { status: 403 });
-      }
+    // Allow any email registered in admin_users (any workspace)
+    const { data: adminUser } = await supabaseAdmin
+      .from("admin_users")
+      .select("id")
+      .eq("email", normalized)
+      .not("workspace_id", "is", null)
+      .single();
+
+    if (!adminUser) {
+      return NextResponse.json({ error: "Unauthorized email" }, { status: 403 });
     }
 
-    // emailRedirectTo MUST point to /admin/auth/callback so our page.tsx
-    // can read the #access_token hash and call setSession() correctly.
-    // Do NOT redirect to /admin directly — Next.js SSR cannot read hash fragments.
     const { error } = await supabaseAdmin.auth.signInWithOtp({
-      email,
+      email: normalized,
       options: {
         shouldCreateUser: true,
         emailRedirectTo: `${process.env.NEXT_PUBLIC_PUBLIC_SITE_URL}/admin/login/callback`,
       },
     });
 
-    if (error) {
-      console.error("Magic link error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error(err);

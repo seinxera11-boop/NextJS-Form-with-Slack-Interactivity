@@ -10,7 +10,6 @@ export default function AdminAuthCallback() {
 
   useEffect(() => {
     async function handleMagicLink() {
-      // Use createBrowserClient — stores session in cookies, not localStorage
       const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -40,14 +39,20 @@ export default function AdminAuthCallback() {
       });
 
       if (sessionError) {
-        console.error("Session error:", sessionError.message);
         setError("Login failed. Please try again.");
         setTimeout(() => router.replace("/admin/login?error=session_failed"), 2000);
         return;
       }
 
-      window.history.replaceState({}, document.title, "/admin/auth/callback");
-      router.replace("/admin");
+      window.history.replaceState({}, document.title, "/admin/login/callback");
+
+      // Check if this user is a super admin — redirect accordingly
+      const meRes = await fetch("/api/super-admin/workspaces");
+      if (meRes.status === 200) {
+        router.replace("/super-admin");
+      } else {
+        router.replace("/admin");
+      }
     }
 
     handleMagicLink();

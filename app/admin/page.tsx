@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { type Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { ChecklistsTab } from "./ChecklistsTab";
@@ -14,13 +15,16 @@ type Tab = "checklists" | "responses" | "approvals" | "departments" | "settings"
 type UserContext = {
   email: string;
   isMainAdmin: boolean;
+  workspaceId: string;
+  workspaceSlug: string;
+  workspaceName: string;
   assignedChecklists: number[];
 };
 
 // ─── Auth wrapper ────────────────────────────────────────────────────────────
 export default function AdminDashboardWrapper() {
   const [session, setSession] = useState<Session | null>(null);
-  const [userCtx, setUserCtx] = useState<UserContext | null>(null);
+  const [userCtx, setUserCtx] = useState<UserContext | null>(null); // null = not yet loaded or auth failed
   const [booting, setBooting] = useState(true);
 
   useEffect(() => {
@@ -28,6 +32,7 @@ export default function AdminDashboardWrapper() {
       if (!data.session) { window.location.href = "/admin/login"; return; }
       setSession(data.session);
       const ctx = await fetchUserContext();
+      if (!ctx) { window.location.href = "/admin/login"; return; }
       setUserCtx(ctx);
       setBooting(false);
     });
@@ -47,19 +52,20 @@ export default function AdminDashboardWrapper() {
   return <AdminDashboard userCtx={userCtx} />;
 }
 
-async function fetchUserContext(): Promise<UserContext> {
+async function fetchUserContext(): Promise<UserContext | null> {
   try {
     const res = await fetch("/api/auth/me");
-    if (!res.ok) throw new Error("context fetch failed");
+    if (!res.ok) return null;
     return await res.json();
   } catch {
-    return { email: "", isMainAdmin: true, assignedChecklists: [] };
+    return null;
   }
 }
 
 // ─── Shell ───────────────────────────────────────────────────────────────────
 function AdminDashboard({ userCtx }: { userCtx: UserContext }) {
   const { isMainAdmin } = userCtx;
+  const searchParams = useSearchParams();
 
   const allTabs: { key: Tab; label: string; mainAdminOnly: boolean }[] = [
     { key: "checklists",  label: "チェックリスト", mainAdminOnly: false },
@@ -70,7 +76,13 @@ function AdminDashboard({ userCtx }: { userCtx: UserContext }) {
   ];
 
   const visibleTabs = allTabs.filter(t => isMainAdmin || !t.mainAdminOnly);
-  const [tab, setTab] = useState<Tab>(visibleTabs[0]?.key ?? "responses");
+
+  const tabFromUrl = searchParams.get("tab") as Tab | null;
+  const initialTab = (tabFromUrl && visibleTabs.some(t => t.key === tabFromUrl))
+    ? tabFromUrl
+    : (visibleTabs[0]?.key ?? "responses");
+
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -122,7 +134,7 @@ function AdminDashboard({ userCtx }: { userCtx: UserContext }) {
         <div className="flex items-center gap-5">
           <div className="font-extrabold text-xl text-[#4f35be] tracking-[-0.03em] flex items-center gap-2">
             <div className="w-2.5 h-2.5 rounded-full bg-[linear-gradient(135deg,#6d28d9_0%,#a78bfa_100%)]" />
-            管理画面
+            {userCtx.workspaceName || "管理画面"}
           </div>
 
           {/* Desktop: inline tabs */}
@@ -228,7 +240,7 @@ function AdminDashboard({ userCtx }: { userCtx: UserContext }) {
       )}
       {tab === "approvals"   && <ApprovalsTab />}
       {tab === "departments" && isMainAdmin && <DepartmentsTab />}
-      {tab === "settings"    && isMainAdmin && <SettingsTab />}
+      {tab === "settings"    && isMainAdmin && <SettingsTab workspaceSlug={userCtx.workspaceSlug} />}
     </div>
   );
 }

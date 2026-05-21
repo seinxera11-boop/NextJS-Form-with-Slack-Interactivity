@@ -31,18 +31,20 @@ export function DepartmentsTab() {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [depts, users] = await Promise.all([
-      fetch("/api/departments").then(r => r.json()),
-      fetch("/api/org-users").then(r => r.json()),
+    const [deptsRes, usersRes] = await Promise.all([
+      fetch("/api/departments"),
+      fetch("/api/org-users"),
     ]);
-    setDepartments(depts || []);
-    setOrgUsers(users || []);
+    const [depts, users] = await Promise.all([deptsRes.json(), usersRes.json()]);
+    setDepartments(Array.isArray(depts) ? depts : []);
+    setOrgUsers(Array.isArray(users) ? users : []);
     setLoading(false);
   };
 
   const fetchUsersForDept = async (deptId: number) => {
-    const data = await fetch(`/api/org-users?department_id=${deptId}`).then(r => r.json());
-    setDeptUsers(data || []);
+    const res = await fetch(`/api/org-users?department_id=${deptId}`);
+    const data = await res.json();
+    setDeptUsers(Array.isArray(data) ? data : []);
   };
 
   const handleAddDept = async () => {
