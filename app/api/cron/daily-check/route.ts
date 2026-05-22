@@ -13,7 +13,7 @@ type CalendarEvent = {
 
 // ─── Google Calendar ──────────────────────────────────────────────────────────
 
-async function getTodayEvents(): Promise<CalendarEvent[]> {
+async function getTodayEvents(calendarId: string): Promise<CalendarEvent[]> {
   const auth = new google.auth.JWT({
     email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
     key:   process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
@@ -32,7 +32,7 @@ async function getTodayEvents(): Promise<CalendarEvent[]> {
   ));
 
   const res = await calendar.events.list({
-    calendarId:   process.env.GOOGLE_CALENDAR_ID!,
+    calendarId,
     timeMin:      startOfDay.toISOString(),
     timeMax:      endOfDay.toISOString(),
     singleEvents: true,
@@ -126,7 +126,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ skipped: true, reason: "weekend" });
     }
 
-    const events = await getTodayEvents();
+    const { data: calConfig } = await supabaseAdmin
+      .from("slack_configs")
+      .select("google_calendar_id")
+      .not("google_calendar_id", "is", null)
+      .limit(1)
+      .maybeSingle();
+
+    const calendarId = calConfig?.google_calendar_id ?? process.env.GOOGLE_CALENDAR_ID!;
+
+    const events = await getTodayEvents(calendarId);
     console.log("📅 Today's events:", events.map(e => e.summary));
 
     if (isHoliday(events)) {

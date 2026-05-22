@@ -158,6 +158,85 @@ function SlackSectionSingle({ workspaceSlug }: { workspaceSlug: string }) {
 }
 */
 
+// ─── Google Calendar ──────────────────────────────────────────────────────────
+
+function GoogleCalendarSection() {
+  const [calendarId, setCalendarId] = useState("");
+  const [saved,      setSaved]      = useState<string | null>(null);
+  const [saveError,  setSaveError]  = useState("");
+  const [saving,     setSaving]     = useState(false);
+  const [loading,    setLoading]    = useState(true);
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then(r => r.json())
+      .then(data => { setCalendarId(data.google_calendar_id ?? ""); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true); setSaved(null); setSaveError("");
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ google_calendar_id: calendarId }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "保存に失敗しました");
+      setSaved(calendarId);
+    } catch (err: any) {
+      setSaveError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="py-6 text-center text-sm text-[#c4b5fd]">読み込み中…</div>;
+
+  return (
+    <div>
+      <div className="text-xs font-bold text-[#3e249e] uppercase tracking-[0.12em] mb-1.5">Google Calendar</div>
+      <div className="text-xs text-[#9688c0] mb-6">
+        Holiday calendar used by the daily cron to skip reminders on public holidays. Find the Calendar ID under Google Calendar → Settings → Integrate calendar.
+      </div>
+
+      {saved && (
+        <div className="text-xs text-[#059669] font-semibold mb-5 bg-[#ecfdf5] border border-[#6ee7b7] rounded-lg px-4 py-2.5">
+          ✓ Calendar ID saved.
+        </div>
+      )}
+      {saveError && (
+        <div className="text-xs text-[#dc2626] font-semibold mb-5 bg-[#fff5f5] border border-[#fecaca] rounded-lg px-4 py-2.5">
+          ✗ {saveError}
+        </div>
+      )}
+
+      <div className="flex gap-2 items-center">
+        <input
+          className="flex-1 border-[1.5px] border-[#ccc0fa] rounded-[10px] py-2.5 px-3.75 text-sm text-[#1a1035] outline-none bg-[#faf9ff] font-[inherit]"
+          type="text"
+          placeholder="xxxxxxxx@group.calendar.google.com"
+          value={calendarId}
+          onChange={e => { setCalendarId(e.target.value); setSaved(null); }}
+          onKeyDown={e => e.key === "Enter" && handleSave()}
+        />
+        <button
+          className={`shrink-0 text-sm font-semibold text-white bg-[linear-gradient(135deg,#6d28d9_0%,#4f35be_100%)] border-none rounded-[10px] py-2.5 px-5 cursor-pointer font-[inherit] shadow-[0_2px_10px_rgba(109,40,217,0.28)] ${saving || !calendarId.trim() ? "opacity-60" : ""}`}
+          onClick={handleSave}
+          disabled={saving || !calendarId.trim()}
+        >
+          {saving ? "保存中…" : "保存"}
+        </button>
+      </div>
+
+      <div className="mt-4 text-xs text-[#a696f2] leading-relaxed bg-[#f5f0ff] border border-[#ede9fe] rounded-lg px-4 py-3">
+        If left empty, falls back to the <span className="font-mono">GOOGLE_CALENDAR_ID</span> environment variable.
+      </div>
+    </div>
+  );
+}
+
 // ─── Sub-admin management ─────────────────────────────────────────────────────
 
 type SubAdmin = {
@@ -362,6 +441,10 @@ export function SettingsTab({ workspaceSlug }: { workspaceSlug: string }) {
 
       <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-8 mb-5.5 bg-white shadow-[0_2px_18px_rgba(79,53,190,0.10)]">
         <SlackSection workspaceSlug={workspaceSlug} />
+      </div>
+
+      <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-8 mb-5.5 bg-white shadow-[0_2px_18px_rgba(79,53,190,0.10)]">
+        <GoogleCalendarSection />
       </div>
 
       <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-8 mb-5.5 bg-white shadow-[0_2px_18px_rgba(79,53,190,0.10)]">

@@ -12,13 +12,20 @@ export async function POST(req: Request) {
     // Allow super admins
     const superAdminEmails = getSuperAdminEmails();
     if (superAdminEmails.includes(normalized)) {
-      await supabaseAdmin.auth.signInWithOtp({
+      const { error } = await supabaseAdmin.auth.signInWithOtp({
         email: normalized,
         options: {
           shouldCreateUser: true,
           emailRedirectTo: `${process.env.NEXT_PUBLIC_PUBLIC_SITE_URL}/admin/login/callback`,
         },
       });
+      if (error) {
+        const isRateLimit = error.message.toLowerCase().includes("rate limit") || error.status === 429;
+        return NextResponse.json(
+          { error: isRateLimit ? "送信上限に達しました。しばらく待ってから再試行してください。" : error.message },
+          { status: isRateLimit ? 429 : 500 }
+        );
+      }
       return NextResponse.json({ success: true });
     }
 
@@ -42,7 +49,13 @@ export async function POST(req: Request) {
       },
     });
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      const isRateLimit = error.message.toLowerCase().includes("rate limit") || error.status === 429;
+      return NextResponse.json(
+        { error: isRateLimit ? "送信上限に達しました。しばらく待ってから再試行してください。" : error.message },
+        { status: isRateLimit ? 429 : 500 }
+      );
+    }
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error(err);
