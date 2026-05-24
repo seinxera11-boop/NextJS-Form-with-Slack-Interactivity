@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { type Checklist, type ChecklistSection } from "./types";
+import { type Checklist, type ChecklistSection, type ChecklistTask } from "./types";
 
 type Department = { id: number; name: string };
+
+let _uid = 0;
+const uid = () => `new-${++_uid}`;
+
+type TaskState    = ChecklistTask    & { _key: string };
+type SectionState = Omit<ChecklistSection, "tasks"> & { _key: string; tasks: TaskState[] };
 
 export function ChecklistsTab({
   userEmail,
@@ -23,8 +29,8 @@ export function ChecklistsTab({
   const [isLarge,          setIsLarge]          = useState(false);
   const [fixedDeptId,      setFixedDeptId]      = useState<string>("");     // small: single dept
   const [selectedDeptIds,  setSelectedDeptIds]  = useState<number[]>([]);   // large: multi dept
-  const [sections,         setSections]         = useState<ChecklistSection[]>([
-    { title: "", order_index: 0, tasks: [{ label: "", order_index: 0 }] },
+  const [sections,         setSections]         = useState<SectionState[]>([
+    { title: "", order_index: 0, tasks: [{ label: "", order_index: 0, _key: uid() }], _key: uid() },
   ]);
   const [saving,     setSaving]     = useState(false);
   const [saveError,  setSaveError]  = useState("");
@@ -47,7 +53,7 @@ export function ChecklistsTab({
 
   const startCreate = () => {
     setTitle(""); setIsLarge(false); setFixedDeptId(""); setSelectedDeptIds([]);
-    setSections([{ title: "", order_index: 0, tasks: [{ label: "", order_index: 0 }] }]);
+    setSections([{ title: "", order_index: 0, tasks: [{ label: "", order_index: 0, _key: uid() }], _key: uid() }]);
     setSaveError(""); setEditTarget(null); setView("create");
   };
 
@@ -61,16 +67,17 @@ export function ChecklistsTab({
     const sorted = [...(cl.checklist_sections || [])].sort((a, b) => a.order_index - b.order_index);
     setSections(sorted.length
       ? sorted.map(sec => ({
-          id: sec.id, title: sec.title, order_index: sec.order_index,
-          tasks: [...(sec.checklist_items || [])].sort((a, b) => a.order_index - b.order_index),
+          id: sec.id, title: sec.title, order_index: sec.order_index, _key: uid(),
+          tasks: [...(sec.checklist_items || [])].sort((a, b) => a.order_index - b.order_index)
+                   .map(t => ({ ...t, _key: uid() })),
         }))
-      : [{ title: "", order_index: 0, tasks: [{ label: "", order_index: 0 }] }]
+      : [{ title: "", order_index: 0, tasks: [{ label: "", order_index: 0, _key: uid() }], _key: uid() }]
     );
     setSaveError(""); setEditTarget(cl); setView("edit");
   };
 
   // Section/task mutation helpers (unchanged)
-  const addSection    = () => setSections(p => [...p, { title: "", order_index: p.length, tasks: [{ label: "", order_index: 0 }] }]);
+  const addSection    = () => setSections(p => [...p, { title: "", order_index: p.length, tasks: [{ label: "", order_index: 0, _key: uid() }], _key: uid() }]);
   const removeSection = (si: number) => {
     if (sections.length === 1) return;
     setSections(p => p.filter((_, i) => i !== si).map((s, i) => ({ ...s, order_index: i })));
@@ -84,7 +91,7 @@ export function ChecklistsTab({
   const updateSectionTitle = (si: number, val: string) =>
     setSections(p => p.map((s, i) => i === si ? { ...s, title: val } : s));
   const addTask = (si: number) =>
-    setSections(p => p.map((s, i) => i === si ? { ...s, tasks: [...s.tasks, { label: "", order_index: s.tasks.length }] } : s));
+    setSections(p => p.map((s, i) => i === si ? { ...s, tasks: [...s.tasks, { label: "", order_index: s.tasks.length, _key: uid() }] } : s));
   const removeTask = (si: number, ti: number) =>
     setSections(p => p.map((s, i) => i !== si ? s : { ...s, tasks: s.tasks.filter((_, j) => j !== ti).map((t, j) => ({ ...t, order_index: j })) }));
   const moveTask = (si: number, ti: number, dir: -1 | 1) =>
@@ -381,7 +388,7 @@ export function ChecklistsTab({
       {/* ── Sections & tasks ── */}
       <div className="text-xs font-bold text-[#8c70e8] uppercase tracking-[0.12em] mb-3">セクション＆タスク</div>
       {sections.map((sec, si) => (
-        <div key={si} className="border-[1.5px] border-[#dfd5fb] rounded-[14px] mb-3 overflow-hidden">
+        <div key={sec._key} className="border-[1.5px] border-[#dfd5fb] rounded-[14px] mb-3 overflow-hidden">
           <div className="flex items-center gap-2.5 py-3.25 px-5 bg-linear-to-br from-[#f5f0fe] to-[#ede9fe] [border-bottom:1.5px_solid_#dfd5fb]">
             <span className="text-xs font-bold text-[#8c70e8] min-w-5">{si + 1}</span>
             <input
@@ -405,7 +412,7 @@ export function ChecklistsTab({
           </div>
           <div className="pt-3 px-5 pb-4 bg-white">
             {sec.tasks.map((task, ti) => (
-              <div key={ti} className="flex items-center gap-2 bg-[#faf9ff] border border-[#dfd5fb] rounded-[10px] py-2.5 px-3.25 mb-1.75">
+              <div key={task._key} className="flex items-center gap-2 bg-[#faf9ff] border border-[#dfd5fb] rounded-[10px] py-2.5 px-3.25 mb-1.75">
                 <span className="text-xs text-[#a696f2] min-w-4.5 text-right shrink-0">{ti + 1}</span>
                 <input
                   className="flex-1 border-[1.5px] border-[#ddd6fe] rounded-lg py-2 px-2.75 text-sm text-[#1a1035] outline-none bg-white font-[inherit] min-w-0"
