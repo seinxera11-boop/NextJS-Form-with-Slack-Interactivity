@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // ─── Slack connection ──────────────────────────────────────────────────────────
 
@@ -26,11 +26,13 @@ const CHANNELS: ChannelConfig[] = [
 ];
 
 function SlackSection({ workspaceSlug }: { workspaceSlug: string }) {
-  const [fields, setFields]   = useState<SlackFields>({ bot_token: null, approval_url: null, security_url: null, reminder_url: null });
-  const [loading, setLoading] = useState(true);
-  const searchParams          = useSearchParams();
-  const justConnected         = searchParams.get("slack_connected");
-  const slackError            = searchParams.get("slack_error");
+  const [fields, setFields]             = useState<SlackFields>({ bot_token: null, approval_url: null, security_url: null, reminder_url: null });
+  const [loading, setLoading]           = useState(true);
+  const [showConnected, setShowConnected] = useState(false);
+  const router                          = useRouter();
+  const searchParams                    = useSearchParams();
+  const justConnected                   = searchParams.get("slack_connected");
+  const slackError                      = searchParams.get("slack_error");
 
   useEffect(() => {
     fetch("/api/settings")
@@ -38,6 +40,14 @@ function SlackSection({ workspaceSlug }: { workspaceSlug: string }) {
       .then(data => { setFields(data); setLoading(false); })
       .catch(() => setLoading(false));
   }, [justConnected]);
+
+  useEffect(() => {
+    if (!justConnected && !slackError) return;
+    if (justConnected) setShowConnected(true);
+    const t = setTimeout(() => setShowConnected(false), 5000);
+    router.replace("/admin?tab=settings", { scroll: false });
+    return () => clearTimeout(t);
+  }, [justConnected, slackError]);
 
   const installUrl = (channelParam: string) =>
     `/api/slack/install?workspace=${workspaceSlug}&channel=${channelParam}`;
@@ -53,7 +63,7 @@ function SlackSection({ workspaceSlug }: { workspaceSlug: string }) {
         Connect each channel separately. Click Connect, select your Slack workspace and the channel for that notification type — the webhook URL is saved automatically.
       </div>
 
-      {justConnected && (
+      {showConnected && (
         <div className="text-xs text-[#059669] font-semibold mb-5 bg-[#ecfdf5] border border-[#6ee7b7] rounded-lg px-4 py-2.5">
           ✓ {justConnected} channel connected — webhook URL saved automatically.
         </div>
@@ -109,54 +119,6 @@ function SlackSection({ workspaceSlug }: { workspaceSlug: string }) {
     </div>
   );
 }
-
-/*
-// ─── Single-connect Slack section (commented out, do not delete) ───────────────
-
-function SlackSectionSingle({ workspaceSlug }: { workspaceSlug: string }) {
-  const [connected, setConnected] = useState(false);
-  const [loading, setLoading]     = useState(true);
-  const searchParams              = useSearchParams();
-  const justConnected             = searchParams.get("slack_connected");
-  const slackError                = searchParams.get("slack_error");
-
-  useEffect(() => {
-    fetch("/api/settings")
-      .then(r => r.json())
-      .then(data => { setConnected(!!data.bot_token); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [justConnected]);
-
-  const connectUrl = `/api/slack/install?workspace=${workspaceSlug}&channel=approval`;
-
-  if (loading) return <div className="py-6 text-center text-sm text-[#c4b5fd]">読み込み中…</div>;
-
-  return (
-    <div>
-      <div className="text-xs font-bold text-[#3e249e] uppercase tracking-[0.12em] mb-1.5">Slack Integration</div>
-      <div className="text-xs text-[#9688c0] mb-6">Connect your Slack workspace to receive notifications.</div>
-      {justConnected && <div className="text-xs text-[#059669] font-semibold mb-5 bg-[#ecfdf5] border border-[#6ee7b7] rounded-lg px-4 py-2.5">Connected successfully.</div>}
-      {slackError && (
-        <div className="text-xs text-[#dc2626] font-semibold mb-5 bg-[#fff5f5] border border-[#fecaca] rounded-lg px-4 py-2.5">
-          {slackError === "workspace_not_found" ? "Workspace not found." : `Connection failed (${slackError}).`}
-        </div>
-      )}
-      <div className="flex items-center justify-between gap-4 py-4 px-5 rounded-xl border-[1.5px] border-[#ede9fe] bg-[#faf9ff]">
-        <div className="flex items-center gap-3">
-          <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${connected ? "bg-[#059669]" : "bg-[#d1d5db]"}`} />
-          <div>
-            <div className="text-sm font-semibold text-[#1a1035]">{connected ? "Slack Connected" : "Slack Not Connected"}</div>
-            <div className="text-xs text-[#9688c0] mt-0.5">{connected ? "Bot token and webhook URL saved." : "Click Connect to authorize."}</div>
-          </div>
-        </div>
-        <a href={connectUrl} className="shrink-0 text-xs font-semibold text-white bg-[linear-gradient(135deg,#6d28d9_0%,#4f35be_100%)] rounded-lg py-2 px-5 no-underline">
-          {connected ? "Reconnect" : "Connect Slack"}
-        </a>
-      </div>
-    </div>
-  );
-}
-*/
 
 // ─── Google Calendar ──────────────────────────────────────────────────────────
 

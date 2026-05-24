@@ -72,16 +72,26 @@ async function processWorkspace(workspaceId: string): Promise<string> {
     now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59
   )).toISOString();
 
-  // Check if submitted today
-  const { data } = await supabaseAdmin
+  // Get all checklists for this workspace
+  const { data: checklists } = await supabaseAdmin
+    .from("checklists")
+    .select("id, title")
+    .eq("workspace_id", workspaceId);
+
+  if (!checklists || checklists.length === 0) return "no_checklists";
+
+  // Get checklist_ids that have a response today
+  const { data: todayResponses } = await supabaseAdmin
     .from("responses")
-    .select("id")
+    .select("checklist_id")
     .eq("workspace_id", workspaceId)
     .gte("created_at", todayStart)
-    .lte("created_at", todayEnd)
-    .limit(1);
+    .lte("created_at", todayEnd);
 
-  if ((data || []).length > 0) return "already_submitted";
+  const submittedIds = new Set((todayResponses || []).map(r => r.checklist_id));
+  const unfilled = checklists.filter(cl => !submittedIds.has(cl.id));
+
+  if (unfilled.length === 0) return "already_submitted";
 
   // Get reminder URL for this workspace
   const { data: configData } = await supabaseAdmin
@@ -92,6 +102,14 @@ async function processWorkspace(workspaceId: string): Promise<string> {
 
   if (!configData?.reminder_url) return "no_reminder_url";
 
+  let messageText: string;
+  if (checklists.length === 1) {
+    messageText = "<!channel>\n 本日、最終退社フォームの提出を確認できませんでした。状況を確認いただけますか？";
+  } else {
+    const names = unfilled.map(cl => `• ${cl.title}`).join("\n");
+    messageText = `<!channel>\n 本日、以下のチェックリストの提出を確認できませんでした。状況を確認いただけますか？\n${names}`;
+  }
+
   await fetch(configData.reminder_url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -100,7 +118,7 @@ async function processWorkspace(workspaceId: string): Promise<string> {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: "<!channel>\n 本日、最終退社フォームの提出を確認できませんでした。状況を確認いただけますか？",
+          text: messageText,
         },
       }],
     }),

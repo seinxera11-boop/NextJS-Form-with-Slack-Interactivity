@@ -4,6 +4,7 @@ import nodemailer from "nodemailer";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ReportRow = {
+  checklist_title: string;
   submitted_by: string;
   submission_date: string;
   approved_by: string;
@@ -11,22 +12,23 @@ type ReportRow = {
   comment_by_approver: string;
 };
 
+type AdminUser = {
+  email: string;
+  workspace_id: string;
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function toDateOnly(iso: string): string {
   if (!iso) return "";
-  return new Date(iso).toISOString().split("T")[0]; // YYYY-MM-DD
+  return new Date(iso).toISOString().split("T")[0];
 }
+
 function getMonthRange(now: Date): { start: string; end: string; label: string } {
   const year  = now.getUTCFullYear();
-  const month = now.getUTCMonth(); // 0-indexed — this is current month
+  const month = now.getUTCMonth();
 
-  // // Report on CURRENT month
-  // const start = new Date(Date.UTC(year, month, 1, 0, 0, 0)).toISOString();
-  // const end   = new Date(Date.UTC(year, month + 1, 1, 0, 0, 0)).toISOString();
-
-// // Report on PREVIOUS month
-const start = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0)).toISOString();
-const end   = new Date(Date.UTC(year, month,     1, 0, 0, 0)).toISOString();
+  const start = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0)).toISOString();
+  const end   = new Date(Date.UTC(year, month,     1, 0, 0, 0)).toISOString();
 
   const label = new Date(Date.UTC(year, month - 1, 1))
     .toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
@@ -36,6 +38,7 @@ const end   = new Date(Date.UTC(year, month,     1, 0, 0, 0)).toISOString();
 
 function toCSV(rows: ReportRow[]): string {
   const headers = [
+    "Checklist",
     "Submitted By",
     "Submission Time",
     "Approved By",
@@ -49,31 +52,44 @@ function toCSV(rows: ReportRow[]): string {
   };
 
   const lines = [
-    headers.map(escape).join(", "),
+    headers.map(escape).join(","),
     ...rows.map(r => [
-  escape(r.submitted_by),
-  escape(r.submission_date),
-  escape(r.approved_by),
-  escape(r.approval_date),
-  escape(r.comment_by_approver),
-].join(",")),
+      escape(r.checklist_title),
+      escape(r.submitted_by),
+      escape(r.submission_date),
+      escape(r.approved_by),
+      escape(r.approval_date),
+      escape(r.comment_by_approver),
+    ].join(",")),
   ];
 
   return lines.join("\r\n");
 }
 
-async function fetchMonthlyData(start: string, end: string): Promise<ReportRow[]> {
+async function fetchMainAdmins(): Promise<AdminUser[]> {
+  const { data, error } = await supabaseAdmin
+    .from("admin_users")
+    .select("email, workspace_id")
+    .eq("is_main_admin", true);
+
+  if (error) throw new Error(`Failed to fetch admin users: ${error.message}`);
+  return (data ?? []) as AdminUser[];
+}
+
+async function fetchMonthlyData(workspaceId: string, start: string, end: string): Promise<ReportRow[]> {
   const { data, error } = await supabaseAdmin
     .from("responses")
     .select(`
       submitted_by,
       created_at,
+      checklists (title),
       response_approvals (
         approved_by,
         approved_at,
         reason
       )
     `)
+    .eq("workspace_id", workspaceId)
     .gte("created_at", start)
     .lt("created_at", end)
     .order("created_at", { ascending: true });
@@ -81,44 +97,45 @@ async function fetchMonthlyData(start: string, end: string): Promise<ReportRow[]
   if (error) throw new Error(`Supabase fetch error: ${error.message}`);
 
   return (data || []).map((resp: any) => {
-  const approval = (resp.response_approvals || [])[0] ?? null;
-
-  return {
-    submitted_by: resp.submitted_by ?? "",
-    submission_date: toDateOnly(resp.created_at),
-    approved_by: approval?.approved_by ?? "",
-    approval_date: toDateOnly(approval?.approved_at),
-    comment_by_approver: approval?.reason ?? "",
-  };
-});
+    const approval = (resp.response_approvals || [])[0] ?? null;
+    return {
+      checklist_title:    (resp.checklists as any)?.title ?? "",
+      submitted_by:       resp.submitted_by ?? "",
+      submission_date:    toDateOnly(resp.created_at),
+      approved_by:        approval?.approved_by ?? "",
+      approval_date:      toDateOnly(approval?.approved_at),
+      comment_by_approver: approval?.reason ?? "",
+    };
+  });
 }
 
-async function sendReportEmail(csv: string, label: string, rowCount: number): Promise<void> {
-  const adminEmail = process.env.ADMIN_EMAILS;
-  if (!adminEmail) throw new Error("ADMIN_EMAIL env variable is not set");
-
+function createTransporter() {
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
     throw new Error("SMTP environment variables are not fully set");
   }
-
-  const transporter = nodemailer.createTransport({
+  return nodemailer.createTransport({
     host:   process.env.SMTP_HOST,
     port:   Number(process.env.SMTP_PORT) || 587,
-    secure: process.env.SMTP_SECURE === "true", // true for port 465
+    secure: process.env.SMTP_SECURE === "true",
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
   });
+}
 
-  // Verify SMTP connection before sending
-  await transporter.verify();
-
+async function sendReportEmail(
+  transporter: nodemailer.Transporter,
+  to: string,
+  csv: string,
+  label: string,
+  rowCount: number,
+): Promise<void> {
   const filename = `monthly_report_${label.replace(" ", "_")}.csv`;
 
   await transporter.sendMail({
-    from:    `"OfficeAdmin Reports" <${process.env.SMTP_USER}>`,
-    to:      adminEmail,
+    from:    `"OfficeAdmin Reports" <${process.env.EMAIL_FROM}>`,
+    to,
     subject: `月次報告書 — ${label}`,
     html: `
       <div style="font-family: sans-serif; max-width: 480px;">
@@ -156,20 +173,33 @@ export async function GET(req: NextRequest) {
 
     console.log(`📊 Generating monthly report for ${label} (${start} → ${end})`);
 
-    const rows = await fetchMonthlyData(start, end);
-    console.log(`✅ Fetched ${rows.length} response(s)`);
-
-    if (rows.length === 0) {
-      console.log("ℹ️  No responses this month — skipping email");
-      return NextResponse.json({ success: true, message: "No data this month, email skipped" });
+    const admins = await fetchMainAdmins();
+    if (admins.length === 0) {
+      console.log("ℹ️  No main admins found — skipping");
+      return NextResponse.json({ success: true, message: "No main admins found" });
     }
 
-    const csv = toCSV(rows);
+    const transporter = createTransporter();
+    await transporter.verify();
 
-    await sendReportEmail(csv, label, rows.length);
-    console.log(`📧 Report emailed to ${process.env.ADMIN_EMAILS}`);
+    const results: { email: string; rows: number; skipped?: boolean }[] = [];
 
-    return NextResponse.json({ success: true, month: label, rows: rows.length });
+    for (const admin of admins) {
+      const rows = await fetchMonthlyData(admin.workspace_id, start, end);
+
+      if (rows.length === 0) {
+        console.log(`ℹ️  No data for workspace ${admin.workspace_id} (${admin.email}) — skipping`);
+        results.push({ email: admin.email, rows: 0, skipped: true });
+        continue;
+      }
+
+      const csv = toCSV(rows);
+      await sendReportEmail(transporter, admin.email, csv, label, rows.length);
+      console.log(`📧 Report (${rows.length} rows) emailed to ${admin.email}`);
+      results.push({ email: admin.email, rows: rows.length });
+    }
+
+    return NextResponse.json({ success: true, month: label, results });
 
   } catch (err: any) {
     console.error("❌ Monthly report error:", err.message);
