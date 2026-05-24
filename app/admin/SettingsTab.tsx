@@ -20,9 +20,9 @@ type ChannelConfig = {
 };
 
 const CHANNELS: ChannelConfig[] = [
-  { key: "approval_url", label: "Approval Channel", description: "Receives checklist submissions with approve button",   channelParam: "approval" },
-  { key: "security_url", label: "Security Channel", description: "Receives exit log with missing task details",          channelParam: "security" },
-  { key: "reminder_url", label: "Reminder Channel", description: "Receives daily reminder if no submission by day end",  channelParam: "reminder" },
+  { key: "approval_url", label: "承認チャンネル",       description: "承認ボタン付きのチェックリスト送信を受信します",         channelParam: "approval" },
+  { key: "security_url", label: "セキュリティチャンネル", description: "未完了タスクの詳細を含む退勤ログを受信します",           channelParam: "security" },
+  { key: "reminder_url", label: "リマインダーチャンネル", description: "当日中に提出がない場合、毎日リマインダーを受信します",   channelParam: "reminder" },
 ];
 
 function SlackSection({ workspaceSlug }: { workspaceSlug: string }) {
@@ -58,26 +58,26 @@ function SlackSection({ workspaceSlug }: { workspaceSlug: string }) {
 
   return (
     <div>
-      <div className="text-xs font-bold text-[#3e249e] uppercase tracking-[0.12em] mb-1.5">Slack Integration</div>
+      <div className="text-xs font-bold text-[#3e249e] uppercase tracking-[0.12em] mb-1.5">Slack連携</div>
       <div className="text-xs text-[#9688c0] mb-6">
-        Connect each channel separately. Click Connect, select your Slack workspace and the channel for that notification type — the webhook URL is saved automatically.
+        各チャンネルを個別に接続してください。「接続」をクリックし、Slackワークスペースと通知タイプのチャンネルを選択すると、Webhook URLが自動的に保存されます。
       </div>
 
       {showConnected && (
         <div className="text-xs text-[#059669] font-semibold mb-5 bg-[#ecfdf5] border border-[#6ee7b7] rounded-lg px-4 py-2.5">
-          ✓ {justConnected} channel connected — webhook URL saved automatically.
+          ✓ {justConnected} チャンネルが接続されました — Webhook URLが自動的に保存されました。
         </div>
       )}
 
       {slackError && (
         <div className="text-xs text-[#dc2626] font-semibold mb-5 bg-[#fff5f5] border border-[#fecaca] rounded-lg px-4 py-2.5">
           {slackError === "no_webhook_url"
-            ? "✗ Slack did not return a webhook URL. Make sure \"Incoming Webhooks\" is enabled in your Slack app settings (api.slack.com → your app → Features → Incoming Webhooks → On)."
+            ? "✗ SlackからWebhook URLが返されませんでした。Slackアプリの設定でIncoming Webhooksが有効になっているか確認してください（api.slack.com → アプリ → Features → Incoming Webhooks → オン）。"
             : slackError === "workspace_not_found"
-            ? "✗ Workspace not found. Please contact your administrator."
+            ? "✗ ワークスペースが見つかりません。管理者に連絡してください。"
             : slackError === "missing_code"
-            ? "✗ Authorization cancelled or timed out. Please try again."
-            : `✗ Slack connection failed: ${slackError}. Please try again.`}
+            ? "✗ 認証がキャンセルされたか、タイムアウトしました。もう一度お試しください。"
+            : `✗ Slack接続に失敗しました: ${slackError}。もう一度お試しください。`}
         </div>
       )}
 
@@ -85,7 +85,7 @@ function SlackSection({ workspaceSlug }: { workspaceSlug: string }) {
       <div className="flex items-center gap-2.5 mb-5 pb-5 border-b border-[#ede9fe]">
         <div className={`w-2 h-2 rounded-full shrink-0 ${botConnected ? "bg-[#059669]" : "bg-[#d1d5db]"}`} />
         <div className="text-xs text-[#9688c0]">
-          {botConnected ? "Bot token saved — app is authorized." : "Not authorized yet — connect any channel below."}
+          {botConnected ? "ボットトークンが保存されています — アプリが認証済みです。" : "まだ認証されていません — 以下のいずれかのチャンネルを接続してください。"}
         </div>
       </div>
 
@@ -106,7 +106,7 @@ function SlackSection({ workspaceSlug }: { workspaceSlug: string }) {
                 href={installUrl(ch.channelParam)}
                 className="shrink-0 text-xs font-semibold text-white bg-[linear-gradient(135deg,#6d28d9_0%,#4f35be_100%)] rounded-lg py-1.75 px-4 no-underline inline-flex items-center gap-1.5 shadow-[0_1px_6px_rgba(109,40,217,0.25)]"
               >
-                {connected ? "Reconnect" : "Connect"}
+                {connected ? "再接続" : "接続"}
               </a>
             </div>
           );
@@ -114,7 +114,7 @@ function SlackSection({ workspaceSlug }: { workspaceSlug: string }) {
       </div>
 
       <div className="mt-4 text-xs text-[#a696f2] leading-relaxed bg-[#f5f0ff] border border-[#ede9fe] rounded-lg px-4 py-3">
-        After clicking Connect and allowing access in Slack, the webhook URL for that channel is saved to the database automatically — no manual copying needed.
+        「接続」をクリックしてSlackでアクセスを許可すると、そのチャンネルのWebhook URLがデータベースに自動的に保存されます — 手動でコピーする必要はありません。
       </div>
     </div>
   );
@@ -158,14 +158,14 @@ function GoogleCalendarSection() {
 
   return (
     <div>
-      <div className="text-xs font-bold text-[#3e249e] uppercase tracking-[0.12em] mb-1.5">Google Calendar</div>
+      <div className="text-xs font-bold text-[#3e249e] uppercase tracking-[0.12em] mb-1.5">Google カレンダー</div>
       <div className="text-xs text-[#9688c0] mb-6">
-        Holiday calendar used by the daily cron to skip reminders on public holidays. Find the Calendar ID under Google Calendar → Settings → Integrate calendar.
+        祝日カレンダーは、祝日にリマインダーをスキップするために毎日のcronで使用されます。カレンダーIDはGoogle カレンダー → 設定 → カレンダーの統合 で確認できます。
       </div>
 
       {saved && (
         <div className="text-xs text-[#059669] font-semibold mb-5 bg-[#ecfdf5] border border-[#6ee7b7] rounded-lg px-4 py-2.5">
-          ✓ Calendar ID saved.
+          ✓ カレンダーIDが保存されました。
         </div>
       )}
       {saveError && (
@@ -193,7 +193,7 @@ function GoogleCalendarSection() {
       </div>
 
       <div className="mt-4 text-xs text-[#a696f2] leading-relaxed bg-[#f5f0ff] border border-[#ede9fe] rounded-lg px-4 py-3">
-        If left empty, falls back to the <span className="font-mono">GOOGLE_CALENDAR_ID</span> environment variable.
+        空白の場合は、環境変数 <span className="font-mono">GOOGLE_CALENDAR_ID</span> が使用されます。
       </div>
     </div>
   );
