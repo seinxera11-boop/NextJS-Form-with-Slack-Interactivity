@@ -1,119 +1,238 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
-// ─── Slack settings ───────────────────────────────────────────────────────────
+// ─── Slack connection ──────────────────────────────────────────────────────────
 
-type Fields = {
-  bot_token: string;
-  approval_url: string;
-  security_url: string;
-  reminder_url: string;
+type SlackFields = {
+  bot_token:    string | null;
+  approval_url: string | null;
+  security_url: string | null;
+  reminder_url: string | null;
 };
 
-const EMPTY: Fields = { bot_token: "", approval_url: "", security_url: "", reminder_url: "" };
-type FieldKey = keyof Fields;
+type ChannelConfig = {
+  key:          keyof SlackFields;
+  label:        string;
+  description:  string;
+  channelParam: "approval" | "security" | "reminder";
+};
 
-function FieldRow({
-  label, fieldKey, value, placeholder, isPassword, onSave,
-}: {
-  label: string; fieldKey: FieldKey; value: string;
-  placeholder: string; isPassword?: boolean;
-  onSave: (key: FieldKey, val: string) => Promise<void>;
-}) {
-  const [editing, setEditing]   = useState(false);
-  const [draft, setDraft]       = useState(value);
-  const [saving, setSaving]     = useState(false);
-  const [saved, setSaved]       = useState(false);
-  const [error, setError]       = useState("");
-  const [showPw, setShowPw]     = useState(false);
+const CHANNELS: ChannelConfig[] = [
+  { key: "approval_url", label: "Approval Channel", description: "Receives checklist submissions with approve button",   channelParam: "approval" },
+  { key: "security_url", label: "Security Channel", description: "Receives exit log with missing task details",          channelParam: "security" },
+  { key: "reminder_url", label: "Reminder Channel", description: "Receives daily reminder if no submission by day end",  channelParam: "reminder" },
+];
 
-  useEffect(() => { setDraft(value); }, [value]);
+function SlackSection({ workspaceSlug }: { workspaceSlug: string }) {
+  const [fields, setFields]   = useState<SlackFields>({ bot_token: null, approval_url: null, security_url: null, reminder_url: null });
+  const [loading, setLoading] = useState(true);
+  const searchParams          = useSearchParams();
+  const justConnected         = searchParams.get("slack_connected");
+  const slackError            = searchParams.get("slack_error");
 
-  const handleEdit = () => { setDraft(value); setEditing(true); setError(""); setSaved(false); };
-  const handleCancel = () => { setDraft(value); setEditing(false); setError(""); };
+  useEffect(() => {
+    fetch("/api/settings")
+      .then(r => r.json())
+      .then(data => { setFields(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [justConnected]);
+
+  const installUrl = (channelParam: string) =>
+    `/api/slack/install?workspace=${workspaceSlug}&channel=${channelParam}`;
+
+  const botConnected = !!fields.bot_token;
+
+  if (loading) return <div className="py-6 text-center text-sm text-[#c4b5fd]">読み込み中…</div>;
+
+  return (
+    <div>
+      <div className="text-xs font-bold text-[#3e249e] uppercase tracking-[0.12em] mb-1.5">Slack Integration</div>
+      <div className="text-xs text-[#9688c0] mb-6">
+        Connect each channel separately. Click Connect, select your Slack workspace and the channel for that notification type — the webhook URL is saved automatically.
+      </div>
+
+      {justConnected && (
+        <div className="text-xs text-[#059669] font-semibold mb-5 bg-[#ecfdf5] border border-[#6ee7b7] rounded-lg px-4 py-2.5">
+          ✓ {justConnected} channel connected — webhook URL saved automatically.
+        </div>
+      )}
+
+      {slackError && (
+        <div className="text-xs text-[#dc2626] font-semibold mb-5 bg-[#fff5f5] border border-[#fecaca] rounded-lg px-4 py-2.5">
+          {slackError === "no_webhook_url"
+            ? "✗ Slack did not return a webhook URL. Make sure \"Incoming Webhooks\" is enabled in your Slack app settings (api.slack.com → your app → Features → Incoming Webhooks → On)."
+            : slackError === "workspace_not_found"
+            ? "✗ Workspace not found. Please contact your administrator."
+            : slackError === "missing_code"
+            ? "✗ Authorization cancelled or timed out. Please try again."
+            : `✗ Slack connection failed: ${slackError}. Please try again.`}
+        </div>
+      )}
+
+      {/* Bot token status */}
+      <div className="flex items-center gap-2.5 mb-5 pb-5 border-b border-[#ede9fe]">
+        <div className={`w-2 h-2 rounded-full shrink-0 ${botConnected ? "bg-[#059669]" : "bg-[#d1d5db]"}`} />
+        <div className="text-xs text-[#9688c0]">
+          {botConnected ? "Bot token saved — app is authorized." : "Not authorized yet — connect any channel below."}
+        </div>
+      </div>
+
+      {/* Per-channel rows */}
+      <div className="space-y-3">
+        {CHANNELS.map(ch => {
+          const connected = !!fields[ch.key];
+          return (
+            <div key={ch.key} className="flex items-center justify-between gap-4 py-3.5 px-4 rounded-xl border-[1.5px] border-[#ede9fe] bg-[#faf9ff]">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className={`w-2 h-2 rounded-full shrink-0 ${connected ? "bg-[#059669]" : "bg-[#d1d5db]"}`} />
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-[#1a1035]">{ch.label}</div>
+                  <div className="text-xs text-[#9688c0] truncate">{ch.description}</div>
+                </div>
+              </div>
+              <a
+                href={installUrl(ch.channelParam)}
+                className="shrink-0 text-xs font-semibold text-white bg-[linear-gradient(135deg,#6d28d9_0%,#4f35be_100%)] rounded-lg py-1.75 px-4 no-underline inline-flex items-center gap-1.5 shadow-[0_1px_6px_rgba(109,40,217,0.25)]"
+              >
+                {connected ? "Reconnect" : "Connect"}
+              </a>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 text-xs text-[#a696f2] leading-relaxed bg-[#f5f0ff] border border-[#ede9fe] rounded-lg px-4 py-3">
+        After clicking Connect and allowing access in Slack, the webhook URL for that channel is saved to the database automatically — no manual copying needed.
+      </div>
+    </div>
+  );
+}
+
+/*
+// ─── Single-connect Slack section (commented out, do not delete) ───────────────
+
+function SlackSectionSingle({ workspaceSlug }: { workspaceSlug: string }) {
+  const [connected, setConnected] = useState(false);
+  const [loading, setLoading]     = useState(true);
+  const searchParams              = useSearchParams();
+  const justConnected             = searchParams.get("slack_connected");
+  const slackError                = searchParams.get("slack_error");
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then(r => r.json())
+      .then(data => { setConnected(!!data.bot_token); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [justConnected]);
+
+  const connectUrl = `/api/slack/install?workspace=${workspaceSlug}&channel=approval`;
+
+  if (loading) return <div className="py-6 text-center text-sm text-[#c4b5fd]">読み込み中…</div>;
+
+  return (
+    <div>
+      <div className="text-xs font-bold text-[#3e249e] uppercase tracking-[0.12em] mb-1.5">Slack Integration</div>
+      <div className="text-xs text-[#9688c0] mb-6">Connect your Slack workspace to receive notifications.</div>
+      {justConnected && <div className="text-xs text-[#059669] font-semibold mb-5 bg-[#ecfdf5] border border-[#6ee7b7] rounded-lg px-4 py-2.5">Connected successfully.</div>}
+      {slackError && (
+        <div className="text-xs text-[#dc2626] font-semibold mb-5 bg-[#fff5f5] border border-[#fecaca] rounded-lg px-4 py-2.5">
+          {slackError === "workspace_not_found" ? "Workspace not found." : `Connection failed (${slackError}).`}
+        </div>
+      )}
+      <div className="flex items-center justify-between gap-4 py-4 px-5 rounded-xl border-[1.5px] border-[#ede9fe] bg-[#faf9ff]">
+        <div className="flex items-center gap-3">
+          <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${connected ? "bg-[#059669]" : "bg-[#d1d5db]"}`} />
+          <div>
+            <div className="text-sm font-semibold text-[#1a1035]">{connected ? "Slack Connected" : "Slack Not Connected"}</div>
+            <div className="text-xs text-[#9688c0] mt-0.5">{connected ? "Bot token and webhook URL saved." : "Click Connect to authorize."}</div>
+          </div>
+        </div>
+        <a href={connectUrl} className="shrink-0 text-xs font-semibold text-white bg-[linear-gradient(135deg,#6d28d9_0%,#4f35be_100%)] rounded-lg py-2 px-5 no-underline">
+          {connected ? "Reconnect" : "Connect Slack"}
+        </a>
+      </div>
+    </div>
+  );
+}
+*/
+
+// ─── Google Calendar ──────────────────────────────────────────────────────────
+
+function GoogleCalendarSection() {
+  const [calendarId, setCalendarId] = useState("");
+  const [saved,      setSaved]      = useState<string | null>(null);
+  const [saveError,  setSaveError]  = useState("");
+  const [saving,     setSaving]     = useState(false);
+  const [loading,    setLoading]    = useState(true);
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then(r => r.json())
+      .then(data => { setCalendarId(data.google_calendar_id ?? ""); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
 
   const handleSave = async () => {
-    setSaving(true); setError("");
+    setSaving(true); setSaved(null); setSaveError("");
     try {
-      await onSave(fieldKey, draft);
-      setSaved(true); setEditing(false);
-      setTimeout(() => setSaved(false), 3000);
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ google_calendar_id: calendarId }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "保存に失敗しました");
+      setSaved(calendarId);
     } catch (err: any) {
-      setError(err.message);
+      setSaveError(err.message);
     } finally {
       setSaving(false);
     }
   };
 
-  const S: Record<string, React.CSSProperties> = {
-    wrap:       { marginBottom: 26 },
-    labelRow:   { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 9 },
-    label:      { fontSize: 14, fontWeight: 600, color: "#4b3d80" },
-    inputWrap:  { display: "flex", gap: 8, alignItems: "center" },
-    input: {
-      flex: 1, border: `1.5px solid ${editing ? "#a78bfa" : "#ccc0fa"}`,
-      borderRadius: 10, padding: "11px 15px", fontSize: 15,
-      color: editing ? "#1a1035" : "#6a5d8e", outline: "none",
-      background: editing ? "#fff" : "#faf9ff",
-      fontFamily: "monospace", boxSizing: "border-box" as const,
-      transition: "all 0.15s",
-      boxShadow: editing ? "0 0 0 3px rgba(167,139,250,0.2)" : "none"
-    },
-    eyeBtn: {
-      background: "#ede9fe", border: "1.5px solid #ccc0fa",
-      borderRadius: 10, padding: "10px 13px", cursor: "pointer",
-      fontSize: 15, lineHeight: 1, color: "#6a5d8e", flexShrink: 0
-    },
-    editBtn: {
-      fontSize: 14, fontWeight: 500, color: "#4b3d80", background: "#ede9fe",
-      border: "1.5px solid #ccc0fa", borderRadius: 10,
-      padding: "10px 18px", cursor: "pointer", fontFamily: "inherit", flexShrink: 0
-    },
-    saveBtn: {
-      fontSize: 14, fontWeight: 600, color: "#fff",
-      background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)",
-      border: "none", borderRadius: 10, padding: "10px 18px",
-      cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
-      boxShadow: "0 2px 10px rgba(109,40,217,0.28)"
-    },
-    cancelBtn: {
-      fontSize: 14, color: "#6a5d8e", background: "none",
-      border: "1.5px solid #ccc0fa", borderRadius: 10,
-      padding: "10px 16px", cursor: "pointer", fontFamily: "inherit", flexShrink: 0
-    },
-    savedBadge: { fontSize: 13, color: "#059669", fontWeight: 600, marginTop: 6, display: "flex", alignItems: "center", gap: 4 },
-    errText: { fontSize: 13, color: "#dc2626", marginTop: 6, fontWeight: 500 },
-  };
-
-  const inputType = isPassword ? (showPw ? "text" : "password") : "text";
+  if (loading) return <div className="py-6 text-center text-sm text-[#c4b5fd]">読み込み中…</div>;
 
   return (
-    <div style={S.wrap}>
-      <div style={S.labelRow}><span style={S.label}>{label}</span></div>
-      <div style={S.inputWrap}>
-        <input
-          style={S.input} type={inputType} placeholder={placeholder}
-          value={editing ? draft : (value || "")}
-          onChange={e => editing && setDraft(e.target.value)}
-          readOnly={!editing} autoComplete="off"
-        />
-        {isPassword && (
-          <button style={S.eyeBtn} onClick={() => setShowPw(p => !p)}>
-            {showPw ? "🚫" : "👁"}
-          </button>
-        )}
-        {!editing ? (
-          <button style={S.editBtn} onClick={handleEdit}>編集</button>
-        ) : (
-          <>
-            <button style={S.cancelBtn} onClick={handleCancel} disabled={saving}>キャンセル</button>
-            <button style={S.saveBtn} onClick={handleSave} disabled={saving}>{saving ? "保存中…" : "保存"}</button>
-          </>
-        )}
+    <div>
+      <div className="text-xs font-bold text-[#3e249e] uppercase tracking-[0.12em] mb-1.5">Google Calendar</div>
+      <div className="text-xs text-[#9688c0] mb-6">
+        Holiday calendar used by the daily cron to skip reminders on public holidays. Find the Calendar ID under Google Calendar → Settings → Integrate calendar.
       </div>
-      {saved && <div style={S.savedBadge}>✓ 保存しました</div>}
-      {error && <div style={S.errText}>⚠ {error}</div>}
+
+      {saved && (
+        <div className="text-xs text-[#059669] font-semibold mb-5 bg-[#ecfdf5] border border-[#6ee7b7] rounded-lg px-4 py-2.5">
+          ✓ Calendar ID saved.
+        </div>
+      )}
+      {saveError && (
+        <div className="text-xs text-[#dc2626] font-semibold mb-5 bg-[#fff5f5] border border-[#fecaca] rounded-lg px-4 py-2.5">
+          ✗ {saveError}
+        </div>
+      )}
+
+      <div className="flex gap-2 items-center">
+        <input
+          className="flex-1 border-[1.5px] border-[#ccc0fa] rounded-[10px] py-2.5 px-3.75 text-sm text-[#1a1035] outline-none bg-[#faf9ff] font-[inherit]"
+          type="text"
+          placeholder="xxxxxxxx@group.calendar.google.com"
+          value={calendarId}
+          onChange={e => { setCalendarId(e.target.value); setSaved(null); }}
+          onKeyDown={e => e.key === "Enter" && handleSave()}
+        />
+        <button
+          className={`shrink-0 text-sm font-semibold text-white bg-[linear-gradient(135deg,#6d28d9_0%,#4f35be_100%)] border-none rounded-[10px] py-2.5 px-5 cursor-pointer font-[inherit] shadow-[0_2px_10px_rgba(109,40,217,0.28)] ${saving || !calendarId.trim() ? "opacity-60" : ""}`}
+          onClick={handleSave}
+          disabled={saving || !calendarId.trim()}
+        >
+          {saving ? "保存中…" : "保存"}
+        </button>
+      </div>
+
+      <div className="mt-4 text-xs text-[#a696f2] leading-relaxed bg-[#f5f0ff] border border-[#ede9fe] rounded-lg px-4 py-3">
+        If left empty, falls back to the <span className="font-mono">GOOGLE_CALENDAR_ID</span> environment variable.
+      </div>
     </div>
   );
 }
@@ -206,138 +325,102 @@ function SubAdminsSection() {
     await fetchAll();
   };
 
-  const S: Record<string, React.CSSProperties> = {
-    secLabel: {
-      fontSize: 13, fontWeight: 700, color: "#3e249e",
-      textTransform: "uppercase" as const, letterSpacing: "0.12em", marginBottom: 22
-    },
-    addRow: { display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap" as const, marginBottom: 18 },
-    input: {
-      flex: 1, minWidth: 220,
-      border: "1.5px solid #ccc0fa", borderRadius: 10, padding: "10px 15px",
-      fontSize: 15, color: "#1a1035", outline: "none", background: "#faf9ff",
-      fontFamily: "inherit",
-    },
-    addBtn: {
-      fontSize: 14, fontWeight: 600, color: "#fff",
-      background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)",
-      border: "none", borderRadius: 10, padding: "10px 20px",
-      cursor: "pointer", fontFamily: "inherit",
-      boxShadow: "0 2px 10px rgba(109,40,217,0.28)", flexShrink: 0
-    },
-    deptPills: { display: "flex", gap: 7, flexWrap: "wrap" as const, marginTop: 10 },
-    row: {
-      display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-      padding: "16px 0", borderBottom: "1px solid #ede9fe", gap: 12
-    },
-    email: { fontSize: 15, fontWeight: 500, color: "#1a1035", marginBottom: 7 },
-    deptList: { fontSize: 13, color: "#7a6aaa" },
-    actionBtns: { display: "flex", gap: 6, flexShrink: 0 },
-    editBtn: {
-      fontSize: 13, color: "#4b3d80", background: "#ede9fe",
-      border: "1.5px solid #ccc0fa", borderRadius: 8,
-      padding: "6px 14px", cursor: "pointer", fontFamily: "inherit"
-    },
-    deleteBtn: {
-      fontSize: 13, color: "#dc2626", background: "#fff5f5",
-      border: "1.5px solid #fecaca", borderRadius: 8,
-      padding: "6px 14px", cursor: "pointer", fontFamily: "inherit"
-    },
-    saveBtn: {
-      fontSize: 13, fontWeight: 600, color: "#fff",
-      background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
-      border: "none", borderRadius: 8, padding: "6px 16px",
-      cursor: "pointer", fontFamily: "inherit"
-    },
-    cancelBtn: {
-      fontSize: 13, color: "#6a5d8e", background: "none",
-      border: "1.5px solid #ccc0fa", borderRadius: 8,
-      padding: "6px 14px", cursor: "pointer", fontFamily: "inherit"
-    },
-    errText: { fontSize: 13, color: "#dc2626", marginTop: 7, fontWeight: 500 },
-    emptyText: { fontSize: 14, color: "#a696f2", padding: "22px 0", textAlign: "center" as const },
-  };
-
-  const pill = (active: boolean): React.CSSProperties => ({
-    fontSize: 13, fontWeight: 500, padding: "5px 14px", borderRadius: 100,
-    cursor: "pointer", border: `1.5px solid ${active ? "#c4b5fd" : "#ccc0fa"}`,
-    background: active ? "linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)" : "#faf9ff",
-    color: active ? "#4f35be" : "#7a6aaa",
-    transition: "all 0.12s",
-  });
+  const pill = (active: boolean) =>
+    `text-xs font-medium py-1.25 px-3.5 rounded-full cursor-pointer border-[1.5px] transition-all duration-[120ms] ${active ? "border-[#c4b5fd] bg-[linear-gradient(135deg,#ede9fe_0%,#ddd6fe_100%)] text-[#4f35be]" : "border-[#ccc0fa] bg-[#faf9ff] text-[#7a6aaa]"}`;
 
   const clTitle = (id: number) => checklists.find(c => c.id === id)?.title ?? String(id);
 
   return (
     <div>
-      <div style={S.secLabel}>サブ管理者</div>
+      <div className="text-xs font-bold text-[#3e249e] uppercase tracking-[0.12em] mb-5.5">サブ管理者</div>
 
-      {/* Add new sub-admin */}
       <div>
-        <div style={S.addRow}>
+        <div className="flex gap-2 items-start flex-wrap mb-4.5">
           <input
-            style={S.input}
+            className="flex-1 min-w-55 border-[1.5px] border-[#ccc0fa] rounded-[10px] py-2.5 px-3.75 text-sm text-[#1a1035] outline-none bg-[#faf9ff] font-[inherit]"
             type="email"
             placeholder="sub-admin@example.com"
             value={newEmail}
             onChange={e => setNewEmail(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleAdd()}
           />
-          <button style={{ ...S.addBtn, opacity: adding || !newEmail ? 0.6 : 1 }} onClick={handleAdd} disabled={adding || !newEmail}>
+          <button
+            className={`text-sm font-semibold text-white bg-[linear-gradient(135deg,#6d28d9_0%,#4f35be_100%)] border-none rounded-[10px] py-2.5 px-5 cursor-pointer font-[inherit] shadow-[0_2px_10px_rgba(109,40,217,0.28)] shrink-0 ${adding || !newEmail ? "opacity-60" : ""}`}
+            onClick={handleAdd}
+            disabled={adding || !newEmail}
+          >
             {adding ? "追加中…" : "+ 追加"}
           </button>
         </div>
-        <div style={{ fontSize: 12, color: "#7c6fa0", marginBottom: 8 }}>アクセス可能なチェックリストを選択：</div>
-        <div style={S.deptPills}>
+        <div className="text-xs text-[#7c6fa0] mb-2">アクセス可能なチェックリストを選択：</div>
+        <div className="flex gap-1.75 flex-wrap mt-2.5">
           {checklists.map(cl => (
-            <button key={cl.id} style={pill(newCls.includes(cl.id))} onClick={() => setNewCls(p => toggle(p, cl.id))}>
+            <button key={cl.id} className={pill(newCls.includes(cl.id))} onClick={() => setNewCls(p => toggle(p, cl.id))}>
               {cl.title}
             </button>
           ))}
         </div>
-        {addError && <div style={S.errText}>⚠ {addError}</div>}
+        {addError && <div className="text-xs text-[#dc2626] mt-1.75 font-medium">⚠ {addError}</div>}
       </div>
 
-      <div style={{ height: 1, background: "#f0ebff", margin: "20px 0" }} />
+      <div className="h-px bg-[#f0ebff] my-5" />
 
-      {/* Sub-admin list */}
       {loading ? (
-        <div style={{ padding: "20px 0", textAlign: "center", fontSize: 13, color: "#c4b5fd" }}>読み込み中…</div>
+        <div className="py-5 text-center text-xs text-[#c4b5fd]">読み込み中…</div>
       ) : subAdmins.length === 0 ? (
-        <div style={S.emptyText}>サブ管理者はまだ登録されていません。</div>
+        <div className="text-sm text-[#a696f2] py-5.5 text-center">サブ管理者はまだ登録されていません。</div>
       ) : subAdmins.map(sa => {
         const isEditing = editingId === sa.id;
         const assignedTitles = sa.sub_admin_checklists.map(c => clTitle(c.checklist_id));
         return (
-          <div key={sa.id} style={S.row}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={S.email}>{sa.email}</div>
+          <div key={sa.id} className="flex items-start justify-between py-4 border-b border-b-[#ede9fe] gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-[#1a1035] mb-1.75">{sa.email}</div>
               {isEditing ? (
-                <div style={S.deptPills}>
+                <div className="flex gap-1.75 flex-wrap mt-2.5">
                   {checklists.map(cl => (
-                    <button key={cl.id} style={pill(editCls.includes(cl.id))} onClick={() => setEditCls(p => toggle(p, cl.id))}>
+                    <button key={cl.id} className={pill(editCls.includes(cl.id))} onClick={() => setEditCls(p => toggle(p, cl.id))}>
                       {cl.title}
                     </button>
                   ))}
                 </div>
               ) : (
-                <div style={S.deptList}>
+                <div className="text-xs text-[#7a6aaa]">
                   {assignedTitles.length > 0 ? assignedTitles.join(" · ") : "チェックリスト未割り当て"}
                 </div>
               )}
             </div>
-            <div style={S.actionBtns}>
+            <div className="flex gap-1.5 shrink-0">
               {isEditing ? (
                 <>
-                  <button style={{ ...S.saveBtn, opacity: saving ? 0.6 : 1 }} onClick={() => handleSaveEdit(sa.id)} disabled={saving}>
+                  <button
+                    className={`text-xs font-semibold text-white bg-[linear-gradient(135deg,#059669_0%,#047857_100%)] border-none rounded-lg py-1.5 px-4 cursor-pointer font-[inherit] ${saving ? "opacity-60" : ""}`}
+                    onClick={() => handleSaveEdit(sa.id)}
+                    disabled={saving}
+                  >
                     {saving ? "保存中…" : "保存"}
                   </button>
-                  <button style={S.cancelBtn} onClick={() => setEditingId(null)}>キャンセル</button>
+                  <button
+                    className="text-xs text-[#6a5d8e] bg-transparent border-[1.5px] border-[#ccc0fa] rounded-lg py-1.5 px-3.5 cursor-pointer font-[inherit]"
+                    onClick={() => setEditingId(null)}
+                  >
+                    キャンセル
+                  </button>
                 </>
               ) : (
                 <>
-                  <button style={S.editBtn} onClick={() => startEdit(sa)}>編集</button>
-                  <button style={S.deleteBtn} onClick={() => handleDelete(sa.id, sa.email)}>削除</button>
+                  <button
+                    className="text-xs text-[#4b3d80] bg-[#ede9fe] border-[1.5px] border-[#ccc0fa] rounded-lg py-1.5 px-3.5 cursor-pointer font-[inherit]"
+                    onClick={() => startEdit(sa)}
+                  >
+                    編集
+                  </button>
+                  <button
+                    className="text-xs text-[#dc2626] bg-[#fff5f5] border-[1.5px] border-[#fecaca] rounded-lg py-1.5 px-3.5 cursor-pointer font-[inherit]"
+                    onClick={() => handleDelete(sa.id, sa.email)}
+                  >
+                    削除
+                  </button>
                 </>
               )}
             </div>
@@ -350,72 +433,23 @@ function SubAdminsSection() {
 
 // ─── Main SettingsTab ─────────────────────────────────────────────────────────
 
-export function SettingsTab() {
-  const [fields, setFields] = useState<Fields>(EMPTY);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
-
-  useEffect(() => {
-    fetch("/api/settings")
-      .then(r => r.json())
-      .then(data => { setFields({ ...EMPTY, ...data }); setLoading(false); })
-      .catch(() => { setLoadError("設定の読み込みに失敗しました。"); setLoading(false); });
-  }, []);
-
-  const handleSaveField = async (key: FieldKey, val: string) => {
-    const res = await fetch("/api/settings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ [key]: val }),
-    });
-    const result = await res.json();
-    if (!res.ok) throw new Error(result.error || "保存に失敗しました");
-    setFields(p => ({ ...p, [key]: val }));
-  };
-
-  const S: Record<string, React.CSSProperties> = {
-    main: { maxWidth: 600, margin: "-20px auto", padding: "56px 32px" },
-    pageTitle: { fontSize: 32, fontWeight: 700, letterSpacing: "-0.04em", color: "#1a1035", marginBottom: 8 },
-    pageSub: { fontSize: 15, color: "#6a5d8e", marginBottom: 44 },
-    section: {
-      border: "1.5px solid #dfd5fb", borderRadius: 16, padding: "32px",
-      marginBottom: 22, background: "#fff",
-      boxShadow: "0 2px 18px rgba(79,53,190,0.10)"
-    },
-    secLabel: {
-      fontSize: 13, fontWeight: 700, color: "#3e249e",
-      textTransform: "uppercase" as const, letterSpacing: "0.12em", marginBottom: 26
-    },
-    divider: { height: "1.5px", background: "linear-gradient(90deg, #dfd5fb 0%, #ede9fe 100%)", margin: "22px 0" },
-  };
-
+export function SettingsTab({ workspaceSlug }: { workspaceSlug: string }) {
   return (
-    <div style={S.main}>
-      <div style={S.pageTitle}>設定</div>
-      <div style={S.pageSub}>Slack連携とサブ管理者の設定を行います。</div>
+    <div className="max-w-150 -my-5 mx-auto py-14 px-8">
+      <div className="text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-2">設定</div>
+      <div className="text-sm text-[#6a5d8e] mb-11">Slack連携とサブ管理者の設定を行います。</div>
 
-      {loading ? (
-        <div style={{ padding: "80px 0", textAlign: "center", fontSize: 14, color: "#c4b5fd" }}>読み込み中…</div>
-      ) : loadError ? (
-        <div style={{ fontSize: 13, color: "#dc2626", fontWeight: 500 }}>⚠ {loadError}</div>
-      ) : (
-        <>
-          <div style={S.section}>
-            <div style={S.secLabel}>Slack設定</div>
-            <FieldRow label="ボットトークン" fieldKey="bot_token" value={fields.bot_token} placeholder="xoxb-..." isPassword onSave={handleSaveField} />
-            <div style={S.divider} />
-            <FieldRow label="承認チャンネル Webhook URL" fieldKey="approval_url" value={fields.approval_url} placeholder="https://hooks.slack.com/services/..." onSave={handleSaveField} />
-            <div style={S.divider} />
-            <FieldRow label="セキュリティチャンネル Webhook URL" fieldKey="security_url" value={fields.security_url} placeholder="https://hooks.slack.com/services/..." onSave={handleSaveField} />
-            <div style={S.divider} />
-            <FieldRow label="リマインダーチャンネル Webhook URL" fieldKey="reminder_url" value={fields.reminder_url} placeholder="https://hooks.slack.com/services/..." onSave={handleSaveField} />
-          </div>
+      <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-8 mb-5.5 bg-white shadow-[0_2px_18px_rgba(79,53,190,0.10)]">
+        <SlackSection workspaceSlug={workspaceSlug} />
+      </div>
 
-          <div style={S.section}>
-            <SubAdminsSection />
-          </div>
-        </>
-      )}
+      <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-8 mb-5.5 bg-white shadow-[0_2px_18px_rgba(79,53,190,0.10)]">
+        <GoogleCalendarSection />
+      </div>
+
+      <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-8 mb-5.5 bg-white shadow-[0_2px_18px_rgba(79,53,190,0.10)]">
+        <SubAdminsSection />
+      </div>
     </div>
   );
 }

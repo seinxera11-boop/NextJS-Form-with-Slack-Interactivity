@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
       `*, checklists(title), departments(name), org_users(name),
        response_items(*, checklist_items(label, type)), response_approvals(*)`
     )
+    .eq("workspace_id", ctx.workspaceId)
     .order("created_at", { ascending: false });
 
   if (!ctx.isMainAdmin) {

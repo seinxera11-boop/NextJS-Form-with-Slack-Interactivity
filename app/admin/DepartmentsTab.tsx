@@ -31,18 +31,20 @@ export function DepartmentsTab() {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [depts, users] = await Promise.all([
-      fetch("/api/departments").then(r => r.json()),
-      fetch("/api/org-users").then(r => r.json()),
+    const [deptsRes, usersRes] = await Promise.all([
+      fetch("/api/departments"),
+      fetch("/api/org-users"),
     ]);
-    setDepartments(depts || []);
-    setOrgUsers(users || []);
+    const [depts, users] = await Promise.all([deptsRes.json(), usersRes.json()]);
+    setDepartments(Array.isArray(depts) ? depts : []);
+    setOrgUsers(Array.isArray(users) ? users : []);
     setLoading(false);
   };
 
   const fetchUsersForDept = async (deptId: number) => {
-    const data = await fetch(`/api/org-users?department_id=${deptId}`).then(r => r.json());
-    setDeptUsers(data || []);
+    const res = await fetch(`/api/org-users?department_id=${deptId}`);
+    const data = await res.json();
+    setDeptUsers(Array.isArray(data) ? data : []);
   };
 
   const handleAddDept = async () => {
@@ -135,121 +137,95 @@ export function DepartmentsTab() {
     setView("users");
   };
 
-  const S: Record<string, React.CSSProperties> = {
-    main: { maxWidth: 860, margin: "-20px auto", padding: "56px 32px" },
-    pageTitle: { fontSize: 32, fontWeight: 700, letterSpacing: "-0.04em", color: "#1a1035", marginBottom: 8 },
-    pageSubtitle: { fontSize: 15, color: "#6a5d8e", marginBottom: 36 },
-    back: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 15, color: "#6a5d8e", cursor: "pointer", marginBottom: 30, background: "none", border: "none", padding: 0 },
-    panel: { border: "1.5px solid #dfd5fb", borderRadius: 14, overflow: "hidden", background: "#fff", boxShadow: "0 2px 14px rgba(79,53,190,0.09)" },
-    panelHeader: {
-      padding: "14px 22px", borderBottom: "1.5px solid #dfd5fb",
-      background: "linear-gradient(135deg, #f5f0fe 0%, #ede9fe 100%)",
-      fontSize: 12, fontWeight: 700, color: "#6a5d8e",
-      textTransform: "uppercase" as const, letterSpacing: "0.1em"
-    },
-    panelBody: { padding: "18px 22px" },
-    row: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0", borderBottom: "1px solid #f5f0fe" },
-    rowLast: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0" },
-    rowName: { fontSize: 15, color: "#1a1035", fontWeight: 600 },
-    rowMeta: { fontSize: 13, color: "#8c70e8" },
-    rowBtns: { display: "flex", gap: 6, flexShrink: 0 },
-    viewBtn: { fontSize: 13, color: "#1d4ed8", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "5px 12px", cursor: "pointer" },
-    delBtn: { fontSize: 13, color: "#b91c1c", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 12px", cursor: "pointer" },
-    addRow: { display: "flex", gap: 8, marginTop: 16 },
-    addInput: {
-      flex: 1, border: "1.5px solid #ccc0fa", borderRadius: 10,
-      padding: "10px 13px", fontSize: 15, color: "#1a1035", outline: "none",
-      background: "#faf9ff", fontFamily: "inherit", transition: "border-color 0.15s"
-    },
-    addBtn: {
-      fontSize: 15, fontWeight: 600, color: "#fff",
-      background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)",
-      border: "none", borderRadius: 10, padding: "10px 18px",
-      cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
-      boxShadow: "0 2px 10px rgba(109,40,217,0.28)"
-    },
-    errText: { fontSize: 14, color: "#dc2626", marginTop: 7, fontWeight: 500 },
-    deptCard: {
-      border: "1.5px solid #dfd5fb", borderRadius: 14, padding: "20px 22px",
-      marginBottom: 10, background: "#fff",
-      boxShadow: "0 2px 10px rgba(79,53,190,0.08)", transition: "all 0.18s ease"
-    },
-    deptName: { fontSize: 17, fontWeight: 600, color: "#1a1035", marginBottom: 5 },
-    deptMeta: { fontSize: 13, color: "#8c70e8", fontWeight: 500 },
-    emptyText: { fontSize: 15, color: "#a696f2", padding: "22px 0", textAlign: "center" as const },
-    secLabel: {
-      fontSize: 12, fontWeight: 700, color: "#8c70e8",
-      textTransform: "uppercase" as const, letterSpacing: "0.12em", marginBottom: 16
-    },
-    editInput: {
-      flex: 1, border: "1.5px solid #a78bfa", borderRadius: 8,
-      padding: "6px 11px", fontSize: 15, color: "#1a1035", outline: "none",
-      background: "#faf9ff", fontFamily: "inherit",
-    },
-    saveBtn: { fontSize: 13, color: "#fff", background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)", border: "none", borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontWeight: 600 },
-    cancelBtn: { fontSize: 13, color: "#6a5d8e", background: "#ede9fe", border: "1px solid #ccc0fa", borderRadius: 8, padding: "5px 12px", cursor: "pointer" },
-    editBtn: { fontSize: 13, color: "#4f35be", background: "#ede9fe", border: "1px solid #ccc0fa", borderRadius: 8, padding: "5px 12px", cursor: "pointer" },
-  };
-
   if (loading) return (
-    <div style={S.main}>
-      <div style={{ padding: "80px 0", textAlign: "center", fontSize: 14, color: "#c4b5fd" }}>読み込み中…</div>
+    <div className="max-w-215 -my-5 mx-auto py-14 px-8">
+      <div className="py-20 text-center text-sm text-[#c4b5fd]">読み込み中…</div>
     </div>
   );
 
   if (view === "users" && activeDept) {
     return (
-      <div style={S.main}>
-        <button style={S.back} onClick={() => { setView("list"); setActiveDept(null); setDeptUsers([]); fetchAll(); }}>
+      <div className="max-w-215 -my-5 mx-auto py-14 px-8">
+        <button
+          className="inline-flex items-center gap-1.5 text-sm text-[#6a5d8e] cursor-pointer mb-7.5 bg-transparent border-none p-0"
+          onClick={() => { setView("list"); setActiveDept(null); setDeptUsers([]); fetchAll(); }}
+        >
           ← 部署一覧に戻る
         </button>
-        <div style={S.pageTitle}>{activeDept.name}</div>
-        <div style={S.pageSubtitle}>この部署のユーザーを管理します。</div>
-        <div style={S.panel}>
-          <div style={S.panelHeader}>ユーザー ({deptUsers.length})</div>
-          <div style={S.panelBody}>
+        <div className="text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-2">{activeDept.name}</div>
+        <div className="text-sm text-[#6a5d8e] mb-9">この部署のユーザーを管理します。</div>
+        <div className="border-[1.5px] border-[#dfd5fb] rounded-[14px] overflow-hidden bg-white shadow-[0_2px_14px_rgba(79,53,190,0.09)]">
+          <div className="py-3.5 px-5.5 [border-bottom:1.5px_solid_#dfd5fb] bg-linear-to-br from-[#f5f0fe] to-[#ede9fe] text-xs font-bold text-[#6a5d8e] uppercase tracking-widest">
+            ユーザー ({deptUsers.length})
+          </div>
+          <div className="py-4.5 px-5.5">
             {deptUsers.length === 0 ? (
-              <div style={S.emptyText}>ユーザーがいません。下記から追加してください。</div>
+              <div className="text-sm text-[#a696f2] py-5.5 text-center">ユーザーがいません。下記から追加してください。</div>
             ) : deptUsers.map((u, i) => (
-              <div key={u.id} style={i === deptUsers.length - 1 ? S.rowLast : S.row}>
+              <div key={u.id} className={`flex items-center justify-between py-2.75 ${i === deptUsers.length - 1 ? "" : "border-b border-b-[#f5f0fe]"}`}>
                 {editingUserId === u.id ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, marginRight: 8 }}>
+                  <div className="flex items-center gap-2 flex-1 mr-2">
                     <input
-                      style={S.editInput}
+                      className="flex-1 border-[1.5px] border-[#a78bfa] rounded-lg py-1.5 px-2.75 text-sm text-[#1a1035] outline-none bg-[#faf9ff] font-[inherit]"
                       value={editUserName}
                       onChange={e => setEditUserName(e.target.value)}
                       onKeyDown={e => { if (e.key === "Enter") handleEditUser(u.id); if (e.key === "Escape") setEditingUserId(null); }}
                       autoFocus
                     />
-                    <button style={S.saveBtn} onClick={() => handleEditUser(u.id)} disabled={savingUser}>{savingUser ? "…" : "保存"}</button>
-                    <button style={S.cancelBtn} onClick={() => setEditingUserId(null)}>キャンセル</button>
+                    <button
+                      className="text-xs text-white bg-linear-to-br from-[#6d28d9] to-[#4f35be] border-none rounded-lg py-1.25 px-3 cursor-pointer font-semibold"
+                      onClick={() => handleEditUser(u.id)}
+                      disabled={savingUser}
+                    >
+                      {savingUser ? "…" : "保存"}
+                    </button>
+                    <button
+                      className="text-xs text-[#6a5d8e] bg-[#ede9fe] border border-[#ccc0fa] rounded-lg py-1.25 px-3 cursor-pointer"
+                      onClick={() => setEditingUserId(null)}
+                    >
+                      キャンセル
+                    </button>
                   </div>
                 ) : (
-                  <div style={S.rowName}>{u.name}</div>
+                  <div className="text-sm text-[#1a1035] font-semibold">{u.name}</div>
                 )}
                 {editingUserId !== u.id && (
-                  <div style={S.rowBtns}>
-                    <button style={S.editBtn} onClick={() => { setEditingUserId(u.id); setEditUserName(u.name); }}>編集</button>
-                    <button style={S.delBtn} onClick={() => handleDeleteUser(u.id)}>削除</button>
+                  <div className="flex gap-1.5 shrink-0">
+                    <button
+                      className="text-xs text-[#4f35be] bg-[#ede9fe] border border-[#ccc0fa] rounded-lg py-1.25 px-3 cursor-pointer"
+                      onClick={() => { setEditingUserId(u.id); setEditUserName(u.name); }}
+                    >
+                      編集
+                    </button>
+                    <button
+                      className="text-xs text-[#b91c1c] bg-[#fef2f2] border border-[#fecaca] rounded-lg py-1.25 px-3 cursor-pointer"
+                      onClick={() => handleDeleteUser(u.id)}
+                    >
+                      削除
+                    </button>
                   </div>
                 )}
               </div>
             ))}
-            <div style={{ marginTop: 16, borderTop: "1.5px solid #f5f0ff", paddingTop: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#4b3d80", marginBottom: 8 }}>ユーザーを追加</div>
-              <div style={S.addRow}>
+            <div className="mt-4 [border-top:1.5px_solid_#f5f0ff] pt-4">
+              <div className="text-xs font-semibold text-[#4b3d80] mb-2">ユーザーを追加</div>
+              <div className="flex gap-2 mt-4">
                 <input
-                  style={S.addInput} placeholder="ユーザー名…"
-                  value={newUserName} onChange={e => setNewUserName(e.target.value)}
+                  className="flex-1 border-[1.5px] border-[#ccc0fa] focus:border-[#a78bfa] rounded-[10px] py-2.5 px-3.25 text-sm text-[#1a1035] outline-none bg-[#faf9ff] font-[inherit] transition-colors duration-150"
+                  placeholder="ユーザー名…"
+                  value={newUserName}
+                  onChange={e => setNewUserName(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && handleAddUser()}
-                  onFocus={e => (e.target.style.borderColor = "#a78bfa")}
-                  onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
                 />
-                <button style={S.addBtn} onClick={handleAddUser} disabled={addingUser}>
+                <button
+                  className="text-sm font-semibold text-white bg-linear-to-br from-[#6d28d9] to-[#4f35be] border-none rounded-[10px] py-2.5 px-4.5 cursor-pointer font-[inherit] shrink-0 shadow-[0_2px_10px_rgba(109,40,217,0.28)]"
+                  onClick={handleAddUser}
+                  disabled={addingUser}
+                >
                   {addingUser ? "追加中…" : "追加"}
                 </button>
               </div>
-              {userError && <div style={S.errText}>⚠ {userError}</div>}
+              {userError && <div className="text-sm text-[#dc2626] mt-1.75 font-medium">⚠ {userError}</div>}
             </div>
           </div>
         </div>
@@ -260,61 +236,91 @@ export function DepartmentsTab() {
   const userCountByDept = (deptId: number) => orgUsers.filter(u => u.department_id === deptId).length;
 
   return (
-    <div style={S.main}>
-      <div style={S.pageTitle}>部署＆ユーザー</div>
-      <div style={S.pageSubtitle}>部署と所属ユーザーを管理します。</div>
+    <div className="max-w-215 -my-5 mx-auto py-14 px-8">
+      <div className="text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-2">部署＆ユーザー</div>
+      <div className="text-sm text-[#6a5d8e] mb-9">部署と所属ユーザーを管理します。</div>
 
-      <div style={S.secLabel}>部署 ({departments.length})</div>
+      <div className="text-xs font-bold text-[#8c70e8] uppercase tracking-[0.12em] mb-4">部署 ({departments.length})</div>
       {departments.length === 0 ? (
-        <div style={{ fontSize: 14, color: "#a78bfa", marginBottom: 16 }}>部署がまだありません。</div>
+        <div className="text-sm text-[#a78bfa] mb-4">部署がまだありません。</div>
       ) : departments.map(dept => (
-        <div key={dept.id} style={S.deptCard}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = "#c4b5fd"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(79,53,190,0.1)"; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = "#ede9fe"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(79,53,190,0.05)"; }}
+        <div
+          key={dept.id}
+          className="border-[1.5px] border-[#dfd5fb] hover:border-[#c4b5fd] rounded-[14px] py-5 px-5.5 mb-2.5 bg-white shadow-[0_2px_10px_rgba(79,53,190,0.08)] hover:shadow-[0_4px_16px_rgba(79,53,190,0.1)] transition-all duration-180 ease-in-out"
         >
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+          <div className="flex items-start justify-between gap-3">
             {editingDeptId === dept.id ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, marginRight: 8 }}>
+              <div className="flex items-center gap-2 flex-1 mr-2">
                 <input
-                  style={S.editInput}
+                  className="flex-1 border-[1.5px] border-[#a78bfa] rounded-lg py-1.5 px-2.75 text-sm text-[#1a1035] outline-none bg-[#faf9ff] font-[inherit]"
                   value={editDeptName}
                   onChange={e => setEditDeptName(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") handleEditDept(dept.id); if (e.key === "Escape") setEditingDeptId(null); }}
                   autoFocus
                 />
-                <button style={S.saveBtn} onClick={() => handleEditDept(dept.id)} disabled={savingDept}>{savingDept ? "…" : "保存"}</button>
-                <button style={S.cancelBtn} onClick={() => setEditingDeptId(null)}>キャンセル</button>
+                <button
+                  className="text-xs text-white bg-linear-to-br from-[#6d28d9] to-[#4f35be] border-none rounded-lg py-1.25 px-3 cursor-pointer font-semibold"
+                  onClick={() => handleEditDept(dept.id)}
+                  disabled={savingDept}
+                >
+                  {savingDept ? "…" : "保存"}
+                </button>
+                <button
+                  className="text-xs text-[#6a5d8e] bg-[#ede9fe] border border-[#ccc0fa] rounded-lg py-1.25 px-3 cursor-pointer"
+                  onClick={() => setEditingDeptId(null)}
+                >
+                  キャンセル
+                </button>
               </div>
             ) : (
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={S.deptName}>{dept.name}</div>
-                <div style={S.deptMeta}>{userCountByDept(dept.id)}名</div>
+              <div className="flex-1 min-w-0">
+                <div className="text-lg font-semibold text-[#1a1035] mb-1.25">{dept.name}</div>
+                <div className="text-xs text-[#8c70e8] font-medium">{userCountByDept(dept.id)}名</div>
               </div>
             )}
             {editingDeptId !== dept.id && (
-              <div style={S.rowBtns}>
-                <button style={S.editBtn} onClick={() => { setEditingDeptId(dept.id); setEditDeptName(dept.name); }}>編集</button>
-                <button style={S.viewBtn} onClick={() => openDept(dept)}>ユーザーを管理</button>
-                <button style={S.delBtn} onClick={() => handleDeleteDept(dept.id)}>削除</button>
+              <div className="flex gap-1.5 shrink-0">
+                <button
+                  className="text-xs text-[#4f35be] bg-[#ede9fe] border border-[#ccc0fa] rounded-lg py-1.25 px-3 cursor-pointer"
+                  onClick={() => { setEditingDeptId(dept.id); setEditDeptName(dept.name); }}
+                >
+                  編集
+                </button>
+                <button
+                  className="text-xs text-[#1d4ed8] bg-[#eff6ff] border border-[#bfdbfe] rounded-lg py-1.25 px-3 cursor-pointer"
+                  onClick={() => openDept(dept)}
+                >
+                  ユーザーを管理
+                </button>
+                <button
+                  className="text-xs text-[#b91c1c] bg-[#fef2f2] border border-[#fecaca] rounded-lg py-1.25 px-3 cursor-pointer"
+                  onClick={() => handleDeleteDept(dept.id)}
+                >
+                  削除
+                </button>
               </div>
             )}
           </div>
         </div>
       ))}
-      <div style={{ marginTop: 8 }}>
-        <div style={S.addRow}>
+      <div className="mt-2">
+        <div className="flex gap-2 mt-4">
           <input
-            style={S.addInput} placeholder="新しい部署名…"
-            value={newDeptName} onChange={e => setNewDeptName(e.target.value)}
+            className="flex-1 border-[1.5px] border-[#ccc0fa] focus:border-[#a78bfa] rounded-[10px] py-2.5 px-3.25 text-sm text-[#1a1035] outline-none bg-[#faf9ff] font-[inherit] transition-colors duration-150"
+            placeholder="新しい部署名…"
+            value={newDeptName}
+            onChange={e => setNewDeptName(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleAddDept()}
-            onFocus={e => (e.target.style.borderColor = "#a78bfa")}
-            onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
           />
-          <button style={S.addBtn} onClick={handleAddDept} disabled={addingDept}>
+          <button
+            className="text-sm font-semibold text-white bg-linear-to-br from-[#6d28d9] to-[#4f35be] border-none rounded-[10px] py-2.5 px-4.5 cursor-pointer font-[inherit] shrink-0 shadow-[0_2px_10px_rgba(109,40,217,0.28)]"
+            onClick={handleAddDept}
+            disabled={addingDept}
+          >
             {addingDept ? "追加中…" : "追加"}
           </button>
         </div>
-        {deptError && <div style={S.errText}>⚠ {deptError}</div>}
+        {deptError && <div className="text-sm text-[#dc2626] mt-1.75 font-medium">⚠ {deptError}</div>}
       </div>
     </div>
   );

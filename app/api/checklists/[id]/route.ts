@@ -12,6 +12,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     .from("checklists")
     .select("*, checklist_sections(*, checklist_items(*)), checklist_departments(department_id)")
     .eq("id", checklistId)
+    .eq("workspace_id", ctx.workspaceId)
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 404 });
 
@@ -62,7 +63,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       is_large_checklist: is_large_checklist ?? false,
       department_id: resolvedDeptId,
     })
-    .eq("id", checklistId);
+    .eq("id", checklistId)
+    .eq("workspace_id", ctx.workspaceId);
   if (clErr) return NextResponse.json({ error: clErr.message }, { status: 500 });
 
   if (is_large_checklist) {
@@ -163,7 +165,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const { error } = await supabaseAdmin
     .from("checklists")
     .delete()
-    .eq("id", (await params).id);
+    .eq("id", (await params).id)
+    .eq("workspace_id", ctx.workspaceId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }

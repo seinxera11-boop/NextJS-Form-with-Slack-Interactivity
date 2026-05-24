@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "./supabase-admin";
 
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
+const SUPER_ADMIN_EMAILS = (process.env.SUPER_ADMIN_EMAILS || "")
   .split(",")
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
@@ -10,12 +10,14 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
 export type UserContext = {
   email: string;
   isMainAdmin: boolean;
-  /** Empty array means no restriction (main admin). Non-empty = allowed checklist IDs. */
+  workspaceId: string;
+  workspaceSlug: string;
+  workspaceName: string;
   assignedChecklists: number[];
 };
 
-export async function getUserContext(req: NextRequest): Promise<UserContext | null> {
-  const supabase = createServerClient(
+function getSupabaseClient(req: NextRequest) {
+  return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -25,29 +27,41 @@ export async function getUserContext(req: NextRequest): Promise<UserContext | nu
       },
     }
   );
+}
 
+export async function getUserContext(req: NextRequest): Promise<UserContext | null> {
+  const supabase = getSupabaseClient(req);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) return null;
 
   const email = user.email.toLowerCase();
 
-  if (ADMIN_EMAILS.includes(email)) {
-    await supabaseAdmin
-      .from("admin_users")
-      .upsert({ email, is_main_admin: true }, { onConflict: "email" });
-    return { email, isMainAdmin: true, assignedChecklists: [] };
-  }
-
   const { data: adminUser } = await supabaseAdmin
     .from("admin_users")
-    .select("id, is_main_admin")
+    .select("id, is_main_admin, workspace_id")
     .eq("email", email)
+    .not("workspace_id", "is", null)
     .single();
 
-  if (!adminUser) return null;
+  if (!adminUser?.workspace_id) return null;
+
+  const { data: workspace } = await supabaseAdmin
+    .from("workspaces")
+    .select("slug, name")
+    .eq("id", adminUser.workspace_id)
+    .single();
+
+  if (!workspace) return null;
 
   if (adminUser.is_main_admin) {
-    return { email, isMainAdmin: true, assignedChecklists: [] };
+    return {
+      email,
+      isMainAdmin: true,
+      workspaceId: adminUser.workspace_id,
+      workspaceSlug: workspace.slug,
+      workspaceName: workspace.name,
+      assignedChecklists: [],
+    };
   }
 
   const { data: rows } = await supabaseAdmin
@@ -58,6 +72,21 @@ export async function getUserContext(req: NextRequest): Promise<UserContext | nu
   return {
     email,
     isMainAdmin: false,
+    workspaceId: adminUser.workspace_id,
+    workspaceSlug: workspace.slug,
+    workspaceName: workspace.name,
     assignedChecklists: (rows || []).map((r) => r.checklist_id),
   };
+}
+
+export async function isSuperAdmin(req: NextRequest): Promise<boolean> {
+  if (SUPER_ADMIN_EMAILS.length === 0) return false;
+  const supabase = getSupabaseClient(req);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.email) return false;
+  return SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
+}
+
+export function getSuperAdminEmails(): string[] {
+  return SUPER_ADMIN_EMAILS;
 }

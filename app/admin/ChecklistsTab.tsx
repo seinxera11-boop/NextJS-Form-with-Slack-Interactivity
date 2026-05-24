@@ -144,130 +144,39 @@ export function ChecklistsTab({
     await fetchChecklists();
   };
 
-  const S: Record<string, React.CSSProperties> = {
-    main: { maxWidth: 780, margin: "-20px auto", padding: "56px 32px" },
-    pageTitle: { fontSize: 32, fontWeight: 700, letterSpacing: "-0.04em", color: "#1a1035", marginBottom: 8 },
-    pageSubtitle: { fontSize: 15, color: "#6a5d8e", marginBottom: 44 },
-    toolbar: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 },
-    countLabel: { fontSize: 14, color: "#8c70e8", fontWeight: 600 },
-    newBtn: {
-      fontSize: 15, fontWeight: 600,
-      background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)",
-      color: "#fff", border: "none", borderRadius: 10, padding: "10px 22px",
-      cursor: "pointer", boxShadow: "0 2px 12px rgba(109,40,217,0.32)",
-    },
-    card: {
-      border: "1.5px solid #dfd5fb", borderRadius: 16, padding: "22px 28px",
-      marginBottom: 12, background: "#fff",
-      boxShadow: "0 2px 14px rgba(79,53,190,0.09)", transition: "all 0.18s ease",
-    },
-    cardTitle: { fontSize: 18, fontWeight: 600, color: "#1a1035", marginBottom: 4 },
-    cardMeta:  { fontSize: 13, color: "#7a6aaa", marginBottom: 16 },
-    cardRow:   { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
-    cardBtns:  { display: "flex", gap: 6, flexShrink: 0 },
-    editBtn:   { fontSize: 13, color: "#4b3d80", background: "#ede9fe", border: "1px solid #ccc0fa", borderRadius: 8, padding: "6px 14px", cursor: "pointer" },
-    shareBtn:  { fontSize: 13, color: "#1d4ed8", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "6px 14px", cursor: "pointer" },
-    delBtn:    { fontSize: 13, color: "#b91c1c", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "6px 14px", cursor: "pointer" },
-    chipsRow:  { display: "flex", flexWrap: "wrap", gap: 5 },
-    chip:      { fontSize: 12, padding: "4px 11px", borderRadius: 100, fontWeight: 500, background: "linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)", color: "#6d28d9", border: "1px solid #ccc0fa" },
-    sizeChip:  { fontSize: 12, padding: "4px 11px", borderRadius: 100, fontWeight: 600, border: "1px solid" },
-    emptyWrap:  { textAlign: "center", padding: "80px 0" },
-    emptyTitle: { fontSize: 24, fontWeight: 700, color: "#1a1035", marginBottom: 10 },
-    emptyText:  { fontSize: 15, color: "#8c70e8", marginBottom: 28 },
-    emptyIcon:  { fontSize: 52, marginBottom: 20, opacity: 0.35 },
-    back: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 15, color: "#6a5d8e", cursor: "pointer", marginBottom: 32, background: "none", border: "none", padding: 0 },
-    genSection: { border: "1.5px solid #dfd5fb", borderRadius: 14, padding: "28px", marginBottom: 16, background: "#faf9ff" },
-    sectionLabel: { fontSize: 12, fontWeight: 700, color: "#8c70e8", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 18 },
-    fieldLabel: { display: "block", fontSize: 14, fontWeight: 600, color: "#4b3d80", marginBottom: 9 },
-    input: {
-      width: "100%", border: "1.5px solid #ccc0fa", borderRadius: 10,
-      padding: "11px 15px", fontSize: 16, color: "#1a1035", outline: "none",
-      background: "#fff", fontFamily: "inherit", transition: "border-color 0.15s",
-    },
-    select: {
-      width: "100%", border: "1.5px solid #ccc0fa", borderRadius: 10,
-      padding: "11px 15px", fontSize: 16, color: "#1a1035", outline: "none",
-      background: "#fff", fontFamily: "inherit", cursor: "pointer",
-    },
-    // Toggle switch
-    toggleRow: { display: "flex", alignItems: "center", gap: 12, marginTop: 22 },
-    toggleTrack: {
-      position: "relative" as const, width: 40, height: 22,
-      borderRadius: 100, cursor: "pointer",
-      transition: "background 0.2s",
-    },
-    toggleThumb: {
-      position: "absolute" as const, top: 3, width: 16, height: 16,
-      borderRadius: "50%", background: "#fff",
-      transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
-    },
-    toggleLabel: { fontSize: 15, color: "#1a1035", fontWeight: 500 },
-    toggleDesc:  { fontSize: 13, color: "#7a6aaa", marginTop: 4 },
-
-    // Section editor
-    secCard:      { border: "1.5px solid #dfd5fb", borderRadius: 14, marginBottom: 12, overflow: "hidden" },
-    secHeader:    { display: "flex", alignItems: "center", gap: 10, padding: "13px 20px", background: "linear-gradient(135deg, #f5f0fe 0%, #ede9fe 100%)", borderBottom: "1.5px solid #dfd5fb" },
-    secNum:       { fontSize: 12, fontWeight: 700, color: "#8c70e8", minWidth: 20 },
-    secTitleInput:{ flex: 1, border: "1.5px solid #ccc0fa", borderRadius: 8, padding: "9px 13px", fontSize: 15, fontWeight: 600, color: "#1a1035", outline: "none", background: "#fff", fontFamily: "inherit" },
-    secActions:   { display: "flex", gap: 4, flexShrink: 0 },
-    iconBtn:      { background: "#ede9fe", border: "1px solid #ccc0fa", color: "#8c70e8", cursor: "pointer", fontSize: 13, padding: "4px 9px", borderRadius: 6, lineHeight: 1 },
-    removeSec:    { background: "#fef2f2", border: "1px solid #fecaca", color: "#f87171", cursor: "pointer", fontSize: 16, padding: "2px 8px", lineHeight: 1, borderRadius: 6 },
-    tasksArea:    { padding: "12px 20px 16px", background: "#fff" },
-    itemRow:      { display: "flex", alignItems: "center", gap: 8, background: "#faf9ff", border: "1px solid #dfd5fb", borderRadius: 10, padding: "10px 13px", marginBottom: 7 },
-    itemNum:      { fontSize: 12, color: "#a696f2", minWidth: 18, textAlign: "right", flexShrink: 0 },
-    itemInput:    { flex: 1, border: "1.5px solid #ddd6fe", borderRadius: 8, padding: "8px 11px", fontSize: 15, color: "#1a1035", outline: "none", background: "#fff", fontFamily: "inherit", minWidth: 0 },
-    moveBtns:     { display: "flex", flexDirection: "column", gap: 1, flexShrink: 0 },
-    moveBtn:      { background: "none", border: "none", color: "#a696f2", cursor: "pointer", fontSize: 12, padding: "1px 4px", lineHeight: 1 },
-    removeBtn:    { background: "none", border: "none", color: "#fca5a5", cursor: "pointer", fontSize: 17, padding: "2px 5px", lineHeight: 1, flexShrink: 0 },
-    addTaskBtn:   { width: "100%", border: "1.5px dashed #ccc0fa", borderRadius: 10, padding: 11, fontSize: 14, color: "#8c70e8", background: "none", cursor: "pointer", marginTop: 4, fontFamily: "inherit" },
-    addSecBtn:    { width: "100%", border: "1.5px dashed #a696f2", borderRadius: 14, padding: "14px 12px", fontSize: 15, color: "#6a5d8e", background: "none", cursor: "pointer", marginTop: 4, fontFamily: "inherit", fontWeight: 500 },
-    footer:       { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, marginTop: 28 },
-    errText:      { flex: 1, fontSize: 14, color: "#dc2626", fontWeight: 500 },
-    cancelBtn:    { fontSize: 15, color: "#6a5d8e", background: "#ede9fe", border: "1.5px solid #ccc0fa", borderRadius: 10, padding: "11px 20px", cursor: "pointer", fontFamily: "inherit" },
-    saveBtn:      { fontSize: 15, fontWeight: 600, color: "#fff", background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)", border: "none", borderRadius: 10, padding: "11px 26px", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 12px rgba(109,40,217,0.32)" },
-    // Pill-toggle dept selector (large checklist)
-    pillWrap:       { display: "flex", flexWrap: "wrap" as const, gap: 8, marginTop: 4 },
-    pill:           { fontSize: 13, fontWeight: 500, padding: "7px 14px", borderRadius: 100, border: "1.5px solid #ccc0fa", background: "#fff", color: "#4b3d80", cursor: "pointer", transition: "all 0.15s", userSelect: "none" as const, lineHeight: 1.4 },
-    pillActive:     { background: "linear-gradient(135deg, #6d28d9 0%, #4f35be 100%)", borderColor: "transparent", color: "#fff", boxShadow: "0 2px 8px rgba(109,40,217,0.28)" },
-    pillCount:      { marginTop: 10, fontSize: 13, color: "#6d28d9", fontWeight: 600 },
-    // Badge tooltip — minimal dark
-    badgeWrap:  { position: "relative" as const, display: "inline-block" },
-    tooltip: {
-      position: "absolute" as const, bottom: "calc(100% + 8px)", left: "50%",
-      transform: "translateX(-50%)",
-      background: "#2a1f4a", borderRadius: 8,
-      padding: "8px 12px",
-      pointerEvents: "none" as const, zIndex: 50,
-      boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
-      whiteSpace: "nowrap" as const,
-    },
-    tooltipText: { fontSize: 12, color: "#e9e4fb", fontWeight: 500, lineHeight: 1.8, display: "block" as const },
-    tooltipArrow: {
-      position: "absolute" as const, top: "100%", left: "50%",
-      transform: "translateX(-50%)",
-      border: "5px solid transparent", borderTopColor: "#2a1f4a",
-    },
-  };
-
   // ── List view ──────────────────────────────────────────────────────────────
   if (view === "list") return (
-    <div style={S.main}>
-      <div style={S.pageTitle}>チェックリスト</div>
-      <div style={S.pageSubtitle}>チームのチェックリストを作成・管理します。</div>
-      <div style={S.toolbar}>
-        <span style={S.countLabel}>{checklists.length}件のチェックリスト</span>
-        {isMainAdmin && <button style={S.newBtn} onClick={startCreate}>＋ 新規作成</button>}
+    <div className="max-w-195 -my-5 mx-auto py-14 px-8">
+      <div className="text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-2">チェックリスト</div>
+      <div className="text-sm text-[#6a5d8e] mb-11">チームのチェックリストを作成・管理します。</div>
+      <div className="flex items-center justify-between mb-6">
+        <span className="text-sm text-[#8c70e8] font-semibold">{checklists.length}件のチェックリスト</span>
+        {isMainAdmin && (
+          <button
+            className="text-sm font-semibold bg-linear-to-br from-[#6d28d9] to-[#4f35be] text-white border-none rounded-[10px] py-2.5 px-5.5 cursor-pointer shadow-[0_2px_12px_rgba(109,40,217,0.32)]"
+            onClick={startCreate}
+          >
+            ＋ 新規作成
+          </button>
+        )}
       </div>
       {loading ? (
-        <div style={{ padding: "80px 0", textAlign: "center", fontSize: 14, color: "#c4b5fd" }}>読み込み中…</div>
+        <div className="py-20 text-center text-sm text-[#c4b5fd]">読み込み中…</div>
       ) : checklists.length === 0 ? (
-        <div style={S.emptyWrap}>
-          <div style={S.emptyIcon}>☑</div>
-          <div style={S.emptyTitle}>チェックリストがありません</div>
-          <div style={S.emptyText}>
+        <div className="text-center py-20">
+          <div className="text-5xl mb-5 opacity-[0.35]">☑</div>
+          <div className="text-2xl font-bold text-[#1a1035] mb-2.5">チェックリストがありません</div>
+          <div className="text-sm text-[#8c70e8] mb-7">
             {isMainAdmin ? "最初のチェックリストを作成して始めましょう。" : "担当部署のチェックリストはありません。"}
           </div>
-          {isMainAdmin && <button style={S.newBtn} onClick={startCreate}>＋ 新規作成</button>}
+          {isMainAdmin && (
+            <button
+              className="text-sm font-semibold bg-linear-to-br from-[#6d28d9] to-[#4f35be] text-white border-none rounded-[10px] py-2.5 px-5.5 cursor-pointer shadow-[0_2px_12px_rgba(109,40,217,0.32)]"
+              onClick={startCreate}
+            >
+              ＋ 新規作成
+            </button>
+          )}
         </div>
       ) : checklists.map(cl => {
         const large     = (cl as any).is_large_checklist;
@@ -285,58 +194,82 @@ export function ChecklistsTab({
         const preview   = allTasks.slice(0, 5);
         const extra     = allTasks.length - preview.length;
         return (
-          <div key={cl.id} style={S.card}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = "#c4b5fd")}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = "#dfd5fb")}
+          <div
+            key={cl.id}
+            className="border-[1.5px] border-[#dfd5fb] hover:border-[#c4b5fd] rounded-2xl py-5.5 px-7 mb-3 bg-white shadow-[0_2px_14px_rgba(79,53,190,0.09)] transition-all duration-180 ease-in-out"
           >
-            <div style={S.cardRow}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                  <span style={S.cardTitle}>{cl.title}</span>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-lg font-semibold text-[#1a1035]">{cl.title}</span>
                   <span
-                    style={S.badgeWrap}
+                    className="relative inline-block"
                     onMouseEnter={() => setTooltipId(cl.id)}
                     onMouseLeave={() => setTooltipId(null)}
                   >
-                    <span style={{
-                      ...S.sizeChip,
-                      color:       large ? "#6d28d9" : "#0f6e56",
-                      background:  large ? "#f5f0ff" : "#e1f5ee",
-                      borderColor: large ? "#ddd6fe" : "#9fe1cb",
-                      cursor: "default",
-                    }}>
-                      {large ? "大規模" : "小規模"}
+                    <span
+                      className={`text-xs py-1 px-2.75 rounded-full font-semibold border cursor-default ${
+                        large
+                          ? "text-[#6d28d9] bg-[#f5f0ff] border-[#ddd6fe]"
+                          : "text-[#0f6e56] bg-[#e1f5ee] border-[#9fe1cb]"
+                      }`}
+                    >
+                      {large ? "複数の部署" : "１部署"}
                     </span>
                     {tooltipId === cl.id && (
-                      <div style={S.tooltip}>
+                      <div className="absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2 bg-[#2a1f4a] rounded-lg py-2 px-3 pointer-events-none z-50 shadow-[0_4px_16px_rgba(0,0,0,0.18)] whitespace-nowrap">
                         {(large ? largeDepts : deptName ? [deptName] : []).length > 0
                           ? (large ? largeDepts : [deptName!]).map(n => (
-                              <span key={n} style={S.tooltipText}>{n}</span>
+                              <span key={n} className="text-xs text-[#e9e4fb] font-medium leading-[1.8] block">{n}</span>
                             ))
-                          : <span style={{ ...S.tooltipText, opacity: 0.5 }}>未設定</span>
+                          : <span className="text-xs text-[#e9e4fb] font-medium leading-[1.8] block opacity-50">未設定</span>
                         }
-                        <span style={S.tooltipArrow} />
+                        <span className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-[#2a1f4a]" />
                       </div>
                     )}
                   </span>
                 </div>
-                <div style={S.cardMeta}>
+                <div className="text-xs text-[#7a6aaa] mb-4">
                   {(cl.checklist_sections || []).length}セクション · {allTasks.length}タスク · {cl.created_by} ·{" "}
                   {new Date(cl.created_at).toLocaleDateString("ja-JP", { month: "short", day: "numeric", year: "numeric" })}
                 </div>
               </div>
-              <div style={S.cardBtns}>
-                <button style={S.shareBtn} onClick={() => {
-                  const url = `${window.location.origin}/office-checklist/${cl.id}`;
-                  navigator.clipboard.writeText(url).then(() => alert("リンクをコピーしました: " + url));
-                }}>リンクをコピー</button>
-                <button style={S.editBtn} onClick={() => startEdit(cl)}>編集</button>
-                {isMainAdmin && <button style={S.delBtn} onClick={() => handleDelete(cl.id)}>削除</button>}
+              <div className="flex gap-1.5 shrink-0">
+                <button
+                  className="text-xs text-[#1d4ed8] bg-[#eff6ff] border border-[#bfdbfe] rounded-lg py-1.5 px-3.5 cursor-pointer"
+                  onClick={() => {
+                    const url = `${window.location.origin}/office-checklist/${cl.id}`;
+                    navigator.clipboard.writeText(url).then(() => alert("リンクをコピーしました: " + url));
+                  }}
+                >
+                  リンクをコピー
+                </button>
+                <button
+                  className="text-xs text-[#4b3d80] bg-[#ede9fe] border border-[#ccc0fa] rounded-lg py-1.5 px-3.5 cursor-pointer"
+                  onClick={() => startEdit(cl)}
+                >
+                  編集
+                </button>
+                {isMainAdmin && (
+                  <button
+                    className="text-xs text-[#b91c1c] bg-[#fef2f2] border border-[#fecaca] rounded-lg py-1.5 px-3.5 cursor-pointer"
+                    onClick={() => handleDelete(cl.id)}
+                  >
+                    削除
+                  </button>
+                )}
               </div>
             </div>
-            <div style={S.chipsRow}>
-              {preview.map((it, i) => <span key={i} style={S.chip}>{it.label}</span>)}
-              {extra > 0 && <span style={{ fontSize: 12, color: "#a78bfa", padding: "3px 6px" }}>他{extra}件</span>}
+            <div className="flex flex-wrap gap-1.25">
+              {preview.map((it, i) => (
+                <span
+                  key={i}
+                  className="text-xs py-1 px-2.75 rounded-full font-medium bg-linear-to-br from-[#ede9fe] to-[#ddd6fe] text-[#6d28d9] border border-[#ccc0fa]"
+                >
+                  {it.label}
+                </span>
+              ))}
+              {extra > 0 && <span className="text-xs text-[#a78bfa] py-0.75 px-1.5">他{extra}件</span>}
             </div>
           </div>
         );
@@ -346,53 +279,61 @@ export function ChecklistsTab({
 
   // ── Create / edit view ─────────────────────────────────────────────────────
   return (
-    <div style={S.main}>
-      <button style={S.back} onClick={() => setView("list")}>← チェックリストに戻る</button>
-      <div style={S.pageTitle}>{view === "create" ? "新規チェックリスト" : "チェックリストを編集"}</div>
-      <div style={{ ...S.pageSubtitle, marginBottom: 32 }}>
+    <div className="max-w-195 -my-5 mx-auto py-14 px-8">
+      <button
+        className="inline-flex items-center gap-1.5 text-sm text-[#6a5d8e] cursor-pointer mb-8 bg-transparent border-none p-0"
+        onClick={() => setView("list")}
+      >
+        ← チェックリストに戻る
+      </button>
+      <div className="text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-2">
+        {view === "create" ? "新規チェックリスト" : "チェックリストを編集"}
+      </div>
+      <div className="text-sm text-[#6a5d8e] mb-8">
         {view === "create" ? "セクションを追加し、チームが実施するタスクを定義します。" : "セクション・タスク・設定を更新します。"}
       </div>
 
       {/* ── Basic info ── */}
-      <div style={S.genSection}>
-        <div style={S.sectionLabel}>基本情報</div>
+      <div className="border-[1.5px] border-[#dfd5fb] rounded-[14px] p-7 mb-4 bg-[#faf9ff]">
+        <div className="text-xs font-bold text-[#8c70e8] uppercase tracking-[0.12em] mb-4.5">基本情報</div>
 
-        <label style={S.fieldLabel}>タイトル</label>
+        <label className="block text-sm font-semibold text-[#4b3d80] mb-2.25">タイトル</label>
         <input
-          style={S.input} value={title}
+          className="w-full border-[1.5px] border-[#ccc0fa] focus:border-[#a78bfa] rounded-[10px] py-2.75 px-3.75 text-base text-[#1a1035] outline-none bg-white font-[inherit] transition-colors duration-150"
+          value={title}
           placeholder="例）オフィス閉館チェックリスト"
           onChange={e => setTitle(e.target.value)}
-          onFocus={e => (e.target.style.borderColor = "#a78bfa")}
-          onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
         />
 
         {/* Toggle: is_large_checklist (main admin only) */}
         {isMainAdmin && (
-          <div style={S.toggleRow}>
+          <div className="flex items-center gap-3 mt-5.5">
             <div
-              style={{ ...S.toggleTrack, background: isLarge ? "#6d28d9" : "#ddd6fe" }}
+              className={`relative w-10 h-5.5 rounded-full cursor-pointer transition-colors duration-200 ${isLarge ? "bg-[#6d28d9]" : "bg-[#ddd6fe]"}`}
               onClick={() => { setIsLarge(v => !v); setFixedDeptId(""); setSelectedDeptIds([]); }}
             >
-              <div style={{ ...S.toggleThumb, left: isLarge ? 21 : 3 }} />
+              <div
+                className={`absolute top-0.75 w-4 h-4 rounded-full bg-white transition-[left] duration-200 shadow-[0_1px_3px_rgba(0,0,0,0.15)] ${isLarge ? "left-5.25" : "left-0.75"}`}
+              />
             </div>
             <div>
-              <div style={S.toggleLabel}>大規模チェックリスト</div>
-              <div style={S.toggleDesc} />
+              <div className="text-sm text-[#1a1035] font-medium">複数の部署</div>
+              <div className="text-xs text-[#7a6aaa] mt-1" />
             </div>
           </div>
         )}
 
         {/* Small: single department selector */}
         {!isLarge && (
-          <div style={{ marginTop: 20 }}>
-            <label style={S.fieldLabel}>部門 <span style={{ color: "#dc2626" }}>*</span></label>
+          <div className="mt-5">
+            <label className="block text-sm font-semibold text-[#4b3d80] mb-2.25">
+              部門 <span className="text-[#dc2626]">*</span>
+            </label>
             <select
-              style={{ ...S.select, ...((!isMainAdmin) ? { background: "#f5f0ff", cursor: "not-allowed" } : {}) }}
+              className={`w-full border-[1.5px] border-[#ccc0fa] focus:border-[#a78bfa] rounded-[10px] py-2.75 px-3.75 text-base text-[#1a1035] outline-none font-[inherit] ${!isMainAdmin ? "bg-[#f5f0ff] cursor-not-allowed" : "bg-white cursor-pointer"}`}
               value={fixedDeptId}
               onChange={e => isMainAdmin && setFixedDeptId(e.target.value)}
               disabled={!isMainAdmin}
-              onFocus={e => (e.target.style.borderColor = "#a78bfa")}
-              onBlur={e => (e.target.style.borderColor = "#ddd6fe")}
             >
               <option value="">部署を選択してください…</option>
               {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -402,24 +343,28 @@ export function ChecklistsTab({
 
         {/* Large: pill-toggle multi-select */}
         {isLarge && (
-          <div style={{ marginTop: 20 }}>
-            <label style={S.fieldLabel}>
-              部門（複数選択可） <span style={{ color: "#dc2626" }}>*</span>
+          <div className="mt-5">
+            <label className="block text-sm font-semibold text-[#4b3d80] mb-2.25">
+              部門（複数選択可） <span className="text-[#dc2626]">*</span>
             </label>
             {departments.length === 0 ? (
-              <div style={{ fontSize: 14, color: "#9688c0" }}>部署が登録されていません。</div>
+              <div className="text-sm text-[#9688c0]">部署が登録されていません。</div>
             ) : (
-              <div style={S.pillWrap}>
+              <div className="flex flex-wrap gap-2 mt-1">
                 {departments.map(d => {
                   const active = selectedDeptIds.includes(d.id);
                   return (
                     <button
                       key={d.id}
                       type="button"
-                      style={{ ...S.pill, ...(active ? S.pillActive : {}) }}
+                      className={`text-xs font-medium py-1.75 px-3.5 rounded-full border-[1.5px] cursor-pointer transition-all duration-150 select-none leading-[1.4] ${
+                        active
+                          ? "bg-linear-to-br from-[#6d28d9] to-[#4f35be] border-transparent text-white shadow-[0_2px_8px_rgba(109,40,217,0.28)]"
+                          : "border-[#ccc0fa] bg-white text-[#4b3d80]"
+                      }`}
                       onClick={() => toggleLargeDept(d.id)}
                     >
-                      {active && <span style={{ marginRight: 5, fontSize: 11 }}>✓</span>}
+                      {active && <span className="mr-1.25 text-xs">✓</span>}
                       {d.name}
                     </button>
                   );
@@ -427,47 +372,90 @@ export function ChecklistsTab({
               </div>
             )}
             {selectedDeptIds.length > 0 && (
-              <div style={S.pillCount}>{selectedDeptIds.length}部署を選択中</div>
+              <div className="mt-2.5 text-xs text-[#6d28d9] font-semibold">{selectedDeptIds.length}部署を選択中</div>
             )}
           </div>
         )}
       </div>
 
       {/* ── Sections & tasks ── */}
-      <div style={{ ...S.sectionLabel, marginBottom: 12 }}>セクション＆タスク</div>
+      <div className="text-xs font-bold text-[#8c70e8] uppercase tracking-[0.12em] mb-3">セクション＆タスク</div>
       {sections.map((sec, si) => (
-        <div key={si} style={S.secCard}>
-          <div style={S.secHeader}>
-            <span style={S.secNum}>{si + 1}</span>
-            <input style={S.secTitleInput} placeholder="セクションタイトル（例）閉館作業" value={sec.title} onChange={e => updateSectionTitle(si, e.target.value)} />
-            <div style={S.secActions}>
-              <button style={S.iconBtn} onClick={() => moveSection(si, -1)}>↑</button>
-              <button style={S.iconBtn} onClick={() => moveSection(si,  1)}>↓</button>
-              {sections.length > 1 && <button style={S.removeSec} onClick={() => removeSection(si)}>×</button>}
+        <div key={si} className="border-[1.5px] border-[#dfd5fb] rounded-[14px] mb-3 overflow-hidden">
+          <div className="flex items-center gap-2.5 py-3.25 px-5 bg-linear-to-br from-[#f5f0fe] to-[#ede9fe] [border-bottom:1.5px_solid_#dfd5fb]">
+            <span className="text-xs font-bold text-[#8c70e8] min-w-5">{si + 1}</span>
+            <input
+              className="flex-1 border-[1.5px] border-[#ccc0fa] rounded-lg py-2.25 px-3.25 text-sm font-semibold text-[#1a1035] outline-none bg-white font-[inherit]"
+              placeholder="セクションタイトル（例）閉館作業"
+              value={sec.title}
+              onChange={e => updateSectionTitle(si, e.target.value)}
+            />
+            <div className="flex gap-1 shrink-0">
+              <button className="bg-[#ede9fe] border border-[#ccc0fa] text-[#8c70e8] cursor-pointer text-xs py-1 px-2.25 rounded-md leading-none" onClick={() => moveSection(si, -1)}>↑</button>
+              <button className="bg-[#ede9fe] border border-[#ccc0fa] text-[#8c70e8] cursor-pointer text-xs py-1 px-2.25 rounded-md leading-none" onClick={() => moveSection(si,  1)}>↓</button>
+              {sections.length > 1 && (
+                <button
+                  className="bg-[#fef2f2] border border-[#fecaca] text-[#f87171] cursor-pointer text-base py-0.5 px-2 leading-none rounded-md"
+                  onClick={() => removeSection(si)}
+                >
+                  ×
+                </button>
+              )}
             </div>
           </div>
-          <div style={S.tasksArea}>
+          <div className="pt-3 px-5 pb-4 bg-white">
             {sec.tasks.map((task, ti) => (
-              <div key={ti} style={S.itemRow}>
-                <span style={S.itemNum}>{ti + 1}</span>
-                <input style={S.itemInput} placeholder="タスク名" value={task.label} onChange={e => updateTaskLabel(si, ti, e.target.value)} />
-                <div style={S.moveBtns}>
-                  <button style={S.moveBtn} onClick={() => moveTask(si, ti, -1)}>↑</button>
-                  <button style={S.moveBtn} onClick={() => moveTask(si, ti,  1)}>↓</button>
+              <div key={ti} className="flex items-center gap-2 bg-[#faf9ff] border border-[#dfd5fb] rounded-[10px] py-2.5 px-3.25 mb-1.75">
+                <span className="text-xs text-[#a696f2] min-w-4.5 text-right shrink-0">{ti + 1}</span>
+                <input
+                  className="flex-1 border-[1.5px] border-[#ddd6fe] rounded-lg py-2 px-2.75 text-sm text-[#1a1035] outline-none bg-white font-[inherit] min-w-0"
+                  placeholder="タスク名"
+                  value={task.label}
+                  onChange={e => updateTaskLabel(si, ti, e.target.value)}
+                />
+                <div className="flex flex-col gap-px shrink-0">
+                  <button className="bg-transparent border-none text-[#a696f2] cursor-pointer text-xs py-px px-1 leading-none" onClick={() => moveTask(si, ti, -1)}>↑</button>
+                  <button className="bg-transparent border-none text-[#a696f2] cursor-pointer text-xs py-px px-1 leading-none" onClick={() => moveTask(si, ti,  1)}>↓</button>
                 </div>
-                {sec.tasks.length > 1 && <button style={S.removeBtn} onClick={() => removeTask(si, ti)}>×</button>}
+                {sec.tasks.length > 1 && (
+                  <button
+                    className="bg-transparent border-none text-[#fca5a5] cursor-pointer text-lg py-0.5 px-1.25 leading-none shrink-0"
+                    onClick={() => removeTask(si, ti)}
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             ))}
-            <button style={S.addTaskBtn} onClick={() => addTask(si)}>＋ タスクを追加</button>
+            <button
+              className="w-full border-[1.5px] border-dashed border-[#ccc0fa] rounded-[10px] p-2.75 text-sm text-[#8c70e8] bg-transparent cursor-pointer mt-1 font-[inherit]"
+              onClick={() => addTask(si)}
+            >
+              ＋ タスクを追加
+            </button>
           </div>
         </div>
       ))}
-      <button style={S.addSecBtn} onClick={addSection}>＋ セクションを追加</button>
+      <button
+        className="w-full border-[1.5px] border-dashed border-[#a696f2] rounded-[14px] py-3.5 px-3 text-sm text-[#6a5d8e] bg-transparent cursor-pointer mt-1 font-[inherit] font-medium"
+        onClick={addSection}
+      >
+        ＋ セクションを追加
+      </button>
 
-      <div style={S.footer}>
-        {saveError && <span style={S.errText}>⚠ {saveError}</span>}
-        <button style={S.cancelBtn} onClick={() => setView("list")}>キャンセル</button>
-        <button style={S.saveBtn} onClick={handleSave} disabled={saving}>
+      <div className="flex items-center justify-end gap-2 mt-7">
+        {saveError && <span className="flex-1 text-sm text-[#dc2626] font-medium">⚠ {saveError}</span>}
+        <button
+          className="text-sm text-[#6a5d8e] bg-[#ede9fe] border-[1.5px] border-[#ccc0fa] rounded-[10px] py-2.75 px-5 cursor-pointer font-[inherit]"
+          onClick={() => setView("list")}
+        >
+          キャンセル
+        </button>
+        <button
+          className="text-sm font-semibold text-white bg-linear-to-br from-[#6d28d9] to-[#4f35be] border-none rounded-[10px] py-2.75 px-6.5 cursor-pointer font-[inherit] shadow-[0_2px_12px_rgba(109,40,217,0.32)]"
+          onClick={handleSave}
+          disabled={saving}
+        >
           {saving ? "保存中…" : view === "create" ? "作成" : "変更を保存"}
         </button>
       </div>

@@ -3,16 +3,16 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
 
-async function getWebhookUrls() {
+async function getWebhookUrls(workspaceId: string) {
   const { data } = await supabaseAdmin
-    .from("variables")
-    .select("key, value")
-    .in("key", ["approval_url", "security_url", "reminder_url"]);
+    .from("slack_configs")
+    .select("approval_url, security_url")
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
 
-  const map = Object.fromEntries((data || []).map(r => [r.key, r.value]));
   return {
-    approvalUrl: map["approval_url"] || "",
-    securityUrl: map["security_url"] || "",
+    approvalUrl: data?.approval_url || "",
+    securityUrl: data?.security_url || "",
   };
 }
 
@@ -29,15 +29,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "必須項目が不足しています" }, { status: 400 });
     }
 
-    // Fetch checklist to determine is_large_checklist and fixed department_id
+    // Fetch checklist (includes workspace_id)
     const { data: checklistData, error: checklistFetchErr } = await supabaseAdmin
       .from("checklists")
-      .select("title, is_large_checklist, department_id")
+      .select("title, is_large_checklist, department_id, workspace_id")
       .eq("id", checklist_id)
       .single();
     if (checklistFetchErr) throw checklistFetchErr;
 
-    // For small checklists, always use the department from the checklist row
+    const workspaceId = checklistData.workspace_id;
+
     const resolvedDeptId = checklistData.is_large_checklist
       ? (department_id || null)
       : (checklistData.department_id || null);
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
         reason,
         department_id: resolvedDeptId,
         user_id: user_id || null,
+        workspace_id: workspaceId,
       })
       .select()
       .single();
@@ -90,7 +92,6 @@ export async function POST(req: NextRequest) {
 
     const sortedSections = (sections || []).sort((a, b) => a.order_index - b.order_index);
 
-    // Build missing items with section name in parentheses: "Task label (Section title)"
     const missingItems: string[] = [];
     for (const sec of sortedSections) {
       const secItems = [...(sec.checklist_items || [])].sort(
@@ -106,8 +107,8 @@ export async function POST(req: NextRequest) {
     const reasonText = reason?.trim() || "";
     const hasMissing = missingItems.length > 0;
 
-    // 5. Fetch webhook URLs
-    const { approvalUrl, securityUrl } = await getWebhookUrls();
+    // 5. Fetch this workspace's webhook URLs
+    const { approvalUrl, securityUrl } = await getWebhookUrls(workspaceId);
 
     // ── Approval channel payload ───────────────────────────────────────────────
     const approvalBodyText = hasMissing
@@ -132,7 +133,6 @@ export async function POST(req: NextRequest) {
           type: "section",
           text: { type: "mrkdwn", text: approvalBodyText },
         },
-        // block_id is required so the approval handler can filter these two blocks out
         {
           type: "input",
           block_id: "reason_block",
@@ -168,7 +168,6 @@ export async function POST(req: NextRequest) {
 
     const securityPayload = { text: securityText };
 
-    // ── Send to Approval channel ──────────────────────────────────────────────
     if (approvalUrl) {
       await fetch(approvalUrl, {
         method: "POST",
@@ -177,7 +176,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ── Send to Security channel ──────────────────────────────────────────────
     if (securityUrl) {
       await fetch(securityUrl, {
         method: "POST",
