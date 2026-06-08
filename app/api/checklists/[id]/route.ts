@@ -2,23 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserContext } from "@/lib/auth-helpers";
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const ctx = await getUserContext(req);
-  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const checklistId = Number((await params).id);
 
   const { data, error } = await supabaseAdmin
     .from("checklists")
     .select("*, checklist_sections(*, checklist_items(*)), checklist_departments(department_id)")
     .eq("id", checklistId)
-    .eq("workspace_id", ctx.workspaceId)
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 404 });
-
-  if (!ctx.isMainAdmin && !ctx.assignedChecklists.includes(checklistId)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
 
   return NextResponse.json(data);
 }
