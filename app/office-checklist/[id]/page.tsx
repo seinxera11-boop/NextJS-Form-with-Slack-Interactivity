@@ -137,22 +137,13 @@ export default function ChecklistPage() {
   // ── Initial load ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (!id) return;
-    Promise.all([
-      fetch(`/api/checklists/${id}`).then(r => r.json()),
-      fetch("/api/departments").then(r => r.json()),
-    ]).then(([clData, deptData]) => {
+    fetch(`/api/checklists/${id}`)
+      .then(r => r.json())
+      .then((clData) => {
       if (clData.error) throw new Error(clData.error);
 
       setChecklist(clData);
-
-      // Filter to only the departments assigned to this checklist.
-      const allDepts: Department[] = deptData || [];
-      const assignedIds = new Set<number>(
-        clData.is_large_checklist
-          ? (clData.checklist_departments || []).map((cd: any) => cd.department_id)
-          : clData.department_id ? [clData.department_id] : []
-      );
-      setDepartments(allDepts.filter(d => assignedIds.has(d.id)));
+      setDepartments(clData.departments || []);
 
       // Initialise form values
       const init: Record<number, string> = {};
@@ -178,7 +169,7 @@ export default function ChecklistPage() {
       setOrgUsers([]); setSelectedUserId(""); setIsOther(false); return;
     }
     setLoadingUsers(true);
-    fetch(`/api/org-users?department_id=${selectedDeptId}`)
+    fetch(`/api/org-users?department_id=${selectedDeptId}&checklist_id=${id}`)
       .then(r => r.json())
       .then(data => {
         setOrgUsers(data || []);

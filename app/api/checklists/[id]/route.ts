@@ -12,7 +12,20 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 404 });
 
-  return NextResponse.json(data);
+  const departmentIds: number[] = data.is_large_checklist
+    ? (data.checklist_departments || []).map((cd: any) => cd.department_id)
+    : data.department_id ? [data.department_id] : [];
+
+  let departments: { id: number; name: string }[] = [];
+  if (departmentIds.length > 0) {
+    const { data: deptData } = await supabaseAdmin
+      .from("departments")
+      .select("id, name")
+      .in("id", departmentIds);
+    departments = deptData || [];
+  }
+
+  return NextResponse.json({ ...data, departments });
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
