@@ -3,16 +3,31 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserContext } from "@/lib/auth-helpers";
 
 export async function GET(req: NextRequest) {
-  const ctx = await getUserContext(req);
-  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const { searchParams } = new URL(req.url);
   const department_id = searchParams.get("department_id");
+  const checklist_id = searchParams.get("checklist_id");
+
+  let workspaceId: string;
+
+  if (checklist_id) {
+    // Public fill mode: derive workspace from the checklist, no auth needed
+    const { data: cl, error: clErr } = await supabaseAdmin
+      .from("checklists")
+      .select("workspace_id")
+      .eq("id", Number(checklist_id))
+      .single();
+    if (clErr || !cl) return NextResponse.json({ error: "Checklist not found" }, { status: 404 });
+    workspaceId = cl.workspace_id;
+  } else {
+    const ctx = await getUserContext(req);
+    if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    workspaceId = ctx.workspaceId;
+  }
 
   let query = supabaseAdmin
     .from("org_users")
-    .select("*, departments(name)")
-    .eq("workspace_id", ctx.workspaceId)
+    .select("id, name, department_id")
+    .eq("workspace_id", workspaceId)
     .order("name");
 
   if (department_id) query = query.eq("department_id", department_id);
