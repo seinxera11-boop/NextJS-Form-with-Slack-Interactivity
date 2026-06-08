@@ -46,7 +46,9 @@ function CustomSelect({
 
       {open && (
         <div className="absolute top-[calc(100%+6px)] left-0 right-0 z-100 bg-white border-[1.5px] border-[#ccc0fa] rounded-xl shadow-[0_8px_32px_rgba(79,53,190,0.18)] max-h-60 overflow-y-auto">
-          {options.map(opt => (
+          {options.length === 0 ? (
+            <div className="py-3.25 px-4.5 text-sm text-[#a696f2] italic">ユーザーが見つかりません</div>
+          ) : options.map(opt => (
             <div
               key={opt.value}
               onClick={() => { onChange(opt.value); setOpen(false); }}
