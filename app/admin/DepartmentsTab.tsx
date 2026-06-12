@@ -20,6 +20,7 @@ export function DepartmentsTab() {
   const [userError, setUserError] = useState("");
 
   const [skippedUser, setSkippedUser] = useState<string[]>([]);
+  const [skippedDept, setSkippedDept] = useState<string[]>([]);
 
   const [editingDeptId, setEditingDeptId] = useState<number | null>(null);
   const [editDeptName, setEditDeptName] = useState("");
@@ -60,8 +61,8 @@ export function DepartmentsTab() {
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
-      if (result.skipped?.length > 0) setSkippedUser(result.skipped);
-      setTimeout(() => setSkippedUser([]),5000)
+      if (result.skipped?.length > 0) setSkippedDept(result.skipped);
+      setTimeout(() => setSkippedDept([]),5000)
       setBulkDeptNames("");
       await fetchAll();
     } catch (err: any) { setDeptError(err.message); }
@@ -236,7 +237,7 @@ export function DepartmentsTab() {
                 </button>
               </div>
               {userError && <div className="text-sm text-[#dc2626] mt-1.75 font-medium">⚠ {userError}</div>}
-              {skippedUser.length > 0 && <div className="text-sm text-[#d97706] mt-1.75 font-medium">⚠ ユーザー名の重複は許可されていません。そのためスキップしました。: {skippedUser.join(", ")}</div>}
+              {skippedUser.length > 0 && <div className=" px-5.5 text-sm text-[#d97706] mt-1.75 font-medium">⚠ ユーザー名の重複は許可されていません。そのためスキップしました。: {skippedUser.join(", ")}</div>}
             </div>
           </div>
         </div>
@@ -252,6 +253,7 @@ export function DepartmentsTab() {
       <div className="text-sm text-[#6a5d8e] mb-9">部署と所属ユーザーを管理します。</div>
 
       <div className="text-xs font-bold text-[#8c70e8] uppercase tracking-[0.12em] mb-4">部署 ({departments.length})</div>
+      {skippedDept.length > 0 && <div className="text-sm text-[#d97706] mt-1.75 font-medium mb-2">⚠ 部署名の重複は認められていません。そのため、この項目はスキップされました。。: {skippedDept.join(", ")}</div>}
       {departments.length === 0 ? (
         <div className="text-sm text-[#a78bfa] mb-4">部署がまだありません。</div>
       ) : departments.map(dept => (
@@ -333,7 +335,6 @@ export function DepartmentsTab() {
           </button>
         </div>
         {deptError && <div className="text-sm text-[#dc2626] mt-1.75 font-medium">⚠ {deptError}</div>}
-        {skippedUser.length > 0 && <div className="text-sm text-[#d97706] mt-1.75 font-medium">⚠ 部署名の重複は認められていません。そのため、この項目はスキップされました。。: {skippedUser.join(", ")}</div>}
       </div>
     </div>
   );
