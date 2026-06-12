@@ -253,6 +253,7 @@ function SubAdminsSection() {
       await fetchAll();
     } catch (err: any) {
       setAddError(err.message);
+      setTimeout(() => setAddError(""),2000);
     } finally {
       setAdding(false);
     }

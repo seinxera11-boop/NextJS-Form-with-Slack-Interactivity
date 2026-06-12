@@ -33,19 +33,23 @@ export async function POST(req: NextRequest) {
     .eq("workspace_id", ctx.workspaceId)
     .single();
 
-  let subAdminId: string;
+  //let subAdminId: string;
 
   if (existing) {
-    subAdminId = existing.id;
-  } else {
-    const { data: inserted, error: insertError } = await supabaseAdmin
-      .from("admin_users")
-      .insert({ email: lowerEmail, is_main_admin: false, workspace_id: ctx.workspaceId })
-      .select("id")
-      .single();
-    if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 });
-    subAdminId = inserted.id;
-  }
+  return NextResponse.json(
+    { error: "このメールアドレスはすでに登録されています" },
+    { status: 409 }
+  );
+}
+
+const { data: inserted, error: insertError } = await supabaseAdmin
+  .from("admin_users")
+  .insert({ email: lowerEmail, is_main_admin: false, workspace_id: ctx.workspaceId })
+  .select("id")
+  .single();
+if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 });
+
+const subAdminId = inserted.id;
 
   await supabaseAdmin.from("sub_admin_checklists").delete().eq("sub_admin_id", subAdminId);
 
