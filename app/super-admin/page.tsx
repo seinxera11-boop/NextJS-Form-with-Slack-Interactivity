@@ -124,7 +124,7 @@ export default function SuperAdminPage() {
       </nav>
 
       <div className="max-w-3xl mx-auto py-14 px-6">
-        <div className="text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-1">ワークスペース</div>
+        <div className="text-2xl sm:text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-1">ワークスペース</div>
         <div className="text-sm text-[#6a5d8e] mb-10">クライアントのワークスペースを作成・管理します。各ワークスペースは完全に独立しています。</div>
 
         {/* Create workspace card */}

@@ -19,7 +19,10 @@ export type Checklist = {
   title: string;
   created_by: string;
   created_at: string;
+  is_large_checklist?: boolean;
+  department_id?: number | null;
   checklist_sections?: ChecklistSection[];
+  checklist_departments?: { department_id: number }[];
 };
 
 export type ResponseItem = {

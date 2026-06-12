@@ -276,8 +276,8 @@ export default function ChecklistPage() {
 
   // ── Shared class strings ───────────────────────────────────────────────────
   const rootCls   = "min-h-screen bg-[linear-gradient(160deg,#f5f0fe_0%,#e8e0fc_50%,#f8f0ff_100%)] [font-family:'Inter',system-ui,sans-serif] text-[#1a1035]";
-  const headerCls = "[border-bottom:1.5px_solid_#dfd5fb] py-4.5 px-8 flex items-center gap-2.5 bg-[rgba(250,247,255,0.92)] backdrop-blur-[10px]";
-  const mainCls   = "max-w-155 mx-auto py-13 px-6";
+  const headerCls = "[border-bottom:1.5px_solid_#dfd5fb] py-4.5 px-4 sm:px-8 flex items-center gap-2.5 bg-[rgba(250,247,255,0.92)] backdrop-blur-[10px]";
+  const mainCls   = "max-w-155 mx-auto py-8 sm:py-13 px-4 sm:px-6";
   const inputCls  = "w-full border-[1.5px] border-[#ccc0fa] focus:border-[#a78bfa] rounded-[10px] py-2.75 px-3.5 text-base text-[#1a1035] outline-none bg-[#faf9ff] font-[inherit] box-border transition-[border-color] duration-150";
 
   // ── Loading / error ────────────────────────────────────────────────────────
@@ -304,7 +304,7 @@ export default function ChecklistPage() {
       <div className={mainCls}>
         <div className="text-center py-20">
           <div className="w-17 h-17 rounded-full bg-[linear-gradient(135deg,#7c3aed_0%,#a78bfa_100%)] flex items-center justify-center text-3xl mx-auto mb-7 text-white">✓</div>
-          <div className="text-2xl font-bold text-[#1a1035] mb-3">送信が完了しました</div>
+          <div className="text-xl sm:text-2xl font-bold text-[#1a1035] mb-3">送信が完了しました</div>
           <p className="text-sm text-[#6a5d8e] leading-[1.8] mb-10">
             回答が記録されました。<br />
             <strong className="text-[#4f35be]">{submittedBy}</strong>さん、ありがとうございました。
@@ -435,7 +435,7 @@ export default function ChecklistPage() {
       })}
 
       <div className="border-[1.5px] border-[#dfd5fb] rounded-[14px] p-6 mb-3.25 bg-white shadow-[0_2px_14px_rgba(79,53,190,0.09)]">
-        <label className="text-sm font-semibold text-[#4b3d80] mb-2.75 block">理由</label>
+        <label className="text-sm font-semibold text-[#4b3d80] mb-2.75 block">完了できなかったタスクの理由及びコメントを入力してください</label>
         <textarea
           className={`${inputCls} resize-none min-h-20`}
           placeholder="送信理由を入力してください"
@@ -461,8 +461,8 @@ export default function ChecklistPage() {
   // ── Incomplete-task confirmation modal ─────────────────────────────────────
   const renderConfirmModal = () => confirmModal && (
     <div className="fixed inset-0 z-1000 bg-[rgba(26,16,53,0.55)] backdrop-blur-sm flex items-center justify-center p-6">
-      <div className="bg-white rounded-[18px] py-8 px-7 max-w-120 w-full shadow-[0_20px_60px_rgba(79,53,190,0.28)] border-[1.5px] border-[#dfd5fb]">
-        <div className="text-xl font-bold text-[#1a1035] mb-2">
+      <div className="bg-white rounded-[18px] py-6 sm:py-8 px-4 sm:px-7 max-w-120 w-full shadow-[0_20px_60px_rgba(79,53,190,0.28)] border-[1.5px] border-[#dfd5fb]">
+        <div className="text-lg sm:text-xl font-bold text-[#1a1035] mb-2">
           未完了のタスクがあります
         </div>
         <div className="text-sm text-[#6a5d8e] mb-4.5">
@@ -511,7 +511,7 @@ export default function ChecklistPage() {
           <span className="text-lg font-extrabold text-[#4f35be] tracking-[-0.03em]">オフィス管理者</span>
         </div>
         <div className={mainCls}>
-          <div className="text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-7">{checklist.title}</div>
+          <div className="text-2xl sm:text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-7">{checklist.title}</div>
 
           {/* Read-only dept chip */}
           {deptName && (
@@ -546,7 +546,7 @@ export default function ChecklistPage() {
         <span className="text-lg font-extrabold text-[#4f35be] tracking-[-0.03em]">オフィス管理者</span>
       </div>
       <div className={mainCls}>
-        <div className="text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-7">{checklist.title}</div>
+        <div className="text-2xl sm:text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-7">{checklist.title}</div>
 
         {/* ── Step 1: Department ── */}
         {largeStep === "department" && (

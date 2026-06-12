@@ -53,14 +53,14 @@ export function ResponsesTab({ isMainAdmin }: Props) {
     .filter(r => filterDept === "all" || String((r as any).department_id) === filterDept);
 
   return (
-    <div className="max-w-215 -my-5 mx-auto py-14 px-8">
-      <div className="text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-2">回答一覧</div>
+    <div className="max-w-215 -my-5 mx-auto py-8 sm:py-14 px-4 sm:px-8">
+      <div className="text-2xl sm:text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-2">回答一覧</div>
       <div className="text-sm text-[#6a5d8e] mb-9">提出されたすべてのチェックリスト回答です。</div>
       <div className="flex items-center gap-2.5 justify-between mb-6 flex-wrap">
         <span className="text-sm text-[#8c70e8] font-semibold">{filtered.length}件の回答</span>
         <div className="flex gap-2">
           <select
-            className="border-[1.5px] border-[#ccc0fa] rounded-[10px] py-2.25 px-3.75 text-sm text-[#4b3d80] bg-[#faf9ff] outline-none cursor-pointer font-[inherit] font-medium"
+            className="border-[1.5px] border-[#ccc0fa] rounded-[10px] py-1.5 sm:py-2.25 px-2.5 sm:px-3.75 text-xs sm:text-sm text-[#4b3d80] bg-[#faf9ff] outline-none cursor-pointer font-[inherit] font-medium"
             value={filterDept}
             onChange={e => setFilterDept(e.target.value)}
           >
@@ -68,7 +68,7 @@ export function ResponsesTab({ isMainAdmin }: Props) {
             {departments.map(d => <option key={d.id} value={String(d.id)}>{d.name}</option>)}
           </select>
           <select
-            className="border-[1.5px] border-[#ccc0fa] rounded-[10px] py-2.25 px-3.75 text-sm text-[#4b3d80] bg-[#faf9ff] outline-none cursor-pointer font-[inherit] font-medium"
+            className="border-[1.5px] border-[#ccc0fa] rounded-[10px] py-1.5 sm:py-2.25 px-2.5 sm:px-3.75 text-xs sm:text-sm text-[#4b3d80] bg-[#faf9ff] outline-none cursor-pointer font-[inherit] font-medium"
             value={filterChecklist}
             onChange={e => setFilterChecklist(e.target.value)}
           >
@@ -93,11 +93,11 @@ export function ResponsesTab({ isMainAdmin }: Props) {
             className="border-[1.5px] border-[#dfd5fb] hover:border-[#c4b5fd] rounded-2xl mb-3 overflow-hidden bg-white shadow-[0_2px_14px_rgba(79,53,190,0.09)] hover:shadow-[0_4px_20px_rgba(79,53,190,0.12)] transition-all duration-180 ease-in-out"
           >
             <div
-              className="flex items-center justify-between py-5 px-6 cursor-pointer"
+              className="flex items-center justify-between py-4 sm:py-5 px-4 sm:px-6 cursor-pointer"
               onClick={() => setExpanded(isExpanded ? null : resp.id)}
             >
               <div className="flex flex-col gap-1.25">
-                <div className="text-lg font-semibold text-[#1a1035]">
+                <div className="text-base sm:text-lg font-semibold text-[#1a1035]">
                   {resp.submitted_by}
                   {resp.other_user_name && <span className="font-normal text-[#a78bfa] ml-1.5">(その他)</span>}
                   <span className="font-normal text-[#9688c0] ml-2">— {resp.checklists?.title || "不明なチェックリスト"}</span>
@@ -128,7 +128,7 @@ export function ResponsesTab({ isMainAdmin }: Props) {
               </div>
             </div>
             {isExpanded && (
-              <div className="px-6 pb-6 [border-top:1.5px_solid_#ede9fe]">
+              <div className="px-4 sm:px-6 pb-4 sm:pb-6 [border-top:1.5px_solid_#ede9fe]">
                 {resp.reason?.trim() && (
                   <>
                     <div className="text-xs font-bold text-[#8c70e8] uppercase tracking-[0.12em] mt-5 mb-3">提出理由</div>
@@ -142,7 +142,7 @@ export function ResponsesTab({ isMainAdmin }: Props) {
                     <div className="text-xs font-bold text-[#8c70e8] uppercase tracking-[0.12em] mt-5 mb-3">タスク</div>
                     {checkboxItems.map(item => (
                       <div key={item.id} className="flex items-start gap-2.5 py-2.5 border-b border-b-[#f5f0fe]">
-                        <span className="text-sm">{item.value === "true" ? "✅" : "❌"}</span>
+                        <span className={`text-base font-black shrink-0 ${item.value === "true" ? "text-[#16a34a]" : "text-[#dc2626]"}`}>{item.value === "true" ? "✓" : "✗"}</span>
                         <span className="text-sm text-[#5e5090] min-w-45 shrink-0">{item.checklist_items?.label}</span>
                       </div>
                     ))}
