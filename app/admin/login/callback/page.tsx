@@ -18,7 +18,7 @@ export default function AdminAuthCallback() {
       const hash = window.location.hash;
 
       if (!hash || !hash.includes("access_token")) {
-        setError("Invalid or missing login token.");
+        setError("ログイントークンが無効または見つかりません。");
         setTimeout(() => router.replace("/admin/login?error=no_token"), 2000);
         return;
       }
@@ -28,7 +28,7 @@ export default function AdminAuthCallback() {
       const refresh_token = params.get("refresh_token");
 
       if (!access_token || !refresh_token) {
-        setError("Incomplete login token.");
+        setError("ログイントークンが不完全です。");
         setTimeout(() => router.replace("/admin/login?error=missing_token"), 2000);
         return;
       }
@@ -39,7 +39,7 @@ export default function AdminAuthCallback() {
       });
 
       if (sessionError) {
-        setError("Login failed. Please try again.");
+        setError("ログインに失敗しました。もう一度お試しください。");
         setTimeout(() => router.replace("/admin/login?error=session_failed"), 2000);
         return;
       }

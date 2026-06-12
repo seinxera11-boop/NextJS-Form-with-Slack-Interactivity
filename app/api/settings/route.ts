@@ -4,7 +4,7 @@ import { getUserContext } from "@/lib/auth-helpers";
 
 export async function GET(req: NextRequest) {
   const ctx = await getUserContext(req);
-  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!ctx) return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
 
   const { data: config } = await supabaseAdmin
     .from("slack_configs")
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   const ctx = await getUserContext(req);
-  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!ctx) return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
 
   const body = await req.json().catch(() => null);
   const calendarId = typeof body?.google_calendar_id === "string"
@@ -31,7 +31,7 @@ export async function PATCH(req: NextRequest) {
     : null;
 
   if (!calendarId) {
-    return NextResponse.json({ error: "google_calendar_id is required" }, { status: 400 });
+    return NextResponse.json({ error: "カレンダーIDは必須です" }, { status: 400 });
   }
 
   const { error } = await supabaseAdmin
