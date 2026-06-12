@@ -30,7 +30,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const ctx = await getUserContext(req);
-  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!ctx) return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
 
   const { title, sections, created_by, is_large_checklist, department_id, department_ids } =
     await req.json();
@@ -38,7 +38,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   if (!ctx.isMainAdmin) {
     if (!ctx.assignedChecklists.includes(checklistId) || is_large_checklist) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: "権限がありません" }, { status: 403 });
     }
   }
 
@@ -164,8 +164,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const ctx = await getUserContext(req);
-  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!ctx.isMainAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!ctx) return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
+  if (!ctx.isMainAdmin) return NextResponse.json({ error: "権限がありません" }, { status: 403 });
 
   const { error } = await supabaseAdmin
     .from("checklists")

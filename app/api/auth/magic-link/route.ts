@@ -5,7 +5,7 @@ import { getSuperAdminEmails } from "@/lib/auth-helpers";
 export async function POST(req: Request) {
   try {
     const { email } = await req.json();
-    if (!email) return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    if (!email) return NextResponse.json({ error: "メールアドレスは必須です" }, { status: 400 });
 
     const normalized = email.trim().toLowerCase();
 
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
       .single();
 
     if (!adminUser) {
-      return NextResponse.json({ error: "Unauthorized email" }, { status: 403 });
+      return NextResponse.json({ error: "登録されていないメールアドレスです" }, { status: 403 });
     }
 
     const { error } = await supabaseAdmin.auth.signInWithOtp({
@@ -59,6 +59,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+    return NextResponse.json({ error: "エラーが発生しました" }, { status: 500 });
   }
 }

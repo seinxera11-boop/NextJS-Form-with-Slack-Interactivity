@@ -16,11 +16,11 @@ export async function GET(req: NextRequest) {
       .select("workspace_id")
       .eq("id", Number(checklist_id))
       .single();
-    if (clErr || !cl) return NextResponse.json({ error: "Checklist not found" }, { status: 404 });
+    if (clErr || !cl) return NextResponse.json({ error: "チェックリストが見つかりません" }, { status: 404 });
     workspaceId = cl.workspace_id;
   } else {
     const ctx = await getUserContext(req);
-    if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!ctx) return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
     workspaceId = ctx.workspaceId;
   }
 
@@ -39,12 +39,12 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const ctx = await getUserContext(req);
-  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "権限がありません" }, { status: 403 });
 
   const { names, department_id } = await req.json();
-  if (!Array.isArray(names)) return NextResponse.json({ error: "Not an Array" }, { status: 400 });
-  if (names.length == 0) return NextResponse.json({ error: "Array is Empty"}, {status: 400})
-  if (!department_id) return NextResponse.json({ error: "Department is required" }, { status: 400 });
+  if (!Array.isArray(names)) return NextResponse.json({ error: "配列が必要です" }, { status: 400 });
+  if (names.length == 0) return NextResponse.json({ error: "入力が空です"}, {status: 400})
+  if (!department_id) return NextResponse.json({ error: "部署は必須です" }, { status: 400 });
 
   const { data: existingUsers, error: fetchError } = await supabaseAdmin
     .from("org_users")
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   const existingNames = existingUsers.map(u => u.name);
   const newNames = names.filter(name => !existingNames.includes(name));
   const skipped = names.filter(name => existingNames.includes(name));
-  if (newNames.length == 0) return NextResponse.json({ error: "All users already exist" }, { status: 400 });
+  if (newNames.length == 0) return NextResponse.json({ error: "すべてのユーザーが既に存在します" }, { status: 400 });
 
   const { data, error } = await supabaseAdmin
     .from("org_users")
@@ -67,10 +67,10 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   const ctx = await getUserContext(req);
-  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "権限がありません" }, { status: 403 });
 
   const { id, name } = await req.json();
-  if (!name?.trim()) return NextResponse.json({ error: "Name is required" }, { status: 400 });
+  if (!name?.trim()) return NextResponse.json({ error: "名前は必須です" }, { status: 400 });
 
   const { error } = await supabaseAdmin
     .from("org_users")
@@ -83,7 +83,7 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const ctx = await getUserContext(req);
-  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "権限がありません" }, { status: 403 });
 
   const { id } = await req.json();
   const { error } = await supabaseAdmin

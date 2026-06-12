@@ -4,7 +4,7 @@ import { getUserContext } from "@/lib/auth-helpers";
 
 export async function GET(req: NextRequest) {
   const ctx = await getUserContext(req);
-  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!ctx) return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
 
   const { data, error } = await supabaseAdmin
     .from("departments")
@@ -17,11 +17,11 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const ctx = await getUserContext(req);
-  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "権限がありません" }, { status: 403 });
 
   const { names } = await req.json();
-  if (!Array.isArray(names)) return NextResponse.json({ error: "Not an Array" }, { status: 400 });
-  if (names.length == 0) return NextResponse.json({ error: "Array is Empty"}, {status: 400})
+  if (!Array.isArray(names)) return NextResponse.json({ error: "配列が必要です" }, { status: 400 });
+  if (names.length == 0) return NextResponse.json({ error: "入力が空です"}, {status: 400})
   
   const { data: existingDepts, error: fetchError } = await supabaseAdmin
     .from("departments")
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   const existingNames = existingDepts.map(u => u.name);
   const newNames = names.filter(name => !existingNames.includes(name));
   const skipped = names.filter(name => existingNames.includes(name));
-  if (newNames.length == 0) return NextResponse.json({ error: "Department names should be unique" }, { status: 400 });
+  if (newNames.length == 0) return NextResponse.json({ error: "部署名は既に存在します。別の名前を入力してください。" }, { status: 400 });
 
   const { data, error } = await supabaseAdmin
     .from("departments")
@@ -43,10 +43,10 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   const ctx = await getUserContext(req);
-  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "権限がありません" }, { status: 403 });
 
   const { id, name } = await req.json();
-  if (!name?.trim()) return NextResponse.json({ error: "Name is required" }, { status: 400 });
+  if (!name?.trim()) return NextResponse.json({ error: "名前は必須です" }, { status: 400 });
 
   const { error } = await supabaseAdmin
     .from("departments")
@@ -59,7 +59,7 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const ctx = await getUserContext(req);
-  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "権限がありません" }, { status: 403 });
 
   const { id } = await req.json();
   const { error } = await supabaseAdmin

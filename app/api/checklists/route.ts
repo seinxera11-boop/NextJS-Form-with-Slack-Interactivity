@@ -4,7 +4,7 @@ import { getUserContext } from "@/lib/auth-helpers";
 
 export async function GET(req: NextRequest) {
   const ctx = await getUserContext(req);
-  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!ctx) return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
 
   let query = supabaseAdmin
     .from("checklists")
@@ -24,8 +24,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const ctx = await getUserContext(req);
-  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!ctx.isMainAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!ctx) return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
+  if (!ctx.isMainAdmin) return NextResponse.json({ error: "権限がありません" }, { status: 403 });
 
   const { title, sections, created_by, is_large_checklist, department_id, department_ids } =
     await req.json();

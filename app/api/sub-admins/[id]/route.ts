@@ -7,7 +7,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const ctx = await getUserContext(req);
-  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "権限がありません" }, { status: 403 });
 
   const { id: subAdminId } = await params;
   const { checklist_ids } = await req.json();
@@ -28,7 +28,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const ctx = await getUserContext(req);
-  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "権限がありません" }, { status: 403 });
 
   const { id: subAdminId } = await params;
 

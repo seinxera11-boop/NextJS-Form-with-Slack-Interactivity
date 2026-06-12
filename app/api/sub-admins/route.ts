@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(req: NextRequest) {
   const ctx = await getUserContext(req);
-  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "権限がありません" }, { status: 403 });
 
   const { data, error } = await supabaseAdmin
     .from("admin_users")
@@ -19,10 +19,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const ctx = await getUserContext(req);
-  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!ctx?.isMainAdmin) return NextResponse.json({ error: "権限がありません" }, { status: 403 });
 
   const { email, checklist_ids } = await req.json();
-  if (!email?.trim()) return NextResponse.json({ error: "Email required" }, { status: 400 });
+  if (!email?.trim()) return NextResponse.json({ error: "メールアドレスは必須です" }, { status: 400 });
 
   const lowerEmail = email.trim().toLowerCase();
 

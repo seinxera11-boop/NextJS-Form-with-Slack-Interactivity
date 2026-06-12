@@ -4,11 +4,11 @@ import { getUserContext } from "@/lib/auth-helpers";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string}>}) {
     const ctx = await getUserContext(req);
-    if (!ctx) return NextResponse.json({ error: "Unauthorized"}, { status: 401 });
+    if (!ctx) return NextResponse.json({ error: "認証が必要です"}, { status: 401 });
 
     const checklistId = Number((await params).id);
 
-    if (!ctx.isMainAdmin) return NextResponse.json({ error: "Forbidden"}, { status: 403 });  
+    if (!ctx.isMainAdmin) return NextResponse.json({ error: "権限がありません"}, { status: 403 });  
 
     const { data: orgChecklist, error }= await supabaseAdmin
         .from("checklists")
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { data: newChecklist, error: clErr } = await supabaseAdmin
         .from("checklists")
         .insert({
-            title: "Copy of " + orgChecklist.title,
+            title: "コピー: " + orgChecklist.title,
             created_by: orgChecklist.created_by,
             is_large_checklist: orgChecklist.is_large_checklist,
             department_id: orgChecklist.department_id,
