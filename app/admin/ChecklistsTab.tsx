@@ -36,6 +36,10 @@ export function ChecklistsTab({
   const [saveError,  setSaveError]  = useState("");
   const [tooltipId,  setTooltipId]  = useState<number | null>(null);
 
+  const [copyingId, setCopyingId] = useState<number | null>(null);
+  const [successMsg, setSuccessMsg] = useState("");
+
+
   useEffect(() => {
     fetchChecklists();
     fetch("/api/departments")
@@ -151,13 +155,30 @@ export function ChecklistsTab({
     await fetchChecklists();
   };
 
+  const handleCopy = async (id: number) => {
+    setCopyingId(id);
+    try {
+      const res = await fetch (`/api/checklists/${id}/copy`, {method: "POST"});
+      await fetchChecklists();
+      setSuccessMsg("コピーを作成しました")
+      const t = setTimeout(() => setSuccessMsg(""),2000)
+    } catch (err: any) { alert(err.message);}
+    finally {
+      setCopyingId(null)
+    }
+  };
+
   // ── List view ──────────────────────────────────────────────────────────────
   if (view === "list") return (
-    <div className="max-w-195 -my-5 mx-auto py-14 px-8">
-      <div className="text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-2">チェックリスト</div>
+    <div className="max-w-195 -my-5 mx-auto py-8 sm:py-14 px-4 sm:px-8">
+      <div className="text-2xl sm:text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-2">チェックリスト</div>
       <div className="text-sm text-[#6a5d8e] mb-11">チームのチェックリストを作成・管理します。</div>
-      <div className="flex items-center justify-between mb-6">
+      
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
         <span className="text-sm text-[#8c70e8] font-semibold">{checklists.length}件のチェックリスト</span>
+        {successMsg && <span className="text-sm text-[#059669] font-medium">✓ {successMsg}</span>}
+
+        
         {isMainAdmin && (
           <button
             className="text-sm font-semibold bg-linear-to-br from-[#6d28d9] to-[#4f35be] text-white border-none rounded-[10px] py-2.5 px-5.5 cursor-pointer shadow-[0_2px_12px_rgba(109,40,217,0.32)]"
@@ -172,7 +193,7 @@ export function ChecklistsTab({
       ) : checklists.length === 0 ? (
         <div className="text-center py-20">
           <div className="text-5xl mb-5 opacity-[0.35]">☑</div>
-          <div className="text-2xl font-bold text-[#1a1035] mb-2.5">チェックリストがありません</div>
+          <div className="text-xl sm:text-2xl font-bold text-[#1a1035] mb-2.5">チェックリストがありません</div>
           <div className="text-sm text-[#8c70e8] mb-7">
             {isMainAdmin ? "最初のチェックリストを作成して始めましょう。" : "担当部署のチェックリストはありません。"}
           </div>
@@ -198,24 +219,24 @@ export function ChecklistsTab({
         const allTasks  = (cl.checklist_sections || [])
           .sort((a, b) => a.order_index - b.order_index)
           .flatMap(s => [...(s.checklist_items || [])].sort((a, b) => a.order_index - b.order_index));
-        const preview   = allTasks.slice(0, 5);
+        const preview   = allTasks.filter(t => t.label.length <= 20).slice(0, 2);
         const extra     = allTasks.length - preview.length;
         return (
           <div
             key={cl.id}
-            className="border-[1.5px] border-[#dfd5fb] hover:border-[#c4b5fd] rounded-2xl py-5.5 px-7 mb-3 bg-white shadow-[0_2px_14px_rgba(79,53,190,0.09)] transition-all duration-180 ease-in-out"
+            className="border-[1.5px] border-[#dfd5fb] hover:border-[#c4b5fd] rounded-2xl py-4 sm:py-5.5 px-4 sm:px-7 mb-3 bg-white shadow-[0_2px_14px_rgba(79,53,190,0.09)] transition-all duration-180 ease-in-out"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-lg font-semibold text-[#1a1035]">{cl.title}</span>
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <span className="text-base sm:text-lg font-semibold text-[#1a1035]">{cl.title}</span>
                   <span
                     className="relative inline-block"
                     onMouseEnter={() => setTooltipId(cl.id)}
                     onMouseLeave={() => setTooltipId(null)}
                   >
                     <span
-                      className={`text-xs py-1 px-2.75 rounded-full font-semibold border cursor-default ${
+                      className={`text-xs py-1 px-2.75 rounded-full font-semibold border cursor-default whitespace-nowrap ${
                         large
                           ? "text-[#6d28d9] bg-[#f5f0ff] border-[#ddd6fe]"
                           : "text-[#0f6e56] bg-[#e1f5ee] border-[#9fe1cb]"
@@ -243,7 +264,7 @@ export function ChecklistsTab({
               </div>
               <div className="flex gap-1.5 shrink-0">
                 <button
-                  className="text-xs text-[#1d4ed8] bg-[#eff6ff] border border-[#bfdbfe] rounded-lg py-1.5 px-3.5 cursor-pointer"
+                  className="text-[10px] sm:text-xs text-[#1d4ed8] bg-[#eff6ff] border border-[#bfdbfe] rounded-lg py-1 px-2 sm:py-1.5 sm:px-3.5 cursor-pointer"
                   onClick={() => {
                     const url = `${window.location.origin}/office-checklist/${cl.id}`;
                     navigator.clipboard.writeText(url).then(() => alert("リンクをコピーしました: " + url));
@@ -252,14 +273,14 @@ export function ChecklistsTab({
                   リンクをコピー
                 </button>
                 <button
-                  className="text-xs text-[#4b3d80] bg-[#ede9fe] border border-[#ccc0fa] rounded-lg py-1.5 px-3.5 cursor-pointer"
+                  className="text-[10px] sm:text-xs text-[#4b3d80] bg-[#ede9fe] border border-[#ccc0fa] rounded-lg py-1 px-2 sm:py-1.5 sm:px-3.5 cursor-pointer"
                   onClick={() => startEdit(cl)}
                 >
                   編集
                 </button>
                 {isMainAdmin && (
                   <button
-                    className="text-xs text-[#b91c1c] bg-[#fef2f2] border border-[#fecaca] rounded-lg py-1.5 px-3.5 cursor-pointer"
+                    className="text-[10px] sm:text-xs text-[#b91c1c] bg-[#fef2f2] border border-[#fecaca] rounded-lg py-1 px-2 sm:py-1.5 sm:px-3.5 cursor-pointer"
                     onClick={() => handleDelete(cl.id)}
                   >
                     削除
@@ -267,16 +288,29 @@ export function ChecklistsTab({
                 )}
               </div>
             </div>
-            <div className="flex flex-wrap gap-1.25">
-              {preview.map((it, i) => (
-                <span
-                  key={i}
-                  className="text-xs py-1 px-2.75 rounded-full font-medium bg-linear-to-br from-[#ede9fe] to-[#ddd6fe] text-[#6d28d9] border border-[#ccc0fa]"
+         
+
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-1.25 flex-1 min-w-0 overflow-hidden">
+                {preview.map((it, i) => (
+                  <span
+                    key={i}
+                    className="text-xs py-1 px-2.75 rounded-full font-medium bg-linear-to-br from-[#ede9fe] to-[#ddd6fe] text-[#6d28d9] border border-[#ccc0fa] whitespace-nowrap shrink-0"
+                  >
+                    {it.label}
+                  </span>
+                ))}
+                {extra > 0 && <span className="text-xs text-[#a78bfa] py-0.75 px-1.5 shrink-0 whitespace-nowrap">他{extra}件</span>}
+              </div>
+              {isMainAdmin && (
+                <button
+                  className="text-xs text-[#059669] bg-[#ecfdf5] border border-[#6ee7b7] rounded-lg py-1 px-2 cursor-pointer shrink-0"
+                  onClick={() => handleCopy(cl.id)}
+                  disabled={copyingId === cl.id}
                 >
-                  {it.label}
-                </span>
-              ))}
-              {extra > 0 && <span className="text-xs text-[#a78bfa] py-0.75 px-1.5">他{extra}件</span>}
+                  {copyingId === cl.id ? "コピーする....." : "コピーを作成" }
+                </button>
+              )}
             </div>
           </div>
         );
@@ -286,14 +320,14 @@ export function ChecklistsTab({
 
   // ── Create / edit view ─────────────────────────────────────────────────────
   return (
-    <div className="max-w-195 -my-5 mx-auto py-14 px-8">
+    <div className="max-w-195 -my-5 mx-auto py-8 sm:py-14 px-4 sm:px-8">
       <button
         className="inline-flex items-center gap-1.5 text-sm text-[#6a5d8e] cursor-pointer mb-8 bg-transparent border-none p-0"
         onClick={() => setView("list")}
       >
         ← チェックリストに戻る
       </button>
-      <div className="text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-2">
+      <div className="text-2xl sm:text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-2">
         {view === "create" ? "新規チェックリスト" : "チェックリストを編集"}
       </div>
       <div className="text-sm text-[#6a5d8e] mb-8">
@@ -301,7 +335,7 @@ export function ChecklistsTab({
       </div>
 
       {/* ── Basic info ── */}
-      <div className="border-[1.5px] border-[#dfd5fb] rounded-[14px] p-7 mb-4 bg-[#faf9ff]">
+      <div className="border-[1.5px] border-[#dfd5fb] rounded-[14px] p-4 sm:p-7 mb-4 bg-[#faf9ff]">
         <div className="text-xs font-bold text-[#8c70e8] uppercase tracking-[0.12em] mb-4.5">基本情報</div>
 
         <label className="block text-sm font-semibold text-[#4b3d80] mb-2.25">タイトル</label>
@@ -324,7 +358,7 @@ export function ChecklistsTab({
               />
             </div>
             <div>
-              <div className="text-sm text-[#1a1035] font-medium">複数の部署</div>
+              <div className="text-sm text-[#1a1035] font-medium">{isLarge ? "複数の部署" : "１部署"}</div>
               <div className="text-xs text-[#7a6aaa] mt-1" />
             </div>
           </div>

@@ -126,13 +126,13 @@ function AdminDashboard({ userCtx }: { userCtx: UserContext }) {
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f5f0fe_0%,#ede8fc_100%)] font-['Inter',system-ui,sans-serif] text-[#1a1035]">
       <nav
-        className={`h-17.5 [border-bottom:1.5px_solid_#dfd5fb] flex items-center justify-between sticky top-0 bg-[rgba(250,247,255,0.96)] backdrop-blur-md z-50 shadow-[0_1px_20px_rgba(79,53,190,0.11)] ${isMobile ? "px-5" : "px-10"}`}
+        className={`h-17.5 [border-bottom:1.5px_solid_#dfd5fb] flex items-center justify-between sticky top-0 bg-[rgba(250,247,255,0.96)] backdrop-blur-md z-50 shadow-[0_1px_20px_rgba(79,53,190,0.11)] ${isMobile ? "px-3" : "px-10"}`}
         ref={menuRef}
       >
 
         {/* ── Left ── */}
-        <div className="flex items-center gap-5">
-          <div className="font-extrabold text-xl text-[#4f35be] tracking-[-0.03em] flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:gap-5">
+          <div className="font-extrabold text-base sm:text-xl text-[#4f35be] tracking-[-0.03em] flex items-center gap-2">
             <div className="w-2.5 h-2.5 rounded-full bg-[linear-gradient(135deg,#6d28d9_0%,#a78bfa_100%)]" />
             {userCtx.workspaceName || "管理画面"}
           </div>
@@ -146,7 +146,7 @@ function AdminDashboard({ userCtx }: { userCtx: UserContext }) {
           {isMobile && (
             <div className="flex items-center gap-2 relative">
               {/* Current tab name */}
-              <span className="text-xs font-semibold text-[#4f35be] bg-[linear-gradient(135deg,#ede9fe_0%,#ddd6fe_100%)] border border-[#c4b5fd] py-1 px-3 rounded-lg">
+              <span className="text-xs font-semibold text-[#4f35be] bg-[linear-gradient(135deg,#ede9fe_0%,#ddd6fe_100%)] border border-[#c4b5fd] py-1 px-3 rounded-lg whitespace-nowrap">
                 {activeLabel}
               </span>
 

@@ -94,7 +94,7 @@ function SlackSection({ workspaceSlug }: { workspaceSlug: string }) {
         {CHANNELS.map(ch => {
           const connected = !!fields[ch.key];
           return (
-            <div key={ch.key} className="flex items-center justify-between gap-4 py-3.5 px-4 rounded-xl border-[1.5px] border-[#ede9fe] bg-[#faf9ff]">
+            <div key={ch.key} className="flex items-center justify-between gap-2 sm:gap-4 py-3 sm:py-3.5 px-3 sm:px-4 rounded-xl border-[1.5px] border-[#ede9fe] bg-[#faf9ff]">
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className={`w-2 h-2 rounded-full shrink-0 ${connected ? "bg-[#059669]" : "bg-[#d1d5db]"}`} />
                 <div className="min-w-0">
@@ -104,7 +104,7 @@ function SlackSection({ workspaceSlug }: { workspaceSlug: string }) {
               </div>
               <a
                 href={installUrl(ch.channelParam)}
-                className="shrink-0 text-xs font-semibold text-white bg-[linear-gradient(135deg,#6d28d9_0%,#4f35be_100%)] rounded-lg py-1.75 px-4 no-underline inline-flex items-center gap-1.5 shadow-[0_1px_6px_rgba(109,40,217,0.25)]"
+                className="shrink-0 text-[10px] sm:text-xs font-semibold text-white bg-[linear-gradient(135deg,#6d28d9_0%,#4f35be_100%)] rounded-lg py-1.5 sm:py-1.75 px-3 sm:px-4 no-underline inline-flex items-center gap-1.5 shadow-[0_1px_6px_rgba(109,40,217,0.25)]"
               >
                 {connected ? "再接続" : "接続"}
               </a>
@@ -356,14 +356,14 @@ function SubAdminsSection() {
               {isEditing ? (
                 <>
                   <button
-                    className={`text-xs font-semibold text-white bg-[linear-gradient(135deg,#059669_0%,#047857_100%)] border-none rounded-lg py-1.5 px-4 cursor-pointer font-[inherit] ${saving ? "opacity-60" : ""}`}
+                    className={`text-[10px] sm:text-xs font-semibold text-white bg-[linear-gradient(135deg,#059669_0%,#047857_100%)] border-none rounded-lg py-1 sm:py-1.5 px-3 sm:px-4 cursor-pointer font-[inherit] ${saving ? "opacity-60" : ""}`}
                     onClick={() => handleSaveEdit(sa.id)}
                     disabled={saving}
                   >
                     {saving ? "保存中…" : "保存"}
                   </button>
                   <button
-                    className="text-xs text-[#6a5d8e] bg-transparent border-[1.5px] border-[#ccc0fa] rounded-lg py-1.5 px-3.5 cursor-pointer font-[inherit]"
+                    className="text-[10px] sm:text-xs text-[#6a5d8e] bg-transparent border-[1.5px] border-[#ccc0fa] rounded-lg py-1 sm:py-1.5 px-2.5 sm:px-3.5 cursor-pointer font-[inherit]"
                     onClick={() => setEditingId(null)}
                   >
                     キャンセル
@@ -372,13 +372,13 @@ function SubAdminsSection() {
               ) : (
                 <>
                   <button
-                    className="text-xs text-[#4b3d80] bg-[#ede9fe] border-[1.5px] border-[#ccc0fa] rounded-lg py-1.5 px-3.5 cursor-pointer font-[inherit]"
+                    className="text-[10px] sm:text-xs text-[#4b3d80] bg-[#ede9fe] border-[1.5px] border-[#ccc0fa] rounded-lg py-1 sm:py-1.5 px-2.5 sm:px-3.5 cursor-pointer font-[inherit]"
                     onClick={() => startEdit(sa)}
                   >
                     編集
                   </button>
                   <button
-                    className="text-xs text-[#dc2626] bg-[#fff5f5] border-[1.5px] border-[#fecaca] rounded-lg py-1.5 px-3.5 cursor-pointer font-[inherit]"
+                    className="text-[10px] sm:text-xs text-[#dc2626] bg-[#fff5f5] border-[1.5px] border-[#fecaca] rounded-lg py-1 sm:py-1.5 px-2.5 sm:px-3.5 cursor-pointer font-[inherit]"
                     onClick={() => handleDelete(sa.id, sa.email)}
                   >
                     削除
@@ -397,19 +397,19 @@ function SubAdminsSection() {
 
 export function SettingsTab({ workspaceSlug }: { workspaceSlug: string }) {
   return (
-    <div className="max-w-150 -my-5 mx-auto py-14 px-8">
-      <div className="text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-2">設定</div>
+    <div className="max-w-150 -my-5 mx-auto py-8 sm:py-14 px-4 sm:px-8">
+      <div className="text-2xl sm:text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-2">設定</div>
       <div className="text-sm text-[#6a5d8e] mb-11">Slack連携とサブ管理者の設定を行います。</div>
 
-      <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-8 mb-5.5 bg-white shadow-[0_2px_18px_rgba(79,53,190,0.10)]">
+      <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-4 sm:p-8 mb-5.5 bg-white shadow-[0_2px_18px_rgba(79,53,190,0.10)]">
         <SlackSection workspaceSlug={workspaceSlug} />
       </div>
 
-      <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-8 mb-5.5 bg-white shadow-[0_2px_18px_rgba(79,53,190,0.10)]">
+      <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-4 sm:p-8 mb-5.5 bg-white shadow-[0_2px_18px_rgba(79,53,190,0.10)]">
         <GoogleCalendarSection />
       </div>
 
-      <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-8 mb-5.5 bg-white shadow-[0_2px_18px_rgba(79,53,190,0.10)]">
+      <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-4 sm:p-8 mb-5.5 bg-white shadow-[0_2px_18px_rgba(79,53,190,0.10)]">
         <SubAdminsSection />
       </div>
     </div>
