@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getWebhookUrl } from "@/lib/slack-helpers";
 import { google } from "googleapis";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -63,24 +64,29 @@ function isWeekend(date: Date): boolean {
 
 // ─── Per-workspace reminder ───────────────────────────────────────────────────
 
+async function sendReminder(webhookUrl: string, titles: string[]): Promise<void> {
+  const list = titles.map(t => `• ${t}`).join("\n");
+  const text = `<!channel>\n本日、以下のチェックリストの提出を確認できませんでした。状況を確認いただけますか？\n${list}`;
+
+  await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ blocks: [{ type: "section", text: { type: "mrkdwn", text } }] }),
+  });
+}
+
 async function processWorkspace(workspaceId: string): Promise<string> {
   const now = new Date();
-  const todayStart = new Date(Date.UTC(
-    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0
-  )).toISOString();
-  const todayEnd = new Date(Date.UTC(
-    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59
-  )).toISOString();
+  const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0)).toISOString();
+  const todayEnd   = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59)).toISOString();
 
-  // Get all checklists for this workspace
   const { data: checklists } = await supabaseAdmin
     .from("checklists")
-    .select("id, title")
+    .select("id, title, department_id, checklist_departments(department_id)")
     .eq("workspace_id", workspaceId);
 
   if (!checklists || checklists.length === 0) return "no_checklists";
 
-  // Get checklist_ids that have a response today
   const { data: todayResponses } = await supabaseAdmin
     .from("responses")
     .select("checklist_id")
@@ -93,38 +99,27 @@ async function processWorkspace(workspaceId: string): Promise<string> {
 
   if (unfilled.length === 0) return "already_submitted";
 
-  // Get reminder URL for this workspace
-  const { data: configData } = await supabaseAdmin
-    .from("slack_configs")
-    .select("reminder_url")
-    .eq("workspace_id", workspaceId)
-    .maybeSingle();
-
-  if (!configData?.reminder_url) return "no_reminder_url";
-
-  let messageText: string;
-  if (checklists.length === 1) {
-    messageText = "<!channel>\n 本日、最終退社フォームの提出を確認できませんでした。状況を確認いただけますか？";
-  } else {
-    const names = unfilled.map(cl => `• ${cl.title}`).join("\n");
-    messageText = `<!channel>\n 本日、以下のチェックリストの提出を確認できませんでした。状況を確認いただけますか？\n${names}`;
+  // Group unfilled checklists by department — one message per dept
+  // checklist_departments is the canonical source; fall back to department_id for legacy rows
+  const groups = new Map<number, string[]>();
+  for (const cl of unfilled) {
+    const cdDepts = ((cl as any).checklist_departments as { department_id: number }[] | null) ?? [];
+    const deptIds = cdDepts.length > 0 ? cdDepts.map(cd => cd.department_id) : (cl.department_id ? [cl.department_id as number] : []);
+    for (const deptId of deptIds) {
+      if (!groups.has(deptId)) groups.set(deptId, []);
+      groups.get(deptId)!.push(cl.title);
+    }
   }
 
-  await fetch(configData.reminder_url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      blocks: [{
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: messageText,
-        },
-      }],
-    }),
-  });
+  let sent = 0;
+  for (const [deptId, titles] of groups) {
+    const url = await getWebhookUrl(deptId, "reminder", workspaceId);
+    if (!url) continue;
+    await sendReminder(url, titles);
+    sent++;
+  }
 
-  return "reminder_sent";
+  return sent > 0 ? "reminder_sent" : "no_reminder_url";
 }
 
 // ─── Route handler ────────────────────────────────────────────────────────────
@@ -160,11 +155,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ skipped: true, reason: "holiday", events: events.map(e => e.summary) });
     }
 
-    // Fetch all workspaces
-    const { data: workspaces, error: wsErr } = await supabaseAdmin
-      .from("workspaces")
-      .select("id, name");
+    const workspaceFilter = req.nextUrl.searchParams.get("workspace");
 
+    let wsQuery = supabaseAdmin.from("workspaces").select("id, name");
+    if (workspaceFilter) wsQuery = wsQuery.ilike("name", workspaceFilter);
+
+    const { data: workspaces, error: wsErr } = await wsQuery;
     if (wsErr) throw new Error(wsErr.message);
 
     const results: Record<string, string> = {};

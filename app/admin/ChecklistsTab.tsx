@@ -26,9 +26,7 @@ export function ChecklistsTab({
 
   // Form state
   const [title,            setTitle]            = useState("");
-  const [isLarge,          setIsLarge]          = useState(false);
-  const [fixedDeptId,      setFixedDeptId]      = useState<string>("");     // small: single dept
-  const [selectedDeptIds,  setSelectedDeptIds]  = useState<number[]>([]);   // large: multi dept
+  const [selectedDeptIds,  setSelectedDeptIds]  = useState<number[]>([]);
   const [sections,         setSections]         = useState<SectionState[]>([
     { title: "", order_index: 0, tasks: [{ label: "", order_index: 0, _key: uid() }], _key: uid() },
   ]);
@@ -56,16 +54,13 @@ export function ChecklistsTab({
   };
 
   const startCreate = () => {
-    setTitle(""); setIsLarge(false); setFixedDeptId(""); setSelectedDeptIds([]);
+    setTitle(""); setSelectedDeptIds([]);
     setSections([{ title: "", order_index: 0, tasks: [{ label: "", order_index: 0, _key: uid() }], _key: uid() }]);
     setSaveError(""); setEditTarget(null); setView("create");
   };
 
   const startEdit = (cl: Checklist) => {
     setTitle(cl.title);
-    const large = (cl as any).is_large_checklist ?? false;
-    setIsLarge(large);
-    setFixedDeptId((cl as any).department_id ? String((cl as any).department_id) : "");
     const mappings: { department_id: number }[] = (cl as any).checklist_departments || [];
     setSelectedDeptIds(mappings.map(m => m.department_id));
     const sorted = [...(cl.checklist_sections || [])].sort((a, b) => a.order_index - b.order_index);
@@ -117,8 +112,7 @@ export function ChecklistsTab({
 
   const handleSave = async () => {
     if (!title.trim()) { setSaveError("タイトルは必須です。"); return; }
-    if (!isLarge && !fixedDeptId) { setSaveError("小規模チェックリストには部署の選択が必要です。"); return; }
-    if (isLarge && selectedDeptIds.length === 0) { setSaveError("大規模チェックリストには少なくとも1つの部署を選択してください。"); return; }
+    if (selectedDeptIds.length === 0) { setSaveError("少なくとも1つの部署を選択してください。"); return; }
     for (const sec of sections) {
       if (!sec.title.trim()) { setSaveError("すべてのセクションにタイトルを入力してください。"); return; }
       for (const task of sec.tasks) {
@@ -136,9 +130,8 @@ export function ChecklistsTab({
             title,
             sections,
             created_by: userEmail,
-            is_large_checklist: isLarge,
-            department_id:  isLarge ? null : (fixedDeptId ? Number(fixedDeptId) : null),
-            department_ids: isLarge ? selectedDeptIds : [],
+            is_large_checklist: selectedDeptIds.length > 1,
+            department_ids: selectedDeptIds,
           }),
         }
       );
@@ -207,15 +200,10 @@ export function ChecklistsTab({
           )}
         </div>
       ) : checklists.map(cl => {
-        const large     = (cl as any).is_large_checklist;
-        const deptName  = !large
-          ? departments.find(d => d.id === (cl as any).department_id)?.name
-          : undefined;
-        const largeDepts = large
-          ? ((cl as any).checklist_departments || [])
-              .map((cd: any) => departments.find(d => d.id === cd.department_id)?.name)
-              .filter(Boolean) as string[]
-          : [];
+        const depts = ((cl as any).checklist_departments || [])
+          .map((cd: any) => departments.find(d => d.id === cd.department_id)?.name)
+          .filter(Boolean) as string[];
+        const multiDept = depts.length > 1;
         const allTasks  = (cl.checklist_sections || [])
           .sort((a, b) => a.order_index - b.order_index)
           .flatMap(s => [...(s.checklist_items || [])].sort((a, b) => a.order_index - b.order_index));
@@ -237,17 +225,17 @@ export function ChecklistsTab({
                   >
                     <span
                       className={`text-xs py-1 px-2.75 rounded-full font-semibold border cursor-default whitespace-nowrap ${
-                        large
+                        multiDept
                           ? "text-[#6d28d9] bg-[#f5f0ff] border-[#ddd6fe]"
                           : "text-[#0f6e56] bg-[#e1f5ee] border-[#9fe1cb]"
                       }`}
                     >
-                      {large ? "複数の部署" : "１部署"}
+                      {depts.length > 1 ? "複数の部署" : "１部署"}
                     </span>
                     {tooltipId === cl.id && (
                       <div className="absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2 bg-[#2a1f4a] rounded-lg py-2 px-3 pointer-events-none z-50 shadow-[0_4px_16px_rgba(0,0,0,0.18)] whitespace-nowrap">
-                        {(large ? largeDepts : deptName ? [deptName] : []).length > 0
-                          ? (large ? largeDepts : [deptName!]).map(n => (
+                        {depts.length > 0
+                          ? depts.map((n: string) => (
                               <span key={n} className="text-xs text-[#e9e4fb] font-medium leading-[1.8] block">{n}</span>
                             ))
                           : <span className="text-xs text-[#e9e4fb] font-medium leading-[1.8] block opacity-50">未設定</span>
@@ -346,77 +334,42 @@ export function ChecklistsTab({
           onChange={e => setTitle(e.target.value)}
         />
 
-        {/* Toggle: is_large_checklist (main admin only) */}
-        {isMainAdmin && (
-          <div className="flex items-center gap-3 mt-5.5">
-            <div
-              className={`relative w-10 h-5.5 rounded-full cursor-pointer transition-colors duration-200 ${isLarge ? "bg-[#6d28d9]" : "bg-[#ddd6fe]"}`}
-              onClick={() => { setIsLarge(v => !v); setFixedDeptId(""); setSelectedDeptIds([]); }}
-            >
-              <div
-                className={`absolute top-0.75 w-4 h-4 rounded-full bg-white transition-[left] duration-200 shadow-[0_1px_3px_rgba(0,0,0,0.15)] ${isLarge ? "left-5.25" : "left-0.75"}`}
-              />
+        {/* Department multi-select */}
+        <div className="mt-5">
+          <label className="block text-sm font-semibold text-[#4b3d80] mb-2.25">
+            部門（複数選択可） <span className="text-[#dc2626]">*</span>
+          </label>
+          {departments.length === 0 ? (
+            <div className="text-sm text-[#9688c0]">部署が登録されていません。</div>
+          ) : (
+            <div className="flex flex-wrap gap-2 mt-1">
+              {departments.map(d => {
+                const active = selectedDeptIds.includes(d.id);
+                return (
+                  <button
+                    key={d.id}
+                    type="button"
+                    disabled={!isMainAdmin}
+                    className={`text-xs font-medium py-1.75 px-3.5 rounded-full border-[1.5px] transition-all duration-150 select-none leading-[1.4] ${
+                      !isMainAdmin ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+                    } ${
+                      active
+                        ? "bg-linear-to-br from-[#6d28d9] to-[#4f35be] border-transparent text-white shadow-[0_2px_8px_rgba(109,40,217,0.28)]"
+                        : "border-[#ccc0fa] bg-white text-[#4b3d80]"
+                    }`}
+                    onClick={() => isMainAdmin && toggleLargeDept(d.id)}
+                  >
+                    {active && <span className="mr-1.25 text-xs">✓</span>}
+                    {d.name}
+                  </button>
+                );
+              })}
             </div>
-            <div>
-              <div className="text-sm text-[#1a1035] font-medium">{isLarge ? "複数の部署" : "１部署"}</div>
-              <div className="text-xs text-[#7a6aaa] mt-1" />
-            </div>
-          </div>
-        )}
-
-        {/* Small: single department selector */}
-        {!isLarge && (
-          <div className="mt-5">
-            <label className="block text-sm font-semibold text-[#4b3d80] mb-2.25">
-              部門 <span className="text-[#dc2626]">*</span>
-            </label>
-            <select
-              className={`w-full border-[1.5px] border-[#ccc0fa] focus:border-[#a78bfa] rounded-[10px] py-2.75 px-3.75 text-base text-[#1a1035] outline-none font-[inherit] ${!isMainAdmin ? "bg-[#f5f0ff] cursor-not-allowed" : "bg-white cursor-pointer"}`}
-              value={fixedDeptId}
-              onChange={e => isMainAdmin && setFixedDeptId(e.target.value)}
-              disabled={!isMainAdmin}
-            >
-              <option value="">部署を選択してください…</option>
-              {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
-          </div>
-        )}
-
-        {/* Large: pill-toggle multi-select */}
-        {isLarge && (
-          <div className="mt-5">
-            <label className="block text-sm font-semibold text-[#4b3d80] mb-2.25">
-              部門（複数選択可） <span className="text-[#dc2626]">*</span>
-            </label>
-            {departments.length === 0 ? (
-              <div className="text-sm text-[#9688c0]">部署が登録されていません。</div>
-            ) : (
-              <div className="flex flex-wrap gap-2 mt-1">
-                {departments.map(d => {
-                  const active = selectedDeptIds.includes(d.id);
-                  return (
-                    <button
-                      key={d.id}
-                      type="button"
-                      className={`text-xs font-medium py-1.75 px-3.5 rounded-full border-[1.5px] cursor-pointer transition-all duration-150 select-none leading-[1.4] ${
-                        active
-                          ? "bg-linear-to-br from-[#6d28d9] to-[#4f35be] border-transparent text-white shadow-[0_2px_8px_rgba(109,40,217,0.28)]"
-                          : "border-[#ccc0fa] bg-white text-[#4b3d80]"
-                      }`}
-                      onClick={() => toggleLargeDept(d.id)}
-                    >
-                      {active && <span className="mr-1.25 text-xs">✓</span>}
-                      {d.name}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            {selectedDeptIds.length > 0 && (
-              <div className="mt-2.5 text-xs text-[#6d28d9] font-semibold">{selectedDeptIds.length}部署を選択中</div>
-            )}
-          </div>
-        )}
+          )}
+          {selectedDeptIds.length > 0 && (
+            <div className="mt-2.5 text-xs text-[#6d28d9] font-semibold">{selectedDeptIds.length}部署を選択中</div>
+          )}
+        </div>
       </div>
 
       {/* ── Sections & tasks ── */}

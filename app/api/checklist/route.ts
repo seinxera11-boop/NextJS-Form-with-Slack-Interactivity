@@ -20,16 +20,18 @@ export async function POST(req: NextRequest) {
     // Fetch checklist (includes workspace_id)
     const { data: checklistData, error: checklistFetchErr } = await supabaseAdmin
       .from("checklists")
-      .select("title, is_large_checklist, department_id, workspace_id")
+      .select("title, is_large_checklist, department_id, workspace_id, checklist_departments(department_id)")
       .eq("id", checklist_id)
       .single();
     if (checklistFetchErr) throw checklistFetchErr;
 
     const workspaceId = checklistData.workspace_id;
 
+    const singleDeptId = (checklistData.checklist_departments as { department_id: number }[] | null)?.[0]?.department_id
+      ?? checklistData.department_id ?? null;
     const resolvedDeptId = checklistData.is_large_checklist
       ? (department_id || null)
-      : (checklistData.department_id || null);
+      : singleDeptId;
 
     // 1. Insert response
     const { data: responseData, error: responseError } = await supabaseAdmin
