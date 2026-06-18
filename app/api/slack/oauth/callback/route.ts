@@ -11,13 +11,14 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // state format: "{workspaceSlug}:{channelType}"  e.g. "acme:approval"
-  const colonIdx      = state.indexOf(":");
-  const workspaceSlug = colonIdx > -1 ? state.slice(0, colonIdx) : state;
-  const channelType   = colonIdx > -1 ? state.slice(colonIdx + 1) : "approval";
+  // state format: "{workspace}:{channel}" or "{workspace}:{channel}:{departmentId}"
+  const parts        = state.split(":");
+  const workspaceSlug = parts[0] ?? "";
+  const channelType   = parts[1] ?? "approval";
+  const departmentId  = parts[2] ? parseInt(parts[2]) : null;
 
   console.log("[slack/callback] state raw:", state);
-  console.log("[slack/callback] workspaceSlug:", workspaceSlug, "| channelType:", channelType);
+  console.log("[slack/callback] workspaceSlug:", workspaceSlug, "| channelType:", channelType, "| departmentId:", departmentId);
 
   if (!workspaceSlug) {
     console.error("[slack/callback] workspaceSlug is empty — state was:", state);
@@ -52,8 +53,6 @@ export async function GET(req: NextRequest) {
   const webhookUrl = data.incoming_webhook?.url as string | undefined;
 
   if (!webhookUrl) {
-    // Slack didn't return a webhook URL — "Incoming Webhooks" feature may be off
-    // in the Slack app settings (api.slack.com → Features → Incoming Webhooks)
     console.error("[slack/callback] No incoming_webhook.url in Slack response. Full response:", data);
     return NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_BASE_URL}/admin?tab=settings&slack_error=no_webhook_url`
@@ -84,32 +83,45 @@ export async function GET(req: NextRequest) {
   }
 
   const workspaceId = workspace.id;
-  console.log("[slack/callback] workspaceId:", workspaceId);
-
-  // Map channel type to column name in slack_configs
   const urlColumn = channelType === "security"
     ? "security_url"
     : channelType === "reminder"
     ? "reminder_url"
     : "approval_url";
 
-  console.log("[slack/callback] Saving | workspace:", workspaceSlug, "| channel:", channelType, "| webhook:", webhookUrl);
+  if (departmentId) {
+    // Department-specific: save webhook to department_slack_configs
+    console.log("[slack/callback] Saving dept config | dept:", departmentId, "| channel:", channelType);
+    const { error: deptErr } = await supabaseAdmin
+      .from("department_slack_configs")
+      .upsert({ department_id: departmentId, bot_token: botToken, [urlColumn]: webhookUrl }, { onConflict: "department_id" });
 
-  console.log("[slack/callback] Upserting into slack_configs | column:", urlColumn, "| workspace_id:", workspaceId);
-  const { data: upsertData, error: upsertErr } = await supabaseAdmin
+    if (deptErr) {
+      console.error("[slack/callback] dept upsert error:", deptErr.message);
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/admin?tab=departments&slack_error=${encodeURIComponent(deptErr.message)}&department_id=${departmentId}`
+      );
+    }
+
+    // Also keep the bot token up to date at workspace level
+    await supabaseAdmin
+      .from("slack_configs")
+      .upsert({ workspace_id: workspaceId, bot_token: botToken, updated_at: new Date().toISOString() }, { onConflict: "workspace_id" });
+
+    console.log("[slack/callback] Dept config saved.");
+    return NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/admin?tab=departments&slack_connected=${channelType}&department_id=${departmentId}`
+    );
+  }
+
+  // Workspace-level: save to slack_configs
+  console.log("[slack/callback] Saving workspace config | workspace:", workspaceSlug, "| channel:", channelType);
+  const { error: upsertErr } = await supabaseAdmin
     .from("slack_configs")
     .upsert(
-      {
-        workspace_id: workspaceId,
-        bot_token:    botToken,
-        [urlColumn]:  webhookUrl,
-        updated_at:   new Date().toISOString(),
-      },
+      { workspace_id: workspaceId, bot_token: botToken, [urlColumn]: webhookUrl, updated_at: new Date().toISOString() },
       { onConflict: "workspace_id" }
-    )
-    .select();
-
-  console.log("[slack/callback] Upsert result:", upsertData, "error:", upsertErr?.message);
+    );
 
   if (upsertErr) {
     console.error("[slack/callback] DB upsert error:", upsertErr.message);
@@ -118,8 +130,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  console.log("[slack/callback] Saved successfully.");
-
+  console.log("[slack/callback] Workspace config saved.");
   return NextResponse.redirect(
     `${process.env.NEXT_PUBLIC_BASE_URL}/admin?tab=settings&slack_connected=${channelType}`
   );

@@ -157,7 +157,7 @@ export default function SuperAdminPage() {
 
           {name.trim() && (
             <div className="text-xs text-[#7a6aaa] mb-4">
-              スラッグ: <span className="font-mono text-[#4f35be]">/{name.trim().toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-")}</span>
+              スラッグ: <span className="font-mono text-[#4f35be]">/{name.trim().toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu, "").replace(/\s+/g, "-")}</span>
             </div>
           )}
 

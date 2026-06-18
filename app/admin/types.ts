@@ -57,6 +57,7 @@ export type Department = {
   id: number;
   name: string;
   created_at: string;
+  department_slack_configs: DepartmentSlackConfigs | null;
 };
 
 export type OrgUser = {
@@ -69,12 +70,15 @@ export type OrgUser = {
 
 export const TYPE_LABELS: Record<ItemType, string> = {
   checkbox: "Checkbox",
-  // text: "Short text",
-  // textarea: "Long text",
 };
 
 export const TYPE_COLOR: Record<ItemType, string> = {
   checkbox: "#16a34a",
-  // text: "#2563eb",
-  // textarea: "#7c3aed",
 };
+
+export type DepartmentSlackConfigs = {
+  bot_token:    string | null;
+  approval_url: string | null;
+  security_url: string | null;
+  reminder_url: string | null;
+}
