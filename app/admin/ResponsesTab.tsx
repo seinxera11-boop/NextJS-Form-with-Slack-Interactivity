@@ -103,9 +103,9 @@ export function ResponsesTab({ isMainAdmin }: Props) {
                   <span className="font-normal text-[#9688c0] ml-2">— {resp.checklists?.title || "不明なチェックリスト"}</span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {resp.departments?.name && (
+                  {(resp.department_name || resp.departments?.name) && (
                     <span className="text-xs font-semibold bg-linear-to-br from-[#ede9fe] to-[#ddd6fe] text-[#4f35be] border border-[#c4b5fd] rounded-full py-1 px-3">
-                      {resp.departments.name}
+                      {resp.department_name || resp.departments?.name}
                     </span>
                   )}
                   <span className="text-xs text-[#7a6aaa]">

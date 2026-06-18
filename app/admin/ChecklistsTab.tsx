@@ -151,10 +151,10 @@ export function ChecklistsTab({
   const handleCopy = async (id: number) => {
     setCopyingId(id);
     try {
-      const res = await fetch (`/api/checklists/${id}/copy`, {method: "POST"});
+      await fetch(`/api/checklists/${id}/copy`, { method: "POST" });
       await fetchChecklists();
-      setSuccessMsg("コピーを作成しました")
-      const t = setTimeout(() => setSuccessMsg(""),2000)
+      setSuccessMsg("コピーを作成しました");
+      setTimeout(() => setSuccessMsg(""), 2000);
     } catch (err: any) { alert(err.message);}
     finally {
       setCopyingId(null)
@@ -349,15 +349,12 @@ export function ChecklistsTab({
                   <button
                     key={d.id}
                     type="button"
-                    disabled={!isMainAdmin}
-                    className={`text-xs font-medium py-1.75 px-3.5 rounded-full border-[1.5px] transition-all duration-150 select-none leading-[1.4] ${
-                      !isMainAdmin ? "cursor-not-allowed opacity-60" : "cursor-pointer"
-                    } ${
+                    className={`text-xs font-medium py-1.75 px-3.5 rounded-full border-[1.5px] cursor-pointer transition-all duration-150 select-none leading-[1.4] ${
                       active
                         ? "bg-linear-to-br from-[#6d28d9] to-[#4f35be] border-transparent text-white shadow-[0_2px_8px_rgba(109,40,217,0.28)]"
                         : "border-[#ccc0fa] bg-white text-[#4b3d80]"
                     }`}
-                    onClick={() => isMainAdmin && toggleLargeDept(d.id)}
+                    onClick={() => toggleLargeDept(d.id)}
                   >
                     {active && <span className="mr-1.25 text-xs">✓</span>}
                     {d.name}

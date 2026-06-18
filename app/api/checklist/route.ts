@@ -33,23 +33,35 @@ export async function POST(req: NextRequest) {
       ? (department_id || null)
       : singleDeptId;
 
-    // 1. Insert response
+    // 1. Fetch department name upfront so it can be stored as a snapshot
+    let departmentName = "";
+    if (resolvedDeptId) {
+      const { data: deptData } = await supabaseAdmin
+        .from("departments")
+        .select("name")
+        .eq("id", resolvedDeptId)
+        .single();
+      departmentName = deptData?.name || "";
+    }
+
+    // 2. Insert response (with name snapshot so it survives dept deletion)
     const { data: responseData, error: responseError } = await supabaseAdmin
       .from("responses")
       .insert({
         checklist_id,
         submitted_by,
         reason,
-        department_id: resolvedDeptId,
-        user_id: user_id || null,
-        workspace_id: workspaceId,
+        department_id:   resolvedDeptId,
+        department_name: departmentName || null,
+        user_id:         user_id || null,
+        workspace_id:    workspaceId,
       })
       .select()
       .single();
     if (responseError) throw responseError;
     const responseId = responseData.id;
 
-    // 2. Insert response_items
+    // 3. Insert response_items
     const itemsToInsert = Object.entries(values).map(([itemId, value]) => ({
       response_id:       responseId,
       checklist_item_id: itemId,
@@ -60,17 +72,6 @@ export async function POST(req: NextRequest) {
         .from("response_items")
         .insert(itemsToInsert);
       if (itemsError) throw itemsError;
-    }
-
-    // 3. Fetch department name
-    let departmentName = "";
-    if (resolvedDeptId) {
-      const { data: deptData } = await supabaseAdmin
-        .from("departments")
-        .select("name")
-        .eq("id", resolvedDeptId)
-        .single();
-      departmentName = deptData?.name || "";
     }
 
     // 4. Fetch sections with items
