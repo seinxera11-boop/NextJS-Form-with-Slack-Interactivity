@@ -27,46 +27,29 @@ export async function POST(req: NextRequest) {
   if (!ctx) return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
   if (!ctx.isMainAdmin) return NextResponse.json({ error: "権限がありません" }, { status: 403 });
 
-  const { title, sections, created_by, is_large_checklist, department_id, department_ids } =
-    await req.json();
+  const { title, sections, created_by, department_ids } = await req.json();
 
-  if (!is_large_checklist) {
-    if (!department_id) {
-      return NextResponse.json(
-        { error: "小規模チェックリストには部署の選択が必要です。" },
-        { status: 400 }
-      );
-    }
-  } else {
-    if (!Array.isArray(department_ids) || department_ids.length === 0) {
-      return NextResponse.json(
-        { error: "大規模チェックリストには少なくとも1つの部署を選択してください。" },
-        { status: 400 }
-      );
-    }
+  if (!Array.isArray(department_ids) || department_ids.length === 0) {
+    return NextResponse.json({ error: "少なくとも1つの部署を選択してください。" }, { status: 400 });
   }
-
-  const resolvedDeptId = is_large_checklist ? null : (department_id ?? null);
 
   const { data: cl, error: clErr } = await supabaseAdmin
     .from("checklists")
     .insert({
       title,
       created_by,
-      is_large_checklist: is_large_checklist ?? false,
-      department_id: resolvedDeptId,
+      is_large_checklist: department_ids.length > 1,
+      department_id: null,
       workspace_id: ctx.workspaceId,
     })
     .select()
     .single();
   if (clErr) return NextResponse.json({ error: clErr.message }, { status: 500 });
 
-  if (is_large_checklist && Array.isArray(department_ids) && department_ids.length > 0) {
-    const { error: deptErr } = await supabaseAdmin
-      .from("checklist_departments")
-      .insert(department_ids.map((dId: number) => ({ checklist_id: cl.id, department_id: dId })));
-    if (deptErr) return NextResponse.json({ error: deptErr.message }, { status: 500 });
-  }
+  const { error: deptErr } = await supabaseAdmin
+    .from("checklist_departments")
+    .insert(department_ids.map((dId: number) => ({ checklist_id: cl.id, department_id: dId })));
+  if (deptErr) return NextResponse.json({ error: deptErr.message }, { status: 500 });
 
   for (const sec of sections) {
     const { data: secRow, error: secErr } = await supabaseAdmin

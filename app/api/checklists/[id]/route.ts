@@ -12,9 +12,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 404 });
 
-  const departmentIds: number[] = data.is_large_checklist
-    ? (data.checklist_departments || []).map((cd: any) => cd.department_id)
-    : data.department_id ? [data.department_id] : [];
+  const cdIds = (data.checklist_departments || []).map((cd: any) => cd.department_id);
+  const departmentIds: number[] = cdIds.length > 0 ? cdIds : (data.department_id ? [data.department_id] : []);
 
   let departments: { id: number; name: string }[] = [];
   if (departmentIds.length > 0) {
@@ -32,62 +31,41 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const ctx = await getUserContext(req);
   if (!ctx) return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
 
-  const { title, sections, created_by, is_large_checklist, department_id, department_ids } =
-    await req.json();
+  const { title, sections, created_by, department_ids } = await req.json();
   const checklistId = Number((await params).id);
 
   if (!ctx.isMainAdmin) {
-    if (!ctx.assignedChecklists.includes(checklistId) || is_large_checklist) {
+    if (!ctx.assignedChecklists.includes(checklistId)) {
       return NextResponse.json({ error: "権限がありません" }, { status: 403 });
     }
   }
 
-  if (!is_large_checklist) {
-    if (!department_id) {
-      return NextResponse.json(
-        { error: "小規模チェックリストには部署の選択が必要です。" },
-        { status: 400 }
-      );
-    }
-  } else {
-    if (!Array.isArray(department_ids) || department_ids.length === 0) {
-      return NextResponse.json(
-        { error: "大規模チェックリストには少なくとも1つの部署を選択してください。" },
-        { status: 400 }
-      );
-    }
+  if (!Array.isArray(department_ids) || department_ids.length === 0) {
+    return NextResponse.json({ error: "少なくとも1つの部署を選択してください。" }, { status: 400 });
   }
-
-  const resolvedDeptId = is_large_checklist ? null : (department_id ?? null);
 
   const { error: clErr } = await supabaseAdmin
     .from("checklists")
     .update({
       title,
       created_by,
-      is_large_checklist: is_large_checklist ?? false,
-      department_id: resolvedDeptId,
+      is_large_checklist: department_ids.length > 1,
+      department_id: null,
     })
     .eq("id", checklistId)
     .eq("workspace_id", ctx.workspaceId);
   if (clErr) return NextResponse.json({ error: clErr.message }, { status: 500 });
 
-  if (is_large_checklist) {
-    const { error: delErr } = await supabaseAdmin
-      .from("checklist_departments")
-      .delete()
-      .eq("checklist_id", checklistId);
-    if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
+  const { error: delErr } = await supabaseAdmin
+    .from("checklist_departments")
+    .delete()
+    .eq("checklist_id", checklistId);
+  if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
 
-    if (Array.isArray(department_ids) && department_ids.length > 0) {
-      const { error: insErr } = await supabaseAdmin
-        .from("checklist_departments")
-        .insert(department_ids.map((dId: number) => ({ checklist_id: checklistId, department_id: dId })));
-      if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
-    }
-  } else {
-    await supabaseAdmin.from("checklist_departments").delete().eq("checklist_id", checklistId);
-  }
+  const { error: insErr } = await supabaseAdmin
+    .from("checklist_departments")
+    .insert(department_ids.map((dId: number) => ({ checklist_id: checklistId, department_id: dId })));
+  if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
 
   const { data: existingSections } = await supabaseAdmin
     .from("checklist_sections")
