@@ -23,17 +23,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             title: "コピー: " + orgChecklist.title,
             created_by: orgChecklist.created_by,
             is_large_checklist: orgChecklist.is_large_checklist,
-            department_id: orgChecklist.department_id,
+            department_id: null,
             workspace_id: ctx.workspaceId,
         })
         .select()
         .single();
     if (clErr) return NextResponse.json({ error: clErr.message }, { status: 500 });
 
-    if (orgChecklist.is_large_checklist) {
+    if (orgChecklist.checklist_departments?.length > 0) {
         const { error: deptErr } = await supabaseAdmin
             .from("checklist_departments")
-            .insert(orgChecklist.checklist_departments.map((d: { department_id: number}) => ({ checklist_id: newChecklist.id, department_id: d.department_id })));
+            .insert(orgChecklist.checklist_departments.map((d: { department_id: number }) => ({ checklist_id: newChecklist.id, department_id: d.department_id })));
         if (deptErr) return NextResponse.json({ error: deptErr.message }, { status: 500 });
     }
 
