@@ -1,20 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getWebhookUrl } from "@/lib/slack-helpers";
 
 export const runtime = "nodejs";
-
-async function getWebhookUrls(workspaceId: string) {
-  const { data } = await supabaseAdmin
-    .from("slack_configs")
-    .select("approval_url, security_url")
-    .eq("workspace_id", workspaceId)
-    .maybeSingle();
-
-  return {
-    approvalUrl: data?.approval_url || "",
-    securityUrl: data?.security_url || "",
-  };
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -107,8 +95,11 @@ export async function POST(req: NextRequest) {
     const reasonText = reason?.trim() || "";
     const hasMissing = missingItems.length > 0;
 
-    // 5. Fetch this workspace's webhook URLs
-    const { approvalUrl, securityUrl } = await getWebhookUrls(workspaceId);
+    // 5. Fetch webhook URLs — dept-specific first, falls back to workspace
+    const [approvalUrl, securityUrl] = await Promise.all([
+      getWebhookUrl(resolvedDeptId, "approval", workspaceId),
+      getWebhookUrl(resolvedDeptId, "security", workspaceId),
+    ]);
 
     // ── Approval channel payload ───────────────────────────────────────────────
     const approvalBodyText = hasMissing

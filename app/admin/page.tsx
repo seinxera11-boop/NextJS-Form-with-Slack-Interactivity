@@ -239,7 +239,7 @@ function AdminDashboard({ userCtx }: { userCtx: UserContext }) {
         <ResponsesTab isMainAdmin={isMainAdmin} />
       )}
       {tab === "approvals"   && <ApprovalsTab />}
-      {tab === "departments" && isMainAdmin && <DepartmentsTab />}
+      {tab === "departments" && isMainAdmin && <DepartmentsTab workspaceSlug={userCtx.workspaceSlug} />}
       {tab === "settings"    && isMainAdmin && <SettingsTab workspaceSlug={userCtx.workspaceSlug} />}
     </div>
   );

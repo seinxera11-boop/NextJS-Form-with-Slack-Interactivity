@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { type Department, type OrgUser } from "./types";
+import { SlackConnectPanel } from "./SlackConnectPanel";
 
-export function DepartmentsTab() {
+export function DepartmentsTab({ workspaceSlug }: { workspaceSlug: string }) {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [orgUsers, setOrgUsers] = useState<OrgUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +31,34 @@ export function DepartmentsTab() {
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
   const [editUserName, setEditUserName] = useState("");
   const [savingUser, setSavingUser] = useState(false);
+
+  // Slack modal
+  const [slackConfigDeptId, setSlackConfigDeptId] = useState<number | null>(null);
+  const [showSlackConnected, setShowSlackConnected] = useState<string | null>(null);
+  const [slackErrorMsg, setSlackErrorMsg] = useState<string | null>(null);
+  const [pendingOpenDeptId, setPendingOpenDeptId] = useState<number | null>(null);
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const justConnected = searchParams.get("slack_connected");
+  const justConnectedDeptId = Number(searchParams.get("department_id")) || null;
+  const slackError = searchParams.get("slack_error");
+
+  useEffect(() => {
+    if (!justConnected && !slackError) return;
+    if (justConnected) setShowSlackConnected(justConnected);
+    if (justConnectedDeptId) setPendingOpenDeptId(justConnectedDeptId);
+    if (slackError) setSlackErrorMsg(slackError);
+    setTimeout(() => { setShowSlackConnected(null); setSlackErrorMsg(null); }, 5000);
+    router.replace("/admin?tab=departments", { scroll: false });
+  }, [justConnected, slackError]);
+
+  useEffect(() => {
+    if (departments.length > 0 && pendingOpenDeptId) {
+      setSlackConfigDeptId(pendingOpenDeptId);
+      setPendingOpenDeptId(null);
+    }
+  }, [departments.length, pendingOpenDeptId]);
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -62,7 +92,7 @@ export function DepartmentsTab() {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
       if (result.skipped?.length > 0) setSkippedDept(result.skipped);
-      setTimeout(() => setSkippedDept([]),5000)
+      setTimeout(() => setSkippedDept([]), 5000);
       setBulkDeptNames("");
       await fetchAll();
     } catch (err: any) { setDeptError(err.message); }
@@ -92,8 +122,7 @@ export function DepartmentsTab() {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
       if (result.skipped?.length > 0) setSkippedUser(result.skipped);
-      setTimeout(() => setSkippedUser([]),5000)
-
+      setTimeout(() => setSkippedUser([]), 5000);
       setBulkUserNames("");
       if (activeDept) await fetchUsersForDept(activeDept.id);
       else await fetchAll();
@@ -146,6 +175,8 @@ export function DepartmentsTab() {
     fetchUsersForDept(dept.id);
     setView("users");
   };
+
+  const modalDept = departments.find(d => d.id === slackConfigDeptId) ?? null;
 
   if (loading) return (
     <div className="max-w-215 -my-5 mx-auto py-8 sm:py-14 px-4 sm:px-8">
@@ -225,9 +256,8 @@ export function DepartmentsTab() {
                   placeholder="ユーザー名…"
                   value={bulkUserNames}
                   rows={3}
-                  onChange={e => setBulkUserNames(e.target.value)} 
-                >
-                </textarea>
+                  onChange={e => setBulkUserNames(e.target.value)}
+                />
                 <button
                   className="text-sm font-semibold text-white bg-linear-to-br from-[#6d28d9] to-[#4f35be] border-none rounded-[10px] py-2.5 px-4.5 cursor-pointer font-[inherit] shrink-0 shadow-[0_2px_10px_rgba(109,40,217,0.28)]"
                   onClick={handleAddUser}
@@ -237,7 +267,7 @@ export function DepartmentsTab() {
                 </button>
               </div>
               {userError && <div className="text-sm text-[#dc2626] mt-1.75 font-medium">⚠ {userError}</div>}
-              {skippedUser.length > 0 && <div className=" px-5.5 text-sm text-[#d97706] mt-1.75 font-medium">⚠ ユーザー名の重複は許可されていません。そのためスキップしました。: {skippedUser.join(", ")}</div>}
+              {skippedUser.length > 0 && <div className="px-5.5 text-sm text-[#d97706] mt-1.75 font-medium">⚠ ユーザー名の重複は許可されていません。そのためスキップしました。: {skippedUser.join(", ")}</div>}
             </div>
           </div>
         </div>
@@ -248,94 +278,134 @@ export function DepartmentsTab() {
   const userCountByDept = (deptId: number) => orgUsers.filter(u => u.department_id === deptId).length;
 
   return (
-    <div className="max-w-215 -my-5 mx-auto py-8 sm:py-14 px-4 sm:px-8">
-      <div className="text-2xl sm:text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-2">部署＆ユーザー</div>
-      <div className="text-sm text-[#6a5d8e] mb-9">部署と所属ユーザーを管理します。</div>
+    <>
+      <div className="max-w-215 -my-5 mx-auto py-8 sm:py-14 px-4 sm:px-8">
+        <div className="text-2xl sm:text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-2">部署＆ユーザー</div>
+        <div className="text-sm text-[#6a5d8e] mb-9">部署と所属ユーザーを管理します。</div>
 
-      <div className="text-xs font-bold text-[#8c70e8] uppercase tracking-[0.12em] mb-4">部署 ({departments.length})</div>
-      {skippedDept.length > 0 && <div className="text-sm text-[#d97706] mt-1.75 font-medium mb-2">⚠ 部署名の重複は認められていません。そのため、この項目はスキップされました。。: {skippedDept.join(", ")}</div>}
-      {departments.length === 0 ? (
-        <div className="text-sm text-[#a78bfa] mb-4">部署がまだありません。</div>
-      ) : departments.map(dept => (
+        {slackErrorMsg && (
+          <div className="text-xs text-[#dc2626] font-semibold mb-5 bg-[#fff5f5] border border-[#fecaca] rounded-lg px-4 py-2.5">
+            ✗ Slack接続に失敗しました: {slackErrorMsg}。もう一度お試しください。
+          </div>
+        )}
+
+        <div className="text-xs font-bold text-[#8c70e8] uppercase tracking-[0.12em] mb-4">部署 ({departments.length})</div>
+        {skippedDept.length > 0 && <div className="text-sm text-[#d97706] mt-1.75 font-medium mb-2">⚠ 部署名の重複は認められていません。そのため、この項目はスキップされました。: {skippedDept.join(", ")}</div>}
+        {departments.length === 0 ? (
+          <div className="text-sm text-[#a78bfa] mb-4">部署がまだありません。</div>
+        ) : departments.map(dept => (
+          <div
+            key={dept.id}
+            className="border-[1.5px] border-[#dfd5fb] hover:border-[#c4b5fd] rounded-[14px] py-4 sm:py-5 px-4 sm:px-5.5 mb-2.5 bg-white shadow-[0_2px_10px_rgba(79,53,190,0.08)] hover:shadow-[0_4px_16px_rgba(79,53,190,0.1)] transition-all duration-180 ease-in-out"
+          >
+            <div className="flex items-start justify-between gap-3">
+              {editingDeptId === dept.id ? (
+                <div className="flex items-center gap-2 flex-1 mr-2">
+                  <input
+                    className="flex-1 border-[1.5px] border-[#a78bfa] rounded-lg py-1.5 px-2.75 text-sm text-[#1a1035] outline-none bg-[#faf9ff] font-[inherit]"
+                    value={editDeptName}
+                    onChange={e => setEditDeptName(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") handleEditDept(dept.id); if (e.key === "Escape") setEditingDeptId(null); }}
+                    autoFocus
+                  />
+                  <button
+                    className="text-[10px] sm:text-xs text-white bg-linear-to-br from-[#6d28d9] to-[#4f35be] border-none rounded-lg py-1 px-2 sm:py-1.25 sm:px-3 cursor-pointer font-semibold"
+                    onClick={() => handleEditDept(dept.id)}
+                    disabled={savingDept}
+                  >
+                    {savingDept ? "…" : "保存"}
+                  </button>
+                  <button
+                    className="text-[10px] sm:text-xs text-[#6a5d8e] bg-[#ede9fe] border border-[#ccc0fa] rounded-lg py-1 px-2 sm:py-1.25 sm:px-3 cursor-pointer"
+                    onClick={() => setEditingDeptId(null)}
+                  >
+                    キャンセル
+                  </button>
+                </div>
+              ) : (
+                <div className="flex-1 min-w-0">
+                  <div className="text-base sm:text-lg font-semibold text-[#1a1035] mb-1.25">{dept.name}</div>
+                  <div className="text-xs text-[#8c70e8] font-medium">{userCountByDept(dept.id)}名</div>
+                </div>
+              )}
+              {editingDeptId !== dept.id && (
+                <div className="flex gap-1.5 shrink-0">
+                  <button
+                    className="text-[10px] sm:text-xs text-[#4f35be] bg-[#ede9fe] border border-[#ccc0fa] rounded-lg py-1 px-2 sm:py-1.25 sm:px-3 cursor-pointer"
+                    onClick={() => { setEditingDeptId(dept.id); setEditDeptName(dept.name); }}
+                  >
+                    編集
+                  </button>
+                  <button
+                    className={`text-[10px] sm:text-xs rounded-lg py-1 px-2 sm:py-1.25 sm:px-3 cursor-pointer border ${dept.department_slack_configs ? "text-[#059669] bg-[#ecfdf5] border-[#6ee7b7]" : "text-[#4a5568] bg-[#f8fafc] border-[#cbd5e1]"}`}
+                    onClick={() => setSlackConfigDeptId(dept.id)}
+                  >
+                    Slack
+                  </button>
+                  <button
+                    className="text-[10px] sm:text-xs text-[#1d4ed8] bg-[#eff6ff] border border-[#bfdbfe] rounded-lg py-1 px-2 sm:py-1.25 sm:px-3 cursor-pointer"
+                    onClick={() => openDept(dept)}
+                  >
+                    ユーザーを管理
+                  </button>
+                  <button
+                    className="text-[10px] sm:text-xs text-[#b91c1c] bg-[#fef2f2] border border-[#fecaca] rounded-lg py-1 px-2 sm:py-1.25 sm:px-3 cursor-pointer"
+                    onClick={() => handleDeleteDept(dept.id)}
+                  >
+                    削除
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+        <div className="mt-2">
+          <div className="flex gap-2 mt-4">
+            <textarea
+              className="flex-1 border-[1.5px] border-[#ccc0fa] focus:border-[#a78bfa] rounded-[10px] py-2.5 px-3.25 text-sm text-[#1a1035] outline-none bg-[#faf9ff] font-[inherit] transition-colors duration-150"
+              placeholder="新しい部署名…"
+              value={bulkDeptNames}
+              onChange={e => setBulkDeptNames(e.target.value)}
+              rows={2}
+            />
+            <button
+              className="text-sm font-semibold text-white bg-linear-to-br from-[#6d28d9] to-[#4f35be] border-none rounded-[10px] py-2.5 px-4.5 cursor-pointer font-[inherit] shrink-0 shadow-[0_2px_10px_rgba(109,40,217,0.28)]"
+              onClick={handleAddDept}
+              disabled={addingDept}
+            >
+              {addingDept ? "追加中…" : "追加"}
+            </button>
+          </div>
+          {deptError && <div className="text-sm text-[#dc2626] mt-1.75 font-medium">⚠ {deptError}</div>}
+        </div>
+      </div>
+
+      {/* Slack OAuth modal */}
+      {modalDept && (
         <div
-          key={dept.id}
-          className="border-[1.5px] border-[#dfd5fb] hover:border-[#c4b5fd] rounded-[14px] py-4 sm:py-5 px-4 sm:px-5.5 mb-2.5 bg-white shadow-[0_2px_10px_rgba(79,53,190,0.08)] hover:shadow-[0_4px_16px_rgba(79,53,190,0.1)] transition-all duration-180 ease-in-out"
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={e => { if (e.target === e.currentTarget) setSlackConfigDeptId(null); }}
         >
-          <div className="flex items-start justify-between gap-3">
-            {editingDeptId === dept.id ? (
-              <div className="flex items-center gap-2 flex-1 mr-2">
-                <input
-                  className="flex-1 border-[1.5px] border-[#a78bfa] rounded-lg py-1.5 px-2.75 text-sm text-[#1a1035] outline-none bg-[#faf9ff] font-[inherit]"
-                  value={editDeptName}
-                  onChange={e => setEditDeptName(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter") handleEditDept(dept.id); if (e.key === "Escape") setEditingDeptId(null); }}
-                  autoFocus
-                />
-                <button
-                  className="text-[10px] sm:text-xs text-white bg-linear-to-br from-[#6d28d9] to-[#4f35be] border-none rounded-lg py-1 px-2 sm:py-1.25 sm:px-3 cursor-pointer font-semibold"
-                  onClick={() => handleEditDept(dept.id)}
-                  disabled={savingDept}
-                >
-                  {savingDept ? "…" : "保存"}
-                </button>
-                <button
-                  className="text-[10px] sm:text-xs text-[#6a5d8e] bg-[#ede9fe] border border-[#ccc0fa] rounded-lg py-1 px-2 sm:py-1.25 sm:px-3 cursor-pointer"
-                  onClick={() => setEditingDeptId(null)}
-                >
-                  キャンセル
-                </button>
-              </div>
-            ) : (
-              <div className="flex-1 min-w-0">
-                <div className="text-base sm:text-lg font-semibold text-[#1a1035] mb-1.25">{dept.name}</div>
-                <div className="text-xs text-[#8c70e8] font-medium">{userCountByDept(dept.id)}名</div>
-              </div>
-            )}
-            {editingDeptId !== dept.id && (
-              <div className="flex gap-1.5 shrink-0">
-                <button
-                  className="text-[10px] sm:text-xs text-[#4f35be] bg-[#ede9fe] border border-[#ccc0fa] rounded-lg py-1 px-2 sm:py-1.25 sm:px-3 cursor-pointer"
-                  onClick={() => { setEditingDeptId(dept.id); setEditDeptName(dept.name); }}
-                >
-                  編集
-                </button>
-                <button
-                  className="text-[10px] sm:text-xs text-[#1d4ed8] bg-[#eff6ff] border border-[#bfdbfe] rounded-lg py-1 px-2 sm:py-1.25 sm:px-3 cursor-pointer"
-                  onClick={() => openDept(dept)}
-                >
-                  ユーザーを管理
-                </button>
-                <button
-                  className="text-[10px] sm:text-xs text-[#b91c1c] bg-[#fef2f2] border border-[#fecaca] rounded-lg py-1 px-2 sm:py-1.25 sm:px-3 cursor-pointer"
-                  onClick={() => handleDeleteDept(dept.id)}
-                >
-                  削除
-                </button>
-              </div>
-            )}
+          <div className="bg-white rounded-2xl border-[1.5px] border-[#dfd5fb] shadow-[0_8px_40px_rgba(79,53,190,0.18)] w-full max-w-lg p-6 sm:p-8 relative">
+            <button
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-[#a696f2] hover:text-[#6a5d8e] hover:bg-[#f5f0ff] rounded-lg bg-transparent border-none cursor-pointer text-base transition-colors duration-120"
+              onClick={() => setSlackConfigDeptId(null)}
+            >
+              ✕
+            </button>
+
+            <div className="text-lg font-bold text-[#1a1035] pr-8 mb-4">{modalDept.name}</div>
+
+            <SlackConnectPanel
+              connectedMap={modalDept.department_slack_configs ?? {}}
+              installUrl={ch => `/api/slack/install?workspace=${workspaceSlug}&channel=${ch}&department_id=${modalDept.id}`}
+              botConnected={!!modalDept.department_slack_configs?.bot_token}
+              showConnected={showSlackConnected}
+              note="「接続」をクリックしてSlackでアクセスを許可すると、この部署のWebhook URLがデータベースに自動的に保存されます。ワークスペース全体のデフォルト設定は「設定」タブで変更できます。"
+            />
           </div>
         </div>
-      ))}
-      <div className="mt-2">
-        <div className="flex gap-2 mt-4">
-          <textarea
-            className="flex-1 border-[1.5px] border-[#ccc0fa] focus:border-[#a78bfa] rounded-[10px] py-2.5 px-3.25 text-sm text-[#1a1035] outline-none bg-[#faf9ff] font-[inherit] transition-colors duration-150"
-            placeholder="新しい部署名…"
-            value={bulkDeptNames}
-            onChange={e => setBulkDeptNames(e.target.value)}
-            rows ={2}
-          >
-          </textarea>
-          <button
-            className="text-sm font-semibold text-white bg-linear-to-br from-[#6d28d9] to-[#4f35be] border-none rounded-[10px] py-2.5 px-4.5 cursor-pointer font-[inherit] shrink-0 shadow-[0_2px_10px_rgba(109,40,217,0.28)]"
-            onClick={handleAddDept}
-            disabled={addingDept}
-          >
-            {addingDept ? "追加中…" : "追加"}
-          </button>
-        </div>
-        {deptError && <div className="text-sm text-[#dc2626] mt-1.75 font-medium">⚠ {deptError}</div>}
-      </div>
-    </div>
+      )}
+    </>
   );
 }

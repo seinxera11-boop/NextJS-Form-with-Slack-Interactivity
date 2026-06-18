@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from("departments")
-    .select("*")
+    .select("*, department_slack_configs(*)")
     .eq("workspace_id", ctx.workspaceId)
     .order("name");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -45,7 +45,7 @@ export async function PATCH(req: NextRequest) {
   const ctx = await getUserContext(req);
   if (!ctx?.isMainAdmin) return NextResponse.json({ error: "権限がありません" }, { status: 403 });
 
-  const { id, name } = await req.json();
+  const { id, name, approval_url, security_url, reminder_url } = await req.json();
   if (!name?.trim()) return NextResponse.json({ error: "名前は必須です" }, { status: 400 });
 
   const { error } = await supabaseAdmin
@@ -54,6 +54,15 @@ export async function PATCH(req: NextRequest) {
     .eq("id", id)
     .eq("workspace_id", ctx.workspaceId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (approval_url || security_url || reminder_url) {
+    const { error: slackError } = await supabaseAdmin
+      .from("department_slack_configs")
+      .upsert({ department_id: id, approval_url, security_url, reminder_url }
+  , { onConflict: "department_id" });
+    if (slackError) return NextResponse.json({ error: slackError.message }, { status: 500 });
+}
+
   return NextResponse.json({ success: true });
 }
 
