@@ -157,8 +157,9 @@ export default function ChecklistPage() {
       setValues(init);
 
       // For the SMALL flow: pre-select the fixed department
-      if (!clData.is_large_checklist && clData.department_id) {
-        setSelectedDeptId(String(clData.department_id));
+      if (!clData.is_large_checklist) {
+        const singleDeptId = clData.checklist_departments?.[0]?.department_id ?? clData.department_id;
+        if (singleDeptId) setSelectedDeptId(String(singleDeptId));
       }
 
       setLoading(false);

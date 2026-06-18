@@ -46,6 +46,7 @@ export type Response = {
   reason: string | null;
   created_at: string;
   other_user_name: string | null;
+  department_name?: string | null;
   checklists?: { title: string };
   departments?: { name: string };
   org_users?: { name: string };
