@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     type: "section",
     text: {
       type: "mrkdwn",
-      text: `*理由:* ${reason}\n${userName}が承認しました`,
+      text: `${userName}が承認しました\n*理由:* ${reason}`,
     },
   });
 

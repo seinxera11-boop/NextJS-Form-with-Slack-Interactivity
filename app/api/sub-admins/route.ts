@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserContext } from "@/lib/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { isValidEmail } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
   const ctx = await getUserContext(req);
@@ -23,6 +24,7 @@ export async function POST(req: NextRequest) {
 
   const { email, checklist_ids } = await req.json();
   if (!email?.trim()) return NextResponse.json({ error: "メールアドレスは必須です" }, { status: 400 });
+  if (!isValidEmail(email)) return NextResponse.json({ error: "メールアドレスの形式が正しくありません" }, { status: 400 });
 
   const lowerEmail = email.trim().toLowerCase();
 
@@ -30,7 +32,6 @@ export async function POST(req: NextRequest) {
     .from("admin_users")
     .select("id")
     .eq("email", lowerEmail)
-    .eq("workspace_id", ctx.workspaceId)
     .single();
 
   //let subAdminId: string;
@@ -47,6 +48,9 @@ const { data: inserted, error: insertError } = await supabaseAdmin
   .insert({ email: lowerEmail, is_main_admin: false, workspace_id: ctx.workspaceId })
   .select("id")
   .single();
+if (insertError?.code === "23505") {
+  return NextResponse.json({ error: "このメールアドレスはすでに登録されています" }, { status: 409 });
+}
 if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 });
 
 const subAdminId = inserted.id;

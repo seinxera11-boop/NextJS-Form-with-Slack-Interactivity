@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SlackConnectPanel } from "./SlackConnectPanel";
+import { isValidEmail } from "@/lib/utils";
 
 // ─── Slack connection ──────────────────────────────────────────────────────────
 
@@ -168,7 +169,9 @@ function SubAdminsSection() {
   const [addError,   setAddError]   = useState("");
   const [editingId,  setEditingId]  = useState<string | null>(null);
   const [editCls,    setEditCls]    = useState<number[]>([]);
+  const [editEmail,  setEditEmail]  = useState("");
   const [saving,     setSaving]     = useState(false);
+  const [saveError,  setSaveError]  = useState("");
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -189,6 +192,11 @@ function SubAdminsSection() {
 
   const handleAdd = async () => {
     if (!newEmail.trim()) return;
+    if (!isValidEmail(newEmail)) {
+      setAddError("メールアドレスの形式が正しくありません");
+      setTimeout(() => setAddError(""), 2000);
+      return;
+    }
     setAdding(true); setAddError("");
     try {
       const res = await fetch("/api/sub-admins", {
@@ -211,21 +219,26 @@ function SubAdminsSection() {
   const startEdit = (sa: SubAdmin) => {
     setEditingId(sa.id);
     setEditCls(sa.sub_admin_checklists.map(c => c.checklist_id));
+    setEditEmail(sa.email);
+    setSaveError("");
   };
 
   const handleSaveEdit = async (id: string) => {
-    setSaving(true);
+    if (!editEmail.trim()) return;
+    if (!isValidEmail(editEmail)) { setSaveError("メールアドレスの形式が正しくありません"); return; }
+    setSaving(true); setSaveError("");
     try {
       const res = await fetch(`/api/sub-admins/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ checklist_ids: editCls }),
+        body: JSON.stringify({ email: editEmail.trim(), checklist_ids: editCls }),
       });
-      if (!res.ok) throw new Error("保存に失敗しました");
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "保存に失敗しました");
       setEditingId(null);
       await fetchAll();
     } catch (err: any) {
-      alert(err.message);
+      setSaveError(err.message);
     } finally {
       setSaving(false);
     }
@@ -287,34 +300,46 @@ function SubAdminsSection() {
         return (
           <div key={sa.id} className="flex items-start justify-between py-4 border-b border-b-[#ede9fe] gap-3">
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-[#1a1035] mb-1.75">{sa.email}</div>
               {isEditing ? (
-                <div className="flex gap-1.75 flex-wrap mt-2.5">
-                  {checklists.map(cl => (
-                    <button key={cl.id} className={pill(editCls.includes(cl.id))} onClick={() => setEditCls(p => toggle(p, cl.id))}>
-                      {cl.title}
-                    </button>
-                  ))}
-                </div>
+                <>
+                  <input
+                    className="w-full max-w-xs border-[1.5px] border-[#ccc0fa] rounded-lg py-1.5 px-3 text-sm outline-none bg-[#faf9ff] font-[inherit] text-[#1a1035] mb-2 focus:border-[#6d28d9]"
+                    type="email"
+                    value={editEmail}
+                    onChange={e => setEditEmail(e.target.value)}
+                    placeholder="sub-admin@example.com"
+                  />
+                  <div className="flex gap-1.75 flex-wrap mt-2.5">
+                    {checklists.map(cl => (
+                      <button key={cl.id} className={pill(editCls.includes(cl.id))} onClick={() => setEditCls(p => toggle(p, cl.id))}>
+                        {cl.title}
+                      </button>
+                    ))}
+                  </div>
+                  {saveError && <div className="text-xs text-[#dc2626] mt-1.75 font-medium">⚠ {saveError}</div>}
+                </>
               ) : (
-                <div className="text-xs text-[#7a6aaa]">
-                  {assignedTitles.length > 0 ? assignedTitles.join(" · ") : "チェックリスト未割り当て"}
-                </div>
+                <>
+                  <div className="text-sm font-medium text-[#1a1035] mb-1.75">{sa.email}</div>
+                  <div className="text-xs text-[#7a6aaa]">
+                    {assignedTitles.length > 0 ? assignedTitles.join(" · ") : "チェックリスト未割り当て"}
+                  </div>
+                </>
               )}
             </div>
             <div className="flex gap-1.5 shrink-0">
               {isEditing ? (
                 <>
                   <button
-                    className={`text-[10px] sm:text-xs font-semibold text-white bg-[linear-gradient(135deg,#059669_0%,#047857_100%)] border-none rounded-lg py-1 sm:py-1.5 px-3 sm:px-4 cursor-pointer font-[inherit] ${saving ? "opacity-60" : ""}`}
+                    className={`text-[10px] sm:text-xs font-semibold text-white bg-[linear-gradient(135deg,#059669_0%,#047857_100%)] border-none rounded-lg py-1 sm:py-1.5 px-3 sm:px-4 cursor-pointer font-[inherit] ${saving || !editEmail.trim() ? "opacity-60" : ""}`}
                     onClick={() => handleSaveEdit(sa.id)}
-                    disabled={saving}
+                    disabled={saving || !editEmail.trim()}
                   >
                     {saving ? "保存中…" : "保存"}
                   </button>
                   <button
                     className="text-[10px] sm:text-xs text-[#6a5d8e] bg-transparent border-[1.5px] border-[#ccc0fa] rounded-lg py-1 sm:py-1.5 px-2.5 sm:px-3.5 cursor-pointer font-[inherit]"
-                    onClick={() => setEditingId(null)}
+                    onClick={() => { setEditingId(null); setSaveError(""); }}
                   >
                     キャンセル
                   </button>
