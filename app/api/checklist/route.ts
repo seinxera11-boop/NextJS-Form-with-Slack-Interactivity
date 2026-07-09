@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
           type: "header",
           text: {
             type: "plain_text",
-            text: `${submitted_by} さんから新しい提出があります`,
+            text: `${departmentName}の ${submitted_by} さんから新しい提出があります`,
             emoji: true,
           },
         },

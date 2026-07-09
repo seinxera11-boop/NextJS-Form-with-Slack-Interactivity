@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { isValidEmail } from "@/lib/utils";
 
 type Workspace = {
   id: string;
@@ -26,6 +27,12 @@ export default function SuperAdminPage() {
   // Delete state
   const [deleting, setDeleting] = useState<string | null>(null);
 
+  // Edit state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [saving, setSaving] = useState(false);
+
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -46,6 +53,7 @@ export default function SuperAdminPage() {
 
   const handleCreate = async () => {
     if (!name.trim() || !adminEmail.trim()) return;
+    if (!isValidEmail(adminEmail)) { setCreateError("メールアドレスの形式が正しくありません"); return; }
     setCreating(true); setCreateError("");
     try {
       const res = await fetch("/api/super-admin/workspaces", {
@@ -79,6 +87,34 @@ export default function SuperAdminPage() {
       alert("削除に失敗しました: " + err.message);
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const startEdit = (ws: Workspace) => {
+    setEditingId(ws.id);
+    setEditName(ws.name);
+    setEditEmail(ws.admin_users?.find(u => u.is_main_admin)?.email ?? "");
+  };
+
+  const cancelEdit = () => setEditingId(null);
+
+  const handleSaveEdit = async (id: string) => {
+    if (!editName.trim() || !editEmail.trim()) return;
+    if (!isValidEmail(editEmail)) { alert("メールアドレスの形式が正しくありません"); return; }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/super-admin/workspaces", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, name: editName.trim(), adminEmail: editEmail.trim() }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      setEditingId(null);
+      await fetchWorkspaces();
+    } catch (err: any) {
+      alert("更新に失敗しました: " + err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -187,30 +223,81 @@ export default function SuperAdminPage() {
           ) : (
             workspaces.map((ws, i) => {
               const mainAdmin = ws.admin_users?.find(u => u.is_main_admin);
+              const isEditing = editingId === ws.id;
               return (
                 <div key={ws.id} className={`px-8 py-5 gap-4 ${i > 0 ? "border-t border-[#ede9fe]" : ""}`}>
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2.5 mb-1">
-                        <span className="font-semibold text-[#1a1035] text-sm">{ws.name}</span>
-                        <span className="text-xs font-mono text-[#7a6aaa] bg-[#f5f0ff] px-2 py-0.5 rounded-md border border-[#ede9fe]">
-                          /{ws.slug}
-                        </span>
-                      </div>
-                      <div className="text-xs text-[#9688c0]">
-                        管理者: {mainAdmin?.email ?? "—"}
-                      </div>
-                      <div className="text-xs text-[#c4b5fd] mt-0.5">
-                        作成日: {new Date(ws.created_at).toLocaleDateString("ja-JP")}
-                      </div>
+                      {isEditing ? (
+                        <div className="flex flex-col gap-2 mb-2 max-w-sm">
+                          <input
+                            className="w-full border-[1.5px] border-[#ccc0fa] rounded-lg py-1.5 px-3 text-sm outline-none bg-[#faf9ff] font-[inherit] text-[#1a1035] focus:border-[#6d28d9]"
+                            value={editName}
+                            onChange={e => setEditName(e.target.value)}
+                            placeholder="ワークスペース名"
+                          />
+                          <input
+                            className="w-full border-[1.5px] border-[#ccc0fa] rounded-lg py-1.5 px-3 text-sm outline-none bg-[#faf9ff] font-[inherit] text-[#1a1035] focus:border-[#6d28d9]"
+                            type="email"
+                            value={editEmail}
+                            onChange={e => setEditEmail(e.target.value)}
+                            placeholder="管理者メールアドレス"
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2.5 mb-1">
+                            <span className="font-semibold text-[#1a1035] text-sm">{ws.name}</span>
+                            <span className="text-xs font-mono text-[#7a6aaa] bg-[#f5f0ff] px-2 py-0.5 rounded-md border border-[#ede9fe]">
+                              /{ws.slug}
+                            </span>
+                          </div>
+                          <div className="text-xs text-[#9688c0]">
+                            管理者: {mainAdmin?.email ?? "—"}
+                          </div>
+                          <div className="text-xs text-[#c4b5fd] mt-0.5">
+                            作成日: {new Date(ws.created_at).toLocaleDateString("ja-JP")}
+                          </div>
+                        </>
+                      )}
                     </div>
-                    <button
-                      onClick={() => handleDelete(ws)}
-                      disabled={deleting === ws.id}
-                      className="text-xs text-[#dc2626] bg-[#fff5f5] border-[1.5px] border-[#fecaca] rounded-lg py-1.5 px-3.5 cursor-pointer font-[inherit] shrink-0 disabled:opacity-50"
-                    >
-                      {deleting === ws.id ? "削除中…" : "削除"}
-                    </button>
+
+                    <div className="flex gap-2 shrink-0">
+                      {isEditing ? (
+                        <>
+                          <button
+                            onClick={() => handleSaveEdit(ws.id)}
+                            disabled={saving || !editName.trim() || !editEmail.trim()}
+                            className="text-xs font-semibold text-white bg-[#6d28d9] border-none rounded-lg py-1.5 px-3.5 cursor-pointer font-[inherit] disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {saving ? "保存中…" : "保存"}
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            disabled={saving}
+                            className="text-xs text-[#6a5d8e] bg-[#ede9fe] border border-[#ccc0fa] rounded-lg py-1.5 px-3.5 cursor-pointer font-[inherit] disabled:opacity-50"
+                          >
+                            キャンセル
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => startEdit(ws)}
+                            className="text-xs text-[#4f35be] bg-[#ede9fe] border border-[#ccc0fa] rounded-lg py-1.5 px-3.5 cursor-pointer font-[inherit]"
+                          >
+                            編集
+                          </button>
+                          <button
+                            onClick={() => handleDelete(ws)}
+                            disabled={deleting === ws.id}
+                            className="text-xs text-[#dc2626] bg-[#fff5f5] border-[1.5px] border-[#fecaca] rounded-lg py-1.5 px-3.5 cursor-pointer font-[inherit] disabled:opacity-50"
+                          >
+                            {deleting === ws.id ? "削除中…" : "削除"}
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
 
                 </div>
