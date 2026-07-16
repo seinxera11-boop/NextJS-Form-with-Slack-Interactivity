@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   const url =
     `https://slack.com/oauth/v2/authorize` +
     `?client_id=${slackClientId}` +
-    `&scope=chat:write,incoming-webhook` +
+    `&scope=chat:write,incoming-webhook,channels:read,users:read,users.profile:read` +
     `&redirect_uri=${encodeURIComponent(redirectUri)}` +
     `&state=${encodeURIComponent(state)}`;
 
