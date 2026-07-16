@@ -82,6 +82,16 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // Keep slack_team_id in sync so we can always resolve this workspace's
+  // bot token from an interactivity payload's team.id without manual setup.
+  const slackTeamId = data.team?.id as string | undefined;
+  if (slackTeamId) {
+    await supabaseAdmin
+      .from("workspaces")
+      .update({ slack_team_id: slackTeamId })
+      .eq("id", workspace.id);
+  }
+
   const workspaceId = workspace.id;
   const urlColumn = channelType === "security"
     ? "security_url"
