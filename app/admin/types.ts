@@ -78,8 +78,9 @@ export const TYPE_COLOR: Record<ItemType, string> = {
 };
 
 export type DepartmentSlackConfigs = {
-  bot_token:    string | null;
-  approval_url: string | null;
-  security_url: string | null;
-  reminder_url: string | null;
+  bot_token:     string | null;
+  slack_team_id: string | null;
+  approval_url:  string | null;
+  security_url:  string | null;
+  reminder_url:  string | null;
 }

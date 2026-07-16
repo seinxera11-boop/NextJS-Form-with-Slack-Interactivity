@@ -1,33 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
-async function resolveUserName(teamId: string, userId: string, fallback: string) {
-  const { data: workspace, error: wsErr } = await supabaseAdmin
+async function findBotTokenForTeam(teamId: string): Promise<string | null> {
+  // A department may be connected to a different physical Slack workspace than
+  // the org default, so check department-level configs first. Multiple
+  // departments commonly share the same team (just different channels) —
+  // any matching row's token is equivalent in that case, so take the first.
+  const { data: deptConfigs } = await supabaseAdmin
+    .from("department_slack_configs")
+    .select("bot_token")
+    .eq("slack_team_id", teamId)
+    .limit(1);
+
+  if (deptConfigs?.[0]?.bot_token) return deptConfigs[0].bot_token;
+
+  const { data: workspace } = await supabaseAdmin
     .from("workspaces")
     .select("id")
     .eq("slack_team_id", teamId)
     .maybeSingle();
 
-  if (!workspace) {
-    console.error("[slack/interactivity] no workspace for slack_team_id:", teamId, wsErr?.message);
-    return fallback;
-  }
+  if (!workspace) return null;
 
-  const { data: config, error: cfgErr } = await supabaseAdmin
+  const { data: config } = await supabaseAdmin
     .from("slack_configs")
     .select("bot_token")
     .eq("workspace_id", workspace.id)
     .maybeSingle();
 
-  if (!config?.bot_token) {
-    console.error("[slack/interactivity] no bot_token for workspace:", workspace.id, cfgErr?.message);
+  return config?.bot_token ?? null;
+}
+
+async function resolveUserName(teamId: string, userId: string, fallback: string) {
+  const botToken = await findBotTokenForTeam(teamId);
+
+  if (!botToken) {
+    console.error("[slack/interactivity] no bot_token resolvable for slack_team_id:", teamId);
     return fallback;
   }
 
   try {
     const res = await fetch(
       `https://slack.com/api/users.info?user=${userId}`,
-      { headers: { Authorization: `Bearer ${config.bot_token}` } }
+      { headers: { Authorization: `Bearer ${botToken}` } }
     );
     const data = await res.json();
 

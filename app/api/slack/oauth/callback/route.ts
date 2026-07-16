@@ -82,16 +82,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Keep slack_team_id in sync so we can always resolve this workspace's
-  // bot token from an interactivity payload's team.id without manual setup.
   const slackTeamId = data.team?.id as string | undefined;
-  if (slackTeamId) {
-    await supabaseAdmin
-      .from("workspaces")
-      .update({ slack_team_id: slackTeamId })
-      .eq("id", workspace.id);
-  }
-
   const workspaceId = workspace.id;
   const urlColumn = channelType === "security"
     ? "security_url"
@@ -100,11 +91,17 @@ export async function GET(req: NextRequest) {
     : "approval_url";
 
   if (departmentId) {
-    // Department-specific: save webhook to department_slack_configs
+    // Department-specific: save webhook + this department's own Slack team/token
+    // to department_slack_configs. Deliberately does NOT touch the workspace-level
+    // slack_configs row — a department may belong to a different physical Slack
+    // workspace than the org default, so its token/team must not overwrite it.
     console.log("[slack/callback] Saving dept config | dept:", departmentId, "| channel:", channelType);
     const { error: deptErr } = await supabaseAdmin
       .from("department_slack_configs")
-      .upsert({ department_id: departmentId, bot_token: botToken, [urlColumn]: webhookUrl }, { onConflict: "department_id" });
+      .upsert(
+        { department_id: departmentId, bot_token: botToken, slack_team_id: slackTeamId ?? null, [urlColumn]: webhookUrl },
+        { onConflict: "department_id" }
+      );
 
     if (deptErr) {
       console.error("[slack/callback] dept upsert error:", deptErr.message);
@@ -113,19 +110,21 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Also keep the bot token up to date at workspace level
-    await supabaseAdmin
-      .from("slack_configs")
-      .upsert({ workspace_id: workspaceId, bot_token: botToken, updated_at: new Date().toISOString() }, { onConflict: "workspace_id" });
-
     console.log("[slack/callback] Dept config saved.");
     return NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_BASE_URL}/admin?tab=departments&slack_connected=${channelType}&department_id=${departmentId}`
     );
   }
 
-  // Workspace-level: save to slack_configs
+  // Workspace-level: save to slack_configs + keep workspaces.slack_team_id in sync
   console.log("[slack/callback] Saving workspace config | workspace:", workspaceSlug, "| channel:", channelType);
+  if (slackTeamId) {
+    await supabaseAdmin
+      .from("workspaces")
+      .update({ slack_team_id: slackTeamId })
+      .eq("id", workspace.id);
+  }
+
   const { error: upsertErr } = await supabaseAdmin
     .from("slack_configs")
     .upsert(
