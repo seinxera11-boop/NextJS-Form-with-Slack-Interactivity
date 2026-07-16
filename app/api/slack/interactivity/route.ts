@@ -1,12 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
+async function resolveUserName(teamId: string, userId: string, fallback: string) {
+  const { data: workspace } = await supabaseAdmin
+    .from("workspaces")
+    .select("id")
+    .eq("slack_team_id", teamId)
+    .maybeSingle();
+
+  if (!workspace) return fallback;
+
+  const { data: config } = await supabaseAdmin
+    .from("slack_configs")
+    .select("bot_token")
+    .eq("workspace_id", workspace.id)
+    .maybeSingle();
+
+  if (!config?.bot_token) return fallback;
+
+  try {
+    const res = await fetch(
+      `https://slack.com/api/users.info?user=${userId}`,
+      { headers: { Authorization: `Bearer ${config.bot_token}` } }
+    );
+    const data = await res.json();
+    return data.user?.profile?.real_name || data.user?.real_name || fallback;
+  } catch (err) {
+    console.error("[slack/interactivity] users.info failed:", err);
+    return fallback;
+  }
+}
+
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const payload = JSON.parse(formData.get("payload") as string);
 
   // 👤 Slack user
-  const userName = payload.user.username || payload.user.name;
+  const fallbackName = payload.user.username || payload.user.name;
+  const userName = await resolveUserName(payload.team.id, payload.user.id, fallbackName);
 
   // 📝 Reason input
   const reason =
@@ -48,7 +79,7 @@ export async function POST(req: NextRequest) {
     type: "section",
     text: {
       type: "mrkdwn",
-      text: `${userName}が承認しました\n*理由:* ${reason}`,
+      text: `${userName}が承認しました\n*コメント:* ${reason}`,
     },
   });
 

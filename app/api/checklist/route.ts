@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const reasonText = reason?.trim() || "";
+    const reasonText = reason?.trim() || "理由なし";
     const hasMissing = missingItems.length > 0;
 
     // 5. Fetch webhook URLs — dept-specific first, falls back to workspace
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
 
     // ── Approval channel payload ───────────────────────────────────────────────
     const approvalBodyText = hasMissing
-      ? `${missingItems.join("\n")} はチェックしませんでした。\n 理由： ${reasonText}`
+      ? `${missingItems.join("\n")} はチェックしませんでした。\n コメント： ${reasonText}`
       : `\nすべてのタスクが完了しました\n コメント：${reasonText}`;
 
     const approvalPayload = {
@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
 
     // ── Security channel payload ───────────────────────────────────────────────
     const securityText = hasMissing
-      ? `*${departmentName}の ${submitted_by} が最終退出しました。\n${missingItems.join("\n")} はチェックしませんでした。 \n理由：${reasonText}*`
+      ? `*${departmentName}の ${submitted_by} が最終退出しました。\n${missingItems.join("\n")} はチェックしませんでした。 \nコメント：${reasonText}*`
       : `*${departmentName}の ${submitted_by} が最終退出しました。\nコメント：${reasonText}*`;
 
     const securityPayload = { text: securityText };
