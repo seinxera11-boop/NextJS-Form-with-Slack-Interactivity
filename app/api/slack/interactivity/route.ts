@@ -2,21 +2,27 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 async function resolveUserName(teamId: string, userId: string, fallback: string) {
-  const { data: workspace } = await supabaseAdmin
+  const { data: workspace, error: wsErr } = await supabaseAdmin
     .from("workspaces")
     .select("id")
     .eq("slack_team_id", teamId)
     .maybeSingle();
 
-  if (!workspace) return fallback;
+  if (!workspace) {
+    console.error("[slack/interactivity] no workspace for slack_team_id:", teamId, wsErr?.message);
+    return fallback;
+  }
 
-  const { data: config } = await supabaseAdmin
+  const { data: config, error: cfgErr } = await supabaseAdmin
     .from("slack_configs")
     .select("bot_token")
     .eq("workspace_id", workspace.id)
     .maybeSingle();
 
-  if (!config?.bot_token) return fallback;
+  if (!config?.bot_token) {
+    console.error("[slack/interactivity] no bot_token for workspace:", workspace.id, cfgErr?.message);
+    return fallback;
+  }
 
   try {
     const res = await fetch(
@@ -24,6 +30,13 @@ async function resolveUserName(teamId: string, userId: string, fallback: string)
       { headers: { Authorization: `Bearer ${config.bot_token}` } }
     );
     const data = await res.json();
+
+    if (!data.ok) {
+      console.error("[slack/interactivity] users.info error:", data.error);
+      return fallback;
+    }
+
+    console.log("[slack/interactivity] users.info real_name:", data.user?.profile?.real_name, "| display_name:", data.user?.profile?.display_name);
     return data.user?.profile?.real_name || data.user?.real_name || fallback;
   } catch (err) {
     console.error("[slack/interactivity] users.info failed:", err);
