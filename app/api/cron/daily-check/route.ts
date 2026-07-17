@@ -75,7 +75,28 @@ async function sendReminder(webhookUrl: string, titles: string[]): Promise<void>
   });
 }
 
+async function isHolidayForWorkspace(workspaceId: string): Promise<boolean> {
+  const { data: calConfig } = await supabaseAdmin
+    .from("slack_configs")
+    .select("google_calendar_id")
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+
+  const calendarId = calConfig?.google_calendar_id ?? process.env.GOOGLE_CALENDAR_ID!;
+
+  try {
+    const events = await getTodayEvents(calendarId);
+    console.log(`📅 [${workspaceId}] Today's events:`, events.map(e => e.summary));
+    return isHoliday(events);
+  } catch (err: any) {
+    console.error(`⚠️  [${workspaceId}] Calendar check failed for ${calendarId} — proceeding as non-holiday:`, err.message);
+    return false;
+  }
+}
+
 async function processWorkspace(workspaceId: string): Promise<string> {
+  if (await isHolidayForWorkspace(workspaceId)) return "holiday";
+
   const now = new Date();
   const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0)).toISOString();
   const todayEnd   = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59)).toISOString();
@@ -139,23 +160,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ skipped: true, reason: "weekend" });
     }
 
-    const { data: calConfig } = await supabaseAdmin
-      .from("slack_configs")
-      .select("google_calendar_id")
-      .not("google_calendar_id", "is", null)
-      .limit(1)
-      .maybeSingle();
-
-    const calendarId = calConfig?.google_calendar_id ?? process.env.GOOGLE_CALENDAR_ID!;
-    console.log("📅 Using calendarId:", calendarId, "| service account:", process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL);
-
-    const events = await getTodayEvents(calendarId);
-    console.log("📅 Today's events:", events.map(e => e.summary));
-
-    if (isHoliday(events)) {
-      return NextResponse.json({ skipped: true, reason: "holiday", events: events.map(e => e.summary) });
-    }
-
     const workspaceFilter = req.nextUrl.searchParams.get("workspace");
 
     let wsQuery = supabaseAdmin.from("workspaces").select("id, name");
@@ -169,11 +173,10 @@ export async function GET(req: NextRequest) {
       results[ws.name] = await processWorkspace(ws.id);
     }
 
-    return NextResponse.json({ success: true, results, events: events.map(e => e.summary) });
+    return NextResponse.json({ success: true, results });
 
   } catch (err: any) {
     console.error("❌ Daily check error:", err.message);
-    console.error("❌ Full error detail:", JSON.stringify(err.response?.data ?? err.errors ?? err, null, 2));
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

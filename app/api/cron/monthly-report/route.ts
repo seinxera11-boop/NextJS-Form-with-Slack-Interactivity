@@ -182,21 +182,26 @@ export async function GET(req: NextRequest) {
     const transporter = createTransporter();
     await transporter.verify();
 
-    const results: { email: string; rows: number; skipped?: boolean }[] = [];
+    const results: { email: string; rows: number; skipped?: boolean; error?: string }[] = [];
 
     for (const admin of admins) {
-      const rows = await fetchMonthlyData(admin.workspace_id, start, end);
+      try {
+        const rows = await fetchMonthlyData(admin.workspace_id, start, end);
 
-      if (rows.length === 0) {
-        console.log(`ℹ️  No data for workspace ${admin.workspace_id} (${admin.email}) — skipping`);
-        results.push({ email: admin.email, rows: 0, skipped: true });
-        continue;
+        if (rows.length === 0) {
+          console.log(`ℹ️  No data for workspace ${admin.workspace_id} (${admin.email}) — skipping`);
+          results.push({ email: admin.email, rows: 0, skipped: true });
+          continue;
+        }
+
+        const csv = toCSV(rows);
+        await sendReportEmail(transporter, admin.email, csv, label, rows.length);
+        console.log(`📧 Report (${rows.length} rows) emailed to ${admin.email}`);
+        results.push({ email: admin.email, rows: rows.length });
+      } catch (err: any) {
+        console.error(`⚠️  Failed to generate/send report for ${admin.email} (workspace ${admin.workspace_id}):`, err.message);
+        results.push({ email: admin.email, rows: 0, error: err.message });
       }
-
-      const csv = toCSV(rows);
-      await sendReportEmail(transporter, admin.email, csv, label, rows.length);
-      console.log(`📧 Report (${rows.length} rows) emailed to ${admin.email}`);
-      results.push({ email: admin.email, rows: rows.length });
     }
 
     return NextResponse.json({ success: true, month: label, results });
