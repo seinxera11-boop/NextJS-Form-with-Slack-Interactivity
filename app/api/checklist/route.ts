@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const reasonText = reason?.trim() || "理由なし";
+    const reasonText = reason?.trim() || "コメントありませんでした。";
     const hasMissing = missingItems.length > 0;
 
     // 5. Fetch webhook URLs — dept-specific first, falls back to workspace
