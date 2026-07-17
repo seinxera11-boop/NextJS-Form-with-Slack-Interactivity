@@ -147,6 +147,7 @@ export async function GET(req: NextRequest) {
       .maybeSingle();
 
     const calendarId = calConfig?.google_calendar_id ?? process.env.GOOGLE_CALENDAR_ID!;
+    console.log("📅 Using calendarId:", calendarId, "| service account:", process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL);
 
     const events = await getTodayEvents(calendarId);
     console.log("📅 Today's events:", events.map(e => e.summary));
@@ -172,6 +173,7 @@ export async function GET(req: NextRequest) {
 
   } catch (err: any) {
     console.error("❌ Daily check error:", err.message);
+    console.error("❌ Full error detail:", JSON.stringify(err.response?.data ?? err.errors ?? err, null, 2));
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
