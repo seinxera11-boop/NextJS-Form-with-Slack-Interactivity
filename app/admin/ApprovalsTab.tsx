@@ -124,7 +124,7 @@ export function ApprovalsTab() {
                     <div className="text-xs font-bold text-[#8c70e8] uppercase tracking-[0.12em] mt-5 mb-3">承認詳細</div>
                     <div className="bg-linear-to-br from-[#f5f0fe] to-[#ede9fe] border-[1.5px] border-[#dfd5fb] rounded-[10px] py-3.5 px-4.5 text-sm text-[#4b3d80] mt-2.5">
                       <div className="text-sm text-[#1a1035] mb-1"><strong>承認者：</strong> {approval.approved_by || "—"}</div>
-                      {approval.reason && <div className="text-sm text-[#4b3d80] mb-1"><strong>メモ：</strong> {approval.reason}</div>}
+                      {approval.reason && <div className="text-sm text-[#4b3d80] mb-1"><strong>コメント：</strong> {approval.reason}</div>}
                       <div className="text-xs text-[#a78bfa]">
                         {new Date(approval.approved_at).toLocaleDateString("ja-JP", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </div>
