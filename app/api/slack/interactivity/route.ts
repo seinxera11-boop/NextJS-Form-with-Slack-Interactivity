@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 async function findBotTokenForTeam(teamId: string): Promise<string | null> {
-  // A department may be connected to a different physical Slack workspace than
-  // the org default, so check department-level configs first. Multiple
-  // departments commonly share the same team (just different channels) —
-  // any matching row's token is equivalent in that case, so take the first.
+  
   const { data: deptConfigs } = await supabaseAdmin
     .from("department_slack_configs")
     .select("bot_token")
@@ -63,6 +60,26 @@ export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const payload = JSON.parse(formData.get("payload") as string);
 
+  // 📦 Get metadata from button
+  const action = payload.actions?.[0];
+  const parsedValue = JSON.parse(action.value || "{}");
+
+  const response_id = parsedValue.response_id;
+
+  
+  if (response_id) {
+    const { data: existing } = await supabaseAdmin
+      .from("response_approvals")
+      .select("id")
+      .eq("response_id", response_id)
+      .maybeSingle();
+
+    if (existing) {
+      console.log("[slack/interactivity] already processed response_id:", response_id, "— skipping duplicate/retry");
+      return NextResponse.json({ ok: true });
+    }
+  }
+
   // 👤 Slack user
   const fallbackName = payload.user.username || payload.user.name;
   const userName = await resolveUserName(payload.team.id, payload.user.id, fallbackName);
@@ -70,12 +87,6 @@ export async function POST(req: NextRequest) {
   // 📝 Reason input
   const reason =
     payload.state?.values?.reason_block?.input_reason?.value || "コメントありませんでした。";
-
-  // 📦 Get metadata from button
-  const action = payload.actions?.[0];
-  const parsedValue = JSON.parse(action.value || "{}");
-
-  const response_id = parsedValue.response_id;
 
   // ✅ 1. STORE IN DATABASE
   if (response_id) {
@@ -95,16 +106,18 @@ export async function POST(req: NextRequest) {
   // 📦 Original message
   const originalBlocks = payload.message.blocks;
 
-  // ❌ Remove input + button
+  // ❌ Remove input + button + any previous confirmation block
   const cleanedBlocks = originalBlocks.filter(
     (block: any) =>
       block.block_id !== "reason_block" &&
-      block.block_id !== "actions_block"
+      block.block_id !== "actions_block" &&
+      block.block_id !== "approved_block"
   );
 
   // ✅ Add final message
   cleanedBlocks.push({
     type: "section",
+    block_id: "approved_block",
     text: {
       type: "mrkdwn",
       text: `${userName}が承認しました\n*コメント:* ${reason}`,
