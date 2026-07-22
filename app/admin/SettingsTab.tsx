@@ -185,33 +185,41 @@ function ChecklistSlackSection({ workspaceSlug }: { workspaceSlug: string }) {
   );
 }
 
-// ─── Google Calendar ──────────────────────────────────────────────────────────
+// ─── Workspace holidays ────────────────────────────────────────────────────────
 
-function GoogleCalendarSection() {
-  const [calendarId, setCalendarId] = useState("");
-  const [saved,      setSaved]      = useState<string | null>(null);
-  const [saveError,  setSaveError]  = useState("");
-  const [saving,     setSaving]     = useState(false);
-  const [loading,    setLoading]    = useState(true);
+type Holiday = { id: number; holiday_date: string };
 
-  useEffect(() => {
-    fetch("/api/settings")
+function HolidaysSection() {
+  const [holidays, setHolidays]     = useState<Holiday[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [bulkText, setBulkText]     = useState("");
+  const [saving, setSaving]         = useState(false);
+  const [saveError, setSaveError]   = useState("");
+  const [saved, setSaved]           = useState(false);
+  const [showList, setShowList]     = useState(false);
+
+  const fetchHolidays = () => {
+    fetch("/api/holidays")
       .then(r => r.json())
-      .then(data => { setCalendarId(data.google_calendar_id ?? ""); setLoading(false); })
+      .then(data => { setHolidays(Array.isArray(data) ? data : []); setLoading(false); })
       .catch(() => setLoading(false));
-  }, []);
+  };
 
-  const handleSave = async () => {
-    setSaving(true); setSaved(null); setSaveError("");
+  useEffect(() => { fetchHolidays(); }, []);
+
+  const addDates = async (dates: string[]) => {
+    setSaving(true); setSaveError(""); setSaved(false);
     try {
-      const res = await fetch("/api/settings", {
-        method: "PATCH",
+      const res = await fetch("/api/holidays", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ google_calendar_id: calendarId }),
+        body: JSON.stringify({ dates }),
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "保存に失敗しました");
-      setSaved(calendarId);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+      fetchHolidays();
     } catch (err: any) {
       setSaveError(err.message);
     } finally {
@@ -219,18 +227,57 @@ function GoogleCalendarSection() {
     }
   };
 
+  const handleAdd = () => {
+    const lines = bulkText
+      .split("\n")
+      .map(l => l.trim())
+      .filter(l => /^\d{4}-\d{2}-\d{2}$/.test(l));
+
+    if (lines.length === 0) {
+      setSaveError("YYYY-MM-DD形式の日付が見つかりませんでした。");
+      return;
+    }
+    addDates(lines);
+    setBulkText("");
+  };
+
+  const handleDelete = async (id: number) => {
+    await fetch(`/api/holidays/${id}`, { method: "DELETE" });
+    fetchHolidays();
+  };
+
+  const handleClearMonth = async (monthHolidays: Holiday[]) => {
+    if (!confirm(`${monthHolidays.length}件の休日をすべて削除しますか？`)) return;
+    await Promise.all(monthHolidays.map(h => fetch(`/api/holidays/${h.id}`, { method: "DELETE" })));
+    fetchHolidays();
+  };
+
+  // holidays is already sorted by holiday_date ascending (API's .order()),
+  // so grouping into a Map preserves chronological month order for free.
+  const groupedByMonth = new Map<string, Holiday[]>();
+  for (const h of holidays) {
+    const monthKey = h.holiday_date.slice(0, 7); // "2026-01"
+    if (!groupedByMonth.has(monthKey)) groupedByMonth.set(monthKey, []);
+    groupedByMonth.get(monthKey)!.push(h);
+  }
+
+  const formatMonthLabel = (monthKey: string) => {
+    const [year, month] = monthKey.split("-");
+    return `${year}年${parseInt(month, 10)}月`;
+  };
+
   if (loading) return <div className="py-6 text-center text-sm text-[#c4b5fd]">読み込み中…</div>;
 
   return (
     <div>
-      <div className="text-xs font-bold text-[#3e249e] uppercase tracking-[0.12em] mb-1.5">Google カレンダー</div>
+      <div className="text-xs font-bold text-[#3e249e] uppercase tracking-[0.12em] mb-1.5">休日設定</div>
       <div className="text-xs text-[#9688c0] mb-6">
-        祝日カレンダーは、祝日にリマインダーをスキップするために毎日のcronで使用されます。カレンダーIDはGoogle カレンダー → 設定 → カレンダーの統合 で確認できます。
+        登録した日付は、毎日のリマインダーcronでスキップされます。
       </div>
 
       {saved && (
         <div className="text-xs text-[#059669] font-semibold mb-5 bg-[#ecfdf5] border border-[#6ee7b7] rounded-lg px-4 py-2.5">
-          ✓ カレンダーIDが保存されました。
+          ✓ 保存されました。
         </div>
       )}
       {saveError && (
@@ -239,27 +286,92 @@ function GoogleCalendarSection() {
         </div>
       )}
 
-      <div className="flex gap-2 items-center">
-        <input
-          className="flex-1 border-[1.5px] border-[#ccc0fa] rounded-[10px] py-2.5 px-3.75 text-sm text-[#1a1035] outline-none bg-[#faf9ff] font-[inherit]"
-          type="text"
-          placeholder="xxxxxxxx@group.calendar.google.com"
-          value={calendarId}
-          onChange={e => { setCalendarId(e.target.value); setSaved(null); }}
-          onKeyDown={e => e.key === "Enter" && handleSave()}
+      <div className="mb-2 text-xs text-[#7c6fa0]">休日を追加（1行に1日付、YYYY-MM-DD形式）：</div>
+      <div className="flex gap-2 mb-5">
+        <textarea
+          className="flex-1 border-[1.5px] border-[#ccc0fa] focus:border-[#a78bfa] rounded-[10px] py-2.5 px-3.25 text-sm text-[#1a1035] outline-none bg-[#faf9ff] font-[inherit] transition-colors duration-150"
+          placeholder={"2026-01-01\n2026-01-12"}
+          rows={2}
+          value={bulkText}
+          onChange={e => setBulkText(e.target.value)}
         />
         <button
-          className={`shrink-0 text-sm font-semibold text-white bg-[linear-gradient(135deg,#6d28d9_0%,#4f35be_100%)] border-none rounded-[10px] py-2.5 px-5 cursor-pointer font-[inherit] shadow-[0_2px_10px_rgba(109,40,217,0.28)] ${saving || !calendarId.trim() ? "opacity-60" : ""}`}
-          onClick={handleSave}
-          disabled={saving || !calendarId.trim()}
+          className={`shrink-0 self-start text-sm font-semibold text-white bg-[linear-gradient(135deg,#6d28d9_0%,#4f35be_100%)] border-none rounded-[10px] py-2.5 px-4.5 cursor-pointer font-[inherit] shadow-[0_2px_10px_rgba(109,40,217,0.28)] ${saving || !bulkText.trim() ? "opacity-60" : ""}`}
+          onClick={handleAdd}
+          disabled={saving || !bulkText.trim()}
         >
-          {saving ? "保存中…" : "保存"}
+          追加
         </button>
       </div>
 
-      <div className="mt-4 text-xs text-[#a696f2] leading-relaxed bg-[#f5f0ff] border border-[#ede9fe] rounded-lg px-4 py-3">
-        空白の場合は、環境変数 <span className="font-mono">GOOGLE_CALENDAR_ID</span> が使用されます。
-      </div>
+      <button
+        className="text-xs font-semibold text-[#4f35be] bg-[#ede9fe] border-[1.5px] border-[#ccc0fa] rounded-lg py-2 px-4 cursor-pointer"
+        onClick={() => setShowList(true)}
+      >
+        登録済みの休日を表示 ({holidays.length})
+      </button>
+
+      {showList && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={e => { if (e.target === e.currentTarget) setShowList(false); }}
+        >
+          <div className="bg-white rounded-2xl border-[1.5px] border-[#dfd5fb] shadow-[0_8px_40px_rgba(79,53,190,0.18)] w-full max-w-xl max-h-[85vh] sm:max-h-[80vh] relative flex flex-col">
+            <button
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-[#a696f2] hover:text-[#6a5d8e] hover:bg-[#f5f0ff] rounded-lg bg-transparent border-none cursor-pointer text-sm sm:text-base transition-colors duration-120"
+              onClick={() => setShowList(false)}
+            >
+              ✕
+            </button>
+
+            <div className="p-4 sm:p-8 pb-3 sm:pb-4 shrink-0">
+              <div className="text-lg sm:text-xl font-bold text-[#1a1035] pr-8 mb-1">登録済みの休日</div>
+              <div className="text-[11px] sm:text-xs text-[#9688c0]">月ごとに登録された休日を確認・削除できます。</div>
+            </div>
+
+            <div className="overflow-y-auto px-4 sm:px-8 pb-4 sm:pb-8">
+              {holidays.length === 0 ? (
+                <div className="text-sm text-[#a696f2] py-5.5 text-center">登録された休日はありません。</div>
+              ) : (
+                <div className="space-y-4 sm:space-y-5">
+                  {Array.from(groupedByMonth.entries()).map(([monthKey, monthHolidays]) => (
+                    <div key={monthKey}>
+                      <div className="flex items-center justify-between mb-2 sm:mb-2.5 pb-1.5 border-b-[1.5px] border-[#ede9fe]">
+                        <div className="text-xs sm:text-sm font-bold text-[#1a1035]">
+                          {formatMonthLabel(monthKey)}
+                          <span className="ml-1.5 text-[10px] sm:text-xs font-normal text-[#9688c0]">({monthHolidays.length}件)</span>
+                        </div>
+                        <button
+                          className="text-[10px] sm:text-xs font-semibold text-[#b91c1c] bg-transparent border-none cursor-pointer p-0"
+                          onClick={() => handleClearMonth(monthHolidays)}
+                        >
+                          すべて削除
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                        {monthHolidays.map(h => (
+                          <div
+                            key={h.id}
+                            className="flex items-center gap-2 sm:gap-2.5 text-xs sm:text-sm font-medium py-2 px-3.5 sm:py-2.5 sm:px-5 rounded-full border-[1.5px] border-[#ccc0fa] bg-[#faf9ff] text-[#4b3d80]"
+                          >
+                            <span>{h.holiday_date}</span>
+                            <button
+                              className="text-[#b91c1c] bg-transparent border-none cursor-pointer p-0 leading-none text-base sm:text-lg font-bold"
+                              onClick={() => handleDelete(h.id)}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -500,7 +612,7 @@ export function SettingsTab({ workspaceSlug }: { workspaceSlug: string }) {
       </div>
 
       <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-4 sm:p-8 mb-5.5 bg-white shadow-[0_2px_18px_rgba(79,53,190,0.10)]">
-        <GoogleCalendarSection />
+        <HolidaysSection />
       </div>
 
       <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-4 sm:p-8 mb-5.5 bg-white shadow-[0_2px_18px_rgba(79,53,190,0.10)]">

@@ -461,7 +461,7 @@ export default function ChecklistPage() {
 
   // ── Incomplete-task confirmation modal ─────────────────────────────────────
   const renderConfirmModal = () => confirmModal && (
-    <div className="fixed inset-0 z-1000 bg-[rgba(26,16,53,0.55)] backdrop-blur-sm flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-1000 bg-black/40 backdrop-blur-sm flex items-center justify-center p-6">
       <div className="bg-white rounded-[18px] py-6 sm:py-8 px-4 sm:px-7 max-w-120 w-full shadow-[0_20px_60px_rgba(79,53,190,0.28)] border-[1.5px] border-[#dfd5fb]">
         <div className="text-lg sm:text-xl font-bold text-[#1a1035] mb-2">
           未完了のタスクがあります

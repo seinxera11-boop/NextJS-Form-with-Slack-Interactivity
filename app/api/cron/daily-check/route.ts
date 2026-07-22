@@ -1,55 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getWebhookUrl } from "@/lib/slack-helpers";
-import { google } from "googleapis";
-
-type CalendarEvent = {
-  summary:   string;
-  start:     string;
-  end:       string;
-  isAllDay:  boolean;
-};
-
-async function getTodayEvents(calendarId: string): Promise<CalendarEvent[]> {
-  const auth = new google.auth.JWT({
-    email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    key:   process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-    scopes: ["https://www.googleapis.com/auth/calendar.readonly"],
-  });
-
-  const calendar = google.calendar({ version: "v3", auth });
-  const now = new Date();
-
-  const startOfDay = new Date(Date.UTC(
-    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0
-  ));
-
-  const endOfDay = new Date(Date.UTC(
-    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59
-  ));
-
-  const res = await calendar.events.list({
-    calendarId,
-    timeMin:      startOfDay.toISOString(),
-    timeMax:      endOfDay.toISOString(),
-    singleEvents: true,
-    orderBy:      "startTime",
-  });
-
-  return (res.data.items || []).map(event => ({
-    summary:  event.summary || "",
-    start:    event.start?.dateTime || event.start?.date || "",
-    end:      event.end?.dateTime   || event.end?.date   || "",
-    isAllDay: !!event.start?.date && !event.start?.dateTime,
-  }));
-}
-
-function isHoliday(events: CalendarEvent[]): boolean {
-  const holidayKeywords = ["holiday", "public holiday", "day off", "leave", "company off"];
-  return events.some(event =>
-    holidayKeywords.some(keyword => event.summary.toLowerCase().includes(keyword))
-  );
-}
 
 function isWeekend(date: Date): boolean {
   const day = date.getUTCDay();
@@ -68,22 +19,16 @@ async function sendReminder(webhookUrl: string, titles: string[]): Promise<void>
 }
 
 async function isHolidayForWorkspace(workspaceId: string): Promise<boolean> {
-  const { data: calConfig } = await supabaseAdmin
-    .from("slack_configs")
-    .select("google_calendar_id")
+  const today = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
+
+  const { data } = await supabaseAdmin
+    .from("workspace_holidays")
+    .select("id")
     .eq("workspace_id", workspaceId)
+    .eq("holiday_date", today)
     .maybeSingle();
 
-  const calendarId = calConfig?.google_calendar_id ?? process.env.GOOGLE_CALENDAR_ID!;
-
-  try {
-    const events = await getTodayEvents(calendarId);
-    console.log(`📅 [${workspaceId}] Today's events:`, events.map(e => e.summary));
-    return isHoliday(events);
-  } catch (err: any) {
-    console.error(`⚠️  [${workspaceId}] Calendar check failed for ${calendarId} — proceeding as non-holiday:`, err.message);
-    return false;
-  }
+  return !!data;
 }
 
 async function processWorkspace(workspaceId: string): Promise<string> {
