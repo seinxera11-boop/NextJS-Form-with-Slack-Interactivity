@@ -3,16 +3,12 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getWebhookUrl } from "@/lib/slack-helpers";
 import { google } from "googleapis";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
 type CalendarEvent = {
   summary:   string;
   start:     string;
   end:       string;
   isAllDay:  boolean;
 };
-
-// ─── Google Calendar ──────────────────────────────────────────────────────────
 
 async function getTodayEvents(calendarId: string): Promise<CalendarEvent[]> {
   const auth = new google.auth.JWT({
@@ -48,8 +44,6 @@ async function getTodayEvents(calendarId: string): Promise<CalendarEvent[]> {
   }));
 }
 
-// ─── Holiday & Weekend ───────────────────────────────────────────────────────
-
 function isHoliday(events: CalendarEvent[]): boolean {
   const holidayKeywords = ["holiday", "public holiday", "day off", "leave", "company off"];
   return events.some(event =>
@@ -61,8 +55,6 @@ function isWeekend(date: Date): boolean {
   const day = date.getUTCDay();
   return day === 0 || day === 6;
 }
-
-// ─── Per-workspace reminder ───────────────────────────────────────────────────
 
 async function sendReminder(webhookUrl: string, titles: string[]): Promise<void> {
   const list = titles.map(t => `• ${t}`).join("\n");
@@ -95,6 +87,16 @@ async function isHolidayForWorkspace(workspaceId: string): Promise<boolean> {
 }
 
 async function processWorkspace(workspaceId: string): Promise<string> {
+  const today = new Date().toISOString().split("T")[0];
+  const { error: claimErr } = await supabaseAdmin
+    .from("reminder_runs")
+    .insert({ workspace_id: workspaceId, run_date: today });
+
+  if (claimErr) {
+    console.log(`[daily-check] workspace ${workspaceId} already processed today — skipping`);
+    return "already_processed_today";
+  }
+
   if (await isHolidayForWorkspace(workspaceId)) return "holiday";
 
   const now = new Date();
@@ -103,7 +105,7 @@ async function processWorkspace(workspaceId: string): Promise<string> {
 
   const { data: checklists } = await supabaseAdmin
     .from("checklists")
-    .select("id, title, department_id, checklist_departments(department_id)")
+    .select("id, title, department_id, checklist_departments(department_id), checklist_slack_configs(reminder_url)")
     .eq("workspace_id", workspaceId);
 
   if (!checklists || checklists.length === 0) return "no_checklists";
@@ -120,30 +122,53 @@ async function processWorkspace(workspaceId: string): Promise<string> {
 
   if (unfilled.length === 0) return "already_submitted";
 
-  // Group unfilled checklists by department — one message per dept
-  // checklist_departments is the canonical source; fall back to department_id for legacy rows
-  const groups = new Map<number, string[]>();
+  const urlMap = new Map<string, Set<string>>();
+  const deptUrlCache = new Map<number, string | null>();
+  let workspaceDefaultUrl: string | null | undefined; // undefined = not yet fetched
+
+  const addTitle = (url: string | null | undefined, title: string) => {
+    if (!url) return;
+    if (!urlMap.has(url)) urlMap.set(url, new Set());
+    urlMap.get(url)!.add(title);
+  };
+
   for (const cl of unfilled) {
+    const ownUrl = (cl as any).checklist_slack_configs?.reminder_url as string | null | undefined;
+
+    if (ownUrl) {
+      addTitle(ownUrl, cl.title);
+      continue; // this checklist has its own channel — do not also fan out to departments
+    }
+
     const cdDepts = ((cl as any).checklist_departments as { department_id: number }[] | null) ?? [];
-    const deptIds = cdDepts.length > 0 ? cdDepts.map(cd => cd.department_id) : (cl.department_id ? [cl.department_id as number] : []);
+    const deptIds = cdDepts.length > 0
+      ? cdDepts.map(cd => cd.department_id)
+      : (cl.department_id ? [cl.department_id as number] : []);
+
+    if (deptIds.length === 0) {
+      if (workspaceDefaultUrl === undefined) {
+        workspaceDefaultUrl = await getWebhookUrl(null, null, "reminder", workspaceId);
+      }
+      addTitle(workspaceDefaultUrl, cl.title);
+      continue;
+    }
+
     for (const deptId of deptIds) {
-      if (!groups.has(deptId)) groups.set(deptId, []);
-      groups.get(deptId)!.push(cl.title);
+      if (!deptUrlCache.has(deptId)) {
+        deptUrlCache.set(deptId, await getWebhookUrl(null, deptId, "reminder", workspaceId));
+      }
+      addTitle(deptUrlCache.get(deptId), cl.title);
     }
   }
 
   let sent = 0;
-  for (const [deptId, titles] of groups) {
-    const url = await getWebhookUrl(deptId, "reminder", workspaceId);
-    if (!url) continue;
-    await sendReminder(url, titles);
+  for (const [url, titleSet] of urlMap) {
+    await sendReminder(url, Array.from(titleSet));
     sent++;
   }
 
   return sent > 0 ? "reminder_sent" : "no_reminder_url";
 }
-
-// ─── Route handler ────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");

@@ -23,6 +23,7 @@ export type Checklist = {
   department_id?: number | null;
   checklist_sections?: ChecklistSection[];
   checklist_departments?: { department_id: number }[];
+  checklist_slack_configs: SlackChannelConfig | null;
 };
 
 export type ResponseItem = {
@@ -51,14 +52,14 @@ export type Response = {
   departments?: { name: string };
   org_users?: { name: string };
   response_items?: ResponseItem[];
-  response_approvals?: ResponseApproval[];
+  response_approvals?: ResponseApproval | null;
 };
 
 export type Department = {
   id: number;
   name: string;
   created_at: string;
-  department_slack_configs: DepartmentSlackConfigs | null;
+  department_slack_configs: SlackChannelConfig | null;
 };
 
 export type OrgUser = {
@@ -77,10 +78,14 @@ export const TYPE_COLOR: Record<ItemType, string> = {
   checkbox: "#16a34a",
 };
 
-export type DepartmentSlackConfigs = {
+export type SlackChannelConfig = {
   bot_token:     string | null;
   slack_team_id: string | null;
   approval_url:  string | null;
   security_url:  string | null;
   reminder_url:  string | null;
-}
+};
+
+// kept so any existing import of the old name still resolves
+export type DepartmentSlackConfigs = SlackChannelConfig;
+

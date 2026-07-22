@@ -19,8 +19,8 @@ export function ApprovalsTab() {
     setLoading(false);
   };
 
-  const pending  = responses.filter(r => (r.response_approvals || []).length === 0);
-  const approved = responses.filter(r => (r.response_approvals || []).length > 0);
+  const pending  = responses.filter(r => !r.response_approvals);
+  const approved = responses.filter(r => !!r.response_approvals);
   const displayed = filter === "pending" ? pending : approved;
 
   return (
@@ -59,7 +59,7 @@ export function ApprovalsTab() {
         const textItems = (resp.response_items || []).filter(i => i.checklist_items?.type !== "checkbox");
         const completedCount = checkboxItems.filter(i => i.value === "true").length;
         const incompleteItems = checkboxItems.filter(i => i.value !== "true");
-        const approval = (resp.response_approvals || [])[0];
+        const approval = resp.response_approvals;
         return (
           <div
             key={resp.id}

@@ -1,12 +1,27 @@
 import { supabaseAdmin } from "./supabase-admin";
 
+type SlackChannelType = "approval" | "security" | "reminder";
+
 export async function getWebhookUrl(
+  checklistId: number | null,
   departmentId: number | null,
-  type: "approval" | "security" | "reminder",
+  type: SlackChannelType,
   workspaceId: string
 ): Promise<string | null> {
 
-  // Step 1: check department config
+  // Step 1: checklist-level override (most specific)
+  if (checklistId) {
+    const { data: checklistConfig } = await supabaseAdmin
+      .from("checklist_slack_configs")
+      .select("approval_url, security_url, reminder_url")
+      .eq("checklist_id", checklistId)
+      .maybeSingle();
+
+    const url = checklistConfig?.[`${type}_url`];
+    if (url) return url;
+  }
+
+  // Step 2: department config
   if (departmentId) {
     const { data: deptConfig } = await supabaseAdmin
       .from("department_slack_configs")
@@ -14,7 +29,6 @@ export async function getWebhookUrl(
       .eq("department_id", departmentId)
       .maybeSingle();
 
-    // Step 2: if dept has a URL for this type, return it
     const url = deptConfig?.[`${type}_url`];
     if (url) return url;
   }

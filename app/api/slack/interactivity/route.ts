@@ -2,7 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 async function findBotTokenForTeam(teamId: string): Promise<string | null> {
-  
+
+  const { data: checklistConfigs } = await supabaseAdmin
+    .from("checklist_slack_configs")
+    .select("bot_token")
+    .eq("slack_team_id", teamId)
+    .limit(1);
+
+  if (checklistConfigs?.[0]?.bot_token) return checklistConfigs[0].bot_token;
+
   const { data: deptConfigs } = await supabaseAdmin
     .from("department_slack_configs")
     .select("bot_token")

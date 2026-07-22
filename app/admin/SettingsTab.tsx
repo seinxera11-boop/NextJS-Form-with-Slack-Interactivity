@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SlackConnectPanel } from "./SlackConnectPanel";
+import { type SlackChannelConfig } from "./types";
 import { isValidEmail } from "@/lib/utils";
 
 // ─── Slack connection ──────────────────────────────────────────────────────────
@@ -66,6 +67,120 @@ function SlackSection({ workspaceSlug }: { workspaceSlug: string }) {
         showConnected={showConnected ? justConnected : null}
         note="「接続」をクリックしてSlackでアクセスを許可すると、そのチャンネルのWebhook URLがデータベースに自動的に保存されます — 手動でコピーする必要はありません。"
       />
+    </div>
+  );
+}
+
+// ─── Checklist-level Slack config ─────────────────────────────────────────────
+
+type ChecklistWithSlack = {
+  id: number;
+  title: string;
+  checklist_slack_configs: SlackChannelConfig | null;
+};
+
+function ChecklistSlackSection({ workspaceSlug }: { workspaceSlug: string }) {
+  const [checklists, setChecklists]                   = useState<ChecklistWithSlack[]>([]);
+  const [loading, setLoading]                         = useState(true);
+  const [slackConfigChecklistId, setSlackConfigChecklistId] = useState<number | null>(null);
+  const [showSlackConnected, setShowSlackConnected]   = useState<string | null>(null);
+  const [slackErrorMsg, setSlackErrorMsg]             = useState<string | null>(null);
+  const [pendingOpenChecklistId, setPendingOpenChecklistId] = useState<number | null>(null);
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const justConnected = searchParams.get("slack_connected");
+  const justConnectedChecklistId = Number(searchParams.get("checklist_id")) || null;
+  const slackError = searchParams.get("slack_error");
+
+  useEffect(() => {
+    if (!justConnected && !slackError) return;
+    if (justConnected) setShowSlackConnected(justConnected);
+    if (justConnectedChecklistId) setPendingOpenChecklistId(justConnectedChecklistId);
+    if (slackError) setSlackErrorMsg(slackError);
+    setTimeout(() => { setShowSlackConnected(null); setSlackErrorMsg(null); }, 5000);
+    router.replace("/admin?tab=settings", { scroll: false });
+  }, [justConnected, slackError]);
+
+  useEffect(() => {
+    if (checklists.length > 0 && pendingOpenChecklistId) {
+      setSlackConfigChecklistId(pendingOpenChecklistId);
+      setPendingOpenChecklistId(null);
+    }
+  }, [checklists.length, pendingOpenChecklistId]);
+
+  useEffect(() => {
+    fetch("/api/checklists")
+      .then(r => r.json())
+      .then(data => { setChecklists(Array.isArray(data) ? data : []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const modalChecklist = checklists.find(c => c.id === slackConfigChecklistId) ?? null;
+
+  if (loading) return <div className="py-6 text-center text-sm text-[#c4b5fd]">読み込み中…</div>;
+
+  return (
+    <div>
+      <div className="text-xs font-bold text-[#3e249e] uppercase tracking-[0.12em] mb-1.5">
+        チェックリスト別Slack連携
+      </div>
+      <div className="text-xs text-[#9688c0] mb-6">
+        特定のチェックリストに専用のSlackチャンネルを接続できます。設定すると、部署・ワークスペースの設定より優先されます。
+      </div>
+
+      {slackErrorMsg && (
+        <div className="text-xs text-[#dc2626] font-semibold mb-5 bg-[#fff5f5] border border-[#fecaca] rounded-lg px-4 py-2.5">
+          ✗ Slack接続に失敗しました: {slackErrorMsg}。もう一度お試しください。
+        </div>
+      )}
+
+      {checklists.length === 0 ? (
+        <div className="text-sm text-[#a696f2] py-5.5 text-center">チェックリストがまだありません。</div>
+      ) : (
+        <div className="space-y-2">
+          {checklists.map(cl => (
+            <div
+              key={cl.id}
+              className="flex items-center justify-between gap-2 sm:gap-4 py-3 sm:py-3.5 px-3 sm:px-4 rounded-xl border-[1.5px] border-[#ede9fe] bg-[#faf9ff]"
+            >
+              <div className="text-sm font-semibold text-[#1a1035] truncate">{cl.title}</div>
+              <button
+                className={`shrink-0 text-[10px] sm:text-xs rounded-lg py-1 px-2 sm:py-1.25 sm:px-3 cursor-pointer border font-semibold ${cl.checklist_slack_configs?.bot_token ? "text-[#059669] bg-[#ecfdf5] border-[#6ee7b7]" : "text-[#4a5568] bg-[#f8fafc] border-[#cbd5e1]"}`}
+                onClick={() => setSlackConfigChecklistId(cl.id)}
+              >
+                Slack
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {modalChecklist && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={e => { if (e.target === e.currentTarget) setSlackConfigChecklistId(null); }}
+        >
+          <div className="bg-white rounded-2xl border-[1.5px] border-[#dfd5fb] shadow-[0_8px_40px_rgba(79,53,190,0.18)] w-full max-w-lg p-6 sm:p-8 relative">
+            <button
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-[#a696f2] hover:text-[#6a5d8e] hover:bg-[#f5f0ff] rounded-lg bg-transparent border-none cursor-pointer text-base transition-colors duration-120"
+              onClick={() => setSlackConfigChecklistId(null)}
+            >
+              ✕
+            </button>
+
+            <div className="text-lg font-bold text-[#1a1035] pr-8 mb-4">{modalChecklist.title}</div>
+
+            <SlackConnectPanel
+              connectedMap={modalChecklist.checklist_slack_configs ?? {}}
+              installUrl={ch => `/api/slack/install?workspace=${workspaceSlug}&channel=${ch}&checklist_id=${modalChecklist.id}`}
+              botConnected={!!modalChecklist.checklist_slack_configs?.bot_token}
+              showConnected={showSlackConnected}
+              note="「接続」をクリックしてSlackでアクセスを許可すると、このチェックリストのWebhook URLがデータベースに自動的に保存されます。部署・ワークスペースの設定より優先されます。"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -378,6 +493,10 @@ export function SettingsTab({ workspaceSlug }: { workspaceSlug: string }) {
 
       <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-4 sm:p-8 mb-5.5 bg-white shadow-[0_2px_18px_rgba(79,53,190,0.10)]">
         <SlackSection workspaceSlug={workspaceSlug} />
+      </div>
+
+      <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-4 sm:p-8 mb-5.5 bg-white shadow-[0_2px_18px_rgba(79,53,190,0.10)]">
+        <ChecklistSlackSection workspaceSlug={workspaceSlug} />
       </div>
 
       <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-4 sm:p-8 mb-5.5 bg-white shadow-[0_2px_18px_rgba(79,53,190,0.10)]">

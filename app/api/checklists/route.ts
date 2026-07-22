@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabaseAdmin
     .from("checklists")
-    .select("*, checklist_sections(*, checklist_items(*)), checklist_departments(department_id)")
+    .select("*, checklist_sections(*, checklist_items(*)), checklist_departments(department_id), checklist_slack_configs(*)")
     .eq("workspace_id", ctx.workspaceId)
     .order("created_at", { ascending: false });
 
