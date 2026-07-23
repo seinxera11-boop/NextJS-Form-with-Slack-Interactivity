@@ -296,7 +296,7 @@ function HolidaysSection() {
           onChange={e => setBulkText(e.target.value)}
         />
         <button
-          className={`shrink-0 self-start text-sm font-semibold text-white bg-[linear-gradient(135deg,#6d28d9_0%,#4f35be_100%)] border-none rounded-[10px] py-2.5 px-4.5 cursor-pointer font-[inherit] shadow-[0_2px_10px_rgba(109,40,217,0.28)] ${saving || !bulkText.trim() ? "opacity-60" : ""}`}
+          className={`shrink-0 flex items-center justify-center text-sm font-semibold text-white bg-[linear-gradient(135deg,#6d28d9_0%,#4f35be_100%)] border-none rounded-[10px] px-4.5 cursor-pointer font-[inherit] shadow-[0_2px_10px_rgba(109,40,217,0.28)] ${saving || !bulkText.trim() ? "opacity-60" : ""}`}
           onClick={handleAdd}
           disabled={saving || !bulkText.trim()}
         >
