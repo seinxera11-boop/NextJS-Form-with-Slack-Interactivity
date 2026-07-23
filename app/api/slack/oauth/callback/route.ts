@@ -11,14 +11,17 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // state format: "{workspace}:{channel}" or "{workspace}:{channel}:{departmentId}"
   const parts        = state.split(":");
   const workspaceSlug = parts[0] ?? "";
   const channelType   = parts[1] ?? "approval";
-  const departmentId  = parts[2] ? parseInt(parts[2]) : null;
+  const idKind        = parts[2] as "dept" | "checklist" | undefined;
+  const rawId         = parts[3] ? parseInt(parts[3]) : null;
+
+  const departmentId = idKind === "dept" ? rawId : null;
+  const checklistId  = idKind === "checklist" ? rawId : null;
 
   console.log("[slack/callback] state raw:", state);
-  console.log("[slack/callback] workspaceSlug:", workspaceSlug, "| channelType:", channelType, "| departmentId:", departmentId);
+  console.log("[slack/callback] workspaceSlug:", workspaceSlug, "| channelType:", channelType, "| departmentId:", departmentId, "| checklistId:", checklistId);
 
   if (!workspaceSlug) {
     console.error("[slack/callback] workspaceSlug is empty — state was:", state);
@@ -90,11 +93,29 @@ export async function GET(req: NextRequest) {
     ? "reminder_url"
     : "approval_url";
 
+  if (checklistId) {
+    console.log("[slack/callback] Saving checklist config | checklist:", checklistId, "| channel:", channelType);
+    const { error: checklistErr } = await supabaseAdmin
+      .from("checklist_slack_configs")
+      .upsert(
+        { checklist_id: checklistId, bot_token: botToken, slack_team_id: slackTeamId ?? null, [urlColumn]: webhookUrl },
+        { onConflict: "checklist_id" }
+      );
+
+    if (checklistErr) {
+      console.error("[slack/callback] checklist upsert error:", checklistErr.message);
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/admin?tab=settings&slack_error=${encodeURIComponent(checklistErr.message)}&checklist_id=${checklistId}`
+      );
+    }
+
+    console.log("[slack/callback] Checklist config saved.");
+    return NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/admin?tab=settings&slack_connected=${channelType}&checklist_id=${checklistId}`
+    );
+  }
+
   if (departmentId) {
-    // Department-specific: save webhook + this department's own Slack team/token
-    // to department_slack_configs. Deliberately does NOT touch the workspace-level
-    // slack_configs row — a department may belong to a different physical Slack
-    // workspace than the org default, so its token/team must not overwrite it.
     console.log("[slack/callback] Saving dept config | dept:", departmentId, "| channel:", channelType);
     const { error: deptErr } = await supabaseAdmin
       .from("department_slack_configs")

@@ -100,8 +100,8 @@ export async function POST(req: NextRequest) {
 
     // 5. Fetch webhook URLs — dept-specific first, falls back to workspace
     const [approvalUrl, securityUrl] = await Promise.all([
-      getWebhookUrl(resolvedDeptId, "approval", workspaceId),
-      getWebhookUrl(resolvedDeptId, "security", workspaceId),
+      getWebhookUrl(checklist_id, resolvedDeptId, "approval", workspaceId),
+      getWebhookUrl(checklist_id, resolvedDeptId, "security", workspaceId),
     ]);
 
     // ── Approval channel payload ───────────────────────────────────────────────

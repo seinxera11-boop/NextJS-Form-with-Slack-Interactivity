@@ -83,7 +83,7 @@ export function ResponsesTab({ isMainAdmin }: Props) {
         <div className="text-center py-20 text-sm text-[#c4b5fd]">回答がまだありません。</div>
       ) : filtered.map(resp => {
         const isExpanded = expanded === resp.id;
-        const isApproved = (resp.response_approvals || []).length > 0;
+        const isApproved = !!resp.response_approvals;
         const checkboxItems = (resp.response_items || []).filter(i => i.checklist_items?.type === "checkbox");
         const textItems = (resp.response_items || []).filter(i => i.checklist_items?.type !== "checkbox");
         const completedCount = checkboxItems.filter(i => i.value === "true").length;
@@ -159,18 +159,18 @@ export function ResponsesTab({ isMainAdmin }: Props) {
                     ))}
                   </>
                 )}
-                {isApproved && (resp.response_approvals || []).map(ap => (
-                  <div key={ap.id}>
+                {isApproved && resp.response_approvals && (
+                  <div>
                     <div className="text-xs font-bold text-[#8c70e8] uppercase tracking-[0.12em] mt-5 mb-3">承認情報</div>
                     <div className="bg-linear-to-br from-[#f5f0fe] to-[#ede9fe] border-[1.5px] border-[#dfd5fb] rounded-[10px] py-3.5 px-4.5 text-sm text-[#4b3d80] mt-2.5">
-                      <div className="text-sm text-[#1a1035] mb-1"><strong>承認者：</strong> {ap.approved_by || "—"}</div>
-                      {ap.reason && <div className="text-sm text-[#4b3d80]"><strong>コメント：</strong> {ap.reason}</div>}
+                      <div className="text-sm text-[#1a1035] mb-1"><strong>承認者：</strong> {resp.response_approvals.approved_by || "—"}</div>
+                      {resp.response_approvals.reason && <div className="text-sm text-[#4b3d80]"><strong>コメント：</strong> {resp.response_approvals.reason}</div>}
                       <div className="text-xs text-[#a78bfa] mt-1.5">
-                        {new Date(ap.approved_at).toLocaleDateString("ja-JP", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        {new Date(resp.response_approvals.approved_at).toLocaleDateString("ja-JP", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </div>
                     </div>
                   </div>
-                ))}
+                )}
               </div>
             )}
           </div>

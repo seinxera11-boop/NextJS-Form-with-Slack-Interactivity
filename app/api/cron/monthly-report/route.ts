@@ -97,7 +97,7 @@ async function fetchMonthlyData(workspaceId: string, start: string, end: string)
   if (error) throw new Error(`Supabase fetch error: ${error.message}`);
 
   return (data || []).map((resp: any) => {
-    const approval = (resp.response_approvals || [])[0] ?? null;
+    const approval = resp.response_approvals ?? null;
     return {
       checklist_title:    (resp.checklists as any)?.title ?? "",
       submitted_by:       resp.submitted_by ?? "",
@@ -173,7 +173,20 @@ export async function GET(req: NextRequest) {
 
     console.log(`📊 Generating monthly report for ${label} (${start} → ${end})`);
 
-    const admins = await fetchMainAdmins();
+    let admins = await fetchMainAdmins();
+
+    const workspaceFilter = req.nextUrl.searchParams.get("workspace");
+    if (workspaceFilter) {
+      const { data: matchingWorkspaces, error: wsErr } = await supabaseAdmin
+        .from("workspaces")
+        .select("id")
+        .ilike("name", workspaceFilter);
+      if (wsErr) throw new Error(wsErr.message);
+
+      const matchingIds = new Set((matchingWorkspaces ?? []).map(w => w.id));
+      admins = admins.filter(a => matchingIds.has(a.workspace_id));
+    }
+
     if (admins.length === 0) {
       console.log("ℹ️  No main admins found — skipping");
       return NextResponse.json({ success: true, message: "No main admins found" });

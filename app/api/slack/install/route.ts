@@ -5,13 +5,14 @@ export async function GET(req: NextRequest) {
   const workspace    = searchParams.get("workspace") ?? "";
   const channel      = searchParams.get("channel") ?? "approval";
   const departmentId = searchParams.get("department_id") ?? "";
+  const checklistId  = searchParams.get("checklist_id") ?? "";
 
   const slackClientId = process.env.SLACK_CLIENT_ID;
   const redirectUri = `${process.env.NEXT_PUBLIC_BASE_URL}/api/slack/oauth/callback`;
 
-  const state = departmentId
-    ? `${workspace}:${channel}:${departmentId}`
-    : `${workspace}:${channel}`;
+  let state = `${workspace}:${channel}`;
+  if (departmentId) state += `:dept:${departmentId}`;
+  else if (checklistId) state += `:checklist:${checklistId}`;
 
   const url =
     `https://slack.com/oauth/v2/authorize` +
