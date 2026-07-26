@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
   console.log("[slack/callback] Looking up workspace slug:", workspaceSlug);
   const { data: workspace, error: wsErr } = await supabaseAdmin
     .from("workspaces")
-    .select("id")
+    .select("id, slack_team_id")
     .eq("slug", workspaceSlug)
     .single();
 
@@ -95,12 +95,36 @@ export async function GET(req: NextRequest) {
 
   if (checklistId) {
     console.log("[slack/callback] Saving checklist config | checklist:", checklistId, "| channel:", channelType);
+
+    const { data: existingChecklistConfig } = await supabaseAdmin
+      .from("checklist_slack_configs")
+      .select("bot_token, slack_team_id")
+      .eq("checklist_id", checklistId)
+      .maybeSingle();
+
+    // Only (re)write bot_token/slack_team_id when it's safe: the approval
+    // channel is always authoritative since it's the only one that consumes
+    // the token; otherwise only write it if there's no token yet (first
+    // connect at this tier) or it's the same physical team reconnecting.
+    // This stops a security/reminder connect from clobbering a token that
+    // approval already anchored to a different Slack workspace.
+    const canWriteToken =
+      channelType === "approval" ||
+      !existingChecklistConfig?.bot_token ||
+      existingChecklistConfig.slack_team_id === (slackTeamId ?? null);
+
+    const checklistUpsertPayload: Record<string, unknown> = {
+      checklist_id: checklistId,
+      [urlColumn]: webhookUrl,
+    };
+    if (canWriteToken) {
+      checklistUpsertPayload.bot_token = botToken;
+      checklistUpsertPayload.slack_team_id = slackTeamId ?? null;
+    }
+
     const { error: checklistErr } = await supabaseAdmin
       .from("checklist_slack_configs")
-      .upsert(
-        { checklist_id: checklistId, bot_token: botToken, slack_team_id: slackTeamId ?? null, [urlColumn]: webhookUrl },
-        { onConflict: "checklist_id" }
-      );
+      .upsert(checklistUpsertPayload, { onConflict: "checklist_id" });
 
     if (checklistErr) {
       console.error("[slack/callback] checklist upsert error:", checklistErr.message);
@@ -117,12 +141,33 @@ export async function GET(req: NextRequest) {
 
   if (departmentId) {
     console.log("[slack/callback] Saving dept config | dept:", departmentId, "| channel:", channelType);
+
+    const { data: existingDeptConfig } = await supabaseAdmin
+      .from("department_slack_configs")
+      .select("bot_token, slack_team_id")
+      .eq("department_id", departmentId)
+      .maybeSingle();
+
+    // Same reasoning as the checklist branch above: approval is always
+    // authoritative; security/reminder only get to write the token if none
+    // exists yet or it's the same team reconnecting.
+    const canWriteToken =
+      channelType === "approval" ||
+      !existingDeptConfig?.bot_token ||
+      existingDeptConfig.slack_team_id === (slackTeamId ?? null);
+
+    const deptUpsertPayload: Record<string, unknown> = {
+      department_id: departmentId,
+      [urlColumn]: webhookUrl,
+    };
+    if (canWriteToken) {
+      deptUpsertPayload.bot_token = botToken;
+      deptUpsertPayload.slack_team_id = slackTeamId ?? null;
+    }
+
     const { error: deptErr } = await supabaseAdmin
       .from("department_slack_configs")
-      .upsert(
-        { department_id: departmentId, bot_token: botToken, slack_team_id: slackTeamId ?? null, [urlColumn]: webhookUrl },
-        { onConflict: "department_id" }
-      );
+      .upsert(deptUpsertPayload, { onConflict: "department_id" });
 
     if (deptErr) {
       console.error("[slack/callback] dept upsert error:", deptErr.message);
@@ -139,19 +184,34 @@ export async function GET(req: NextRequest) {
 
   // Workspace-level: save to slack_configs + keep workspaces.slack_team_id in sync
   console.log("[slack/callback] Saving workspace config | workspace:", workspaceSlug, "| channel:", channelType);
-  if (slackTeamId) {
+
+  // Same reasoning as the checklist/department branches: approval is always
+  // authoritative; security/reminder only get to (re)write the team-id/token
+  // pairing if none exists yet or it's the same physical team reconnecting.
+  const canWriteToken =
+    channelType === "approval" ||
+    !workspace.slack_team_id ||
+    workspace.slack_team_id === (slackTeamId ?? null);
+
+  if (canWriteToken && slackTeamId) {
     await supabaseAdmin
       .from("workspaces")
       .update({ slack_team_id: slackTeamId })
       .eq("id", workspace.id);
   }
 
+  const slackConfigUpsertPayload: Record<string, unknown> = {
+    workspace_id: workspaceId,
+    [urlColumn]: webhookUrl,
+    updated_at: new Date().toISOString(),
+  };
+  if (canWriteToken) {
+    slackConfigUpsertPayload.bot_token = botToken;
+  }
+
   const { error: upsertErr } = await supabaseAdmin
     .from("slack_configs")
-    .upsert(
-      { workspace_id: workspaceId, bot_token: botToken, [urlColumn]: webhookUrl, updated_at: new Date().toISOString() },
-      { onConflict: "workspace_id" }
-    );
+    .upsert(slackConfigUpsertPayload, { onConflict: "workspace_id" });
 
   if (upsertErr) {
     console.error("[slack/callback] DB upsert error:", upsertErr.message);
