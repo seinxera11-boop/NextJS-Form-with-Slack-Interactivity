@@ -171,6 +171,12 @@ export async function PATCH(req: NextRequest) {
 }
 
 
+async function deleteWhere(table: string, column: string, value: string | number | (string | number)[]) {
+  const query = supabaseAdmin.from(table).delete();
+  const { error } = Array.isArray(value) ? await query.in(column, value) : await query.eq(column, value);
+  if (error) throw new Error(`${table}の削除に失敗しました: ${error.message}`);
+}
+
 export async function DELETE(req: NextRequest) {
   if (!(await isSuperAdmin(req)))
     return NextResponse.json({ error: "権限がありません" }, { status: 403 });
@@ -178,7 +184,59 @@ export async function DELETE(req: NextRequest) {
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: "ワークスペースIDは必須です" }, { status: 400 });
 
-  const { error } = await supabaseAdmin.from("workspaces").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true });
+  try {
+    const [{ data: checklists }, { data: responses }, { data: departments }, { data: adminUsers }] = await Promise.all([
+      supabaseAdmin.from("checklists").select("id").eq("workspace_id", id),
+      supabaseAdmin.from("responses").select("id").eq("workspace_id", id),
+      supabaseAdmin.from("departments").select("id").eq("workspace_id", id),
+      supabaseAdmin.from("admin_users").select("id").eq("workspace_id", id),
+    ]);
+
+    const checklistIds  = (checklists ?? []).map(c => c.id);
+    const responseIds   = (responses ?? []).map(r => r.id);
+    const departmentIds = (departments ?? []).map(d => d.id);
+    const adminUserIds  = (adminUsers ?? []).map(a => a.id);
+
+    const { data: sections } = checklistIds.length
+      ? await supabaseAdmin.from("checklist_sections").select("id").in("checklist_id", checklistIds)
+      : { data: [] as { id: number }[] };
+    const sectionIds = (sections ?? []).map(s => s.id);
+
+    // Deepest children first, so nothing is left referencing a row we're
+    // about to delete further up the chain (this is what "workspaces" itself
+    // was blocked on — reminder_runs.workspace_id has no ON DELETE CASCADE,
+    // and other tables below aren't guaranteed to either).
+    if (responseIds.length) {
+      await deleteWhere("response_approvals", "response_id", responseIds);
+      await deleteWhere("response_items", "response_id", responseIds);
+    }
+    await deleteWhere("responses", "workspace_id", id);
+
+    if (checklistIds.length) {
+      await deleteWhere("sub_admin_checklists", "checklist_id", checklistIds);
+      await deleteWhere("checklist_departments", "checklist_id", checklistIds);
+    }
+    if (sectionIds.length) await deleteWhere("checklist_items", "section_id", sectionIds);
+    if (checklistIds.length) await deleteWhere("checklist_sections", "checklist_id", checklistIds);
+    // checklist_slack_configs cascades automatically via ON DELETE CASCADE on checklist_id.
+    await deleteWhere("checklists", "workspace_id", id);
+
+    if (departmentIds.length) await deleteWhere("department_slack_configs", "department_id", departmentIds);
+    await deleteWhere("org_users", "workspace_id", id);
+    await deleteWhere("departments", "workspace_id", id);
+
+    await deleteWhere("slack_configs", "workspace_id", id);
+    await deleteWhere("reminder_runs", "workspace_id", id);
+    await deleteWhere("workspace_holidays", "workspace_id", id);
+
+    if (adminUserIds.length) await deleteWhere("sub_admin_checklists", "sub_admin_id", adminUserIds);
+    await deleteWhere("admin_users", "workspace_id", id);
+
+    const { error } = await supabaseAdmin.from("workspaces").delete().eq("id", id);
+    if (error) throw new Error(error.message);
+
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || "削除に失敗しました" }, { status: 500 });
+  }
 }
