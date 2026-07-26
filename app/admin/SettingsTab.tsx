@@ -19,7 +19,6 @@ function SlackSection({ workspaceSlug }: { workspaceSlug: string }) {
   const [fields, setFields]             = useState<SlackFields>({ bot_token: null, approval_url: null, security_url: null, reminder_url: null });
   const [loading, setLoading]           = useState(true);
   const [showConnected, setShowConnected] = useState(false);
-  const router                          = useRouter();
   const searchParams                    = useSearchParams();
   const justConnected                   = searchParams.get("slack_connected");
   const slackError                      = searchParams.get("slack_error");
@@ -35,7 +34,6 @@ function SlackSection({ workspaceSlug }: { workspaceSlug: string }) {
     if (!justConnected && !slackError) return;
     if (justConnected) setShowConnected(true);
     const t = setTimeout(() => setShowConnected(false), 5000);
-    router.replace("/admin?tab=settings", { scroll: false });
     return () => clearTimeout(t);
   }, [justConnected, slackError]);
 
@@ -87,7 +85,6 @@ function ChecklistSlackSection({ workspaceSlug }: { workspaceSlug: string }) {
   const [slackErrorMsg, setSlackErrorMsg]             = useState<string | null>(null);
   const [pendingOpenChecklistId, setPendingOpenChecklistId] = useState<number | null>(null);
 
-  const router = useRouter();
   const searchParams = useSearchParams();
   const justConnected = searchParams.get("slack_connected");
   const justConnectedChecklistId = Number(searchParams.get("checklist_id")) || null;
@@ -99,7 +96,6 @@ function ChecklistSlackSection({ workspaceSlug }: { workspaceSlug: string }) {
     if (justConnectedChecklistId) setPendingOpenChecklistId(justConnectedChecklistId);
     if (slackError) setSlackErrorMsg(slackError);
     setTimeout(() => { setShowSlackConnected(null); setSlackErrorMsg(null); }, 5000);
-    router.replace("/admin?tab=settings", { scroll: false });
   }, [justConnected, slackError]);
 
   useEffect(() => {
@@ -598,6 +594,21 @@ function SubAdminsSection() {
 // ─── Main SettingsTab ─────────────────────────────────────────────────────────
 
 export function SettingsTab({ workspaceSlug }: { workspaceSlug: string }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const justConnected = searchParams.get("slack_connected");
+  const slackError = searchParams.get("slack_error");
+
+  // Single owner for clearing the OAuth-redirect query params. Sections below
+  // (SlackSection, ChecklistSlackSection) each read these same params to show
+  // their own success/error state, but only this effect strips them from the
+  // URL — having every section do it independently caused duplicate,
+  // overlapping navigations that visibly flashed the loading state twice.
+  useEffect(() => {
+    if (!justConnected && !slackError) return;
+    router.replace("/admin?tab=settings", { scroll: false });
+  }, [justConnected, slackError]);
+
   return (
     <div className="max-w-150 -my-5 mx-auto py-8 sm:py-14 px-4 sm:px-8">
       <div className="text-2xl sm:text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-2">設定</div>
