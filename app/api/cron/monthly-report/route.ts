@@ -150,7 +150,7 @@ async function sendReportEmail(
     attachments: [
       {
         filename,
-        content:     Buffer.from(csv, "utf-8"),
+        content:     Buffer.from("﻿" + csv, "utf-8"),
         contentType: "text/csv",
       },
     ],
