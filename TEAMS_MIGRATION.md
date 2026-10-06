@@ -475,6 +475,39 @@ Keep `botConnected` as a status indicator, but base it on "we have at least one
 
 ## 10. Manifest and registration
 
+### Prerequisite: a work/school account
+
+**You cannot do any of this with a personal Microsoft account.** A consumer
+account (outlook.com, gmail.com, hotmail.com …) lives in Microsoft's shared MSA
+tenant `9188040d-6c67-4c5b-b112-36a304b66dad`, which is not an organisation and
+cannot hold a Teams app registration.
+
+Symptoms, in the order you hit them:
+
+| Symptom | Cause |
+|---|---|
+| Browser login → `invalid_request: The response mode is not allowed for the client application` | MSA endpoint restriction |
+| `teams status` → `TDP: not connected (token unavailable)` | Teams Developer Portal only issues tokens to org accounts |
+| `teams app create` → `Failed to get TDP token` | Same — no tenant to create the app in |
+
+Check with `teams status --json` and look at `tenantId`. If it is the GUID
+above, stop: no flag or retry will help.
+
+You need one of:
+
+- a **work/school account** in a Microsoft 365 tenant with Teams, and rights to
+  register Teams apps (the tenant must also permit custom app upload/sideloading);
+- a **Microsoft 365 Developer Program** sandbox tenant (free, but eligibility now
+  generally requires a Visual Studio subscription);
+- a **Microsoft 365 Business trial** (30 days, full control).
+
+This is worth weighing before committing to the migration: Slack lets a developer
+self-serve in seconds, whereas Teams requires an organisational tenant before any
+integration code can be exercised. It is §13's onboarding friction arriving during
+development rather than at customer onboarding.
+
+### Creating the app
+
 The CLI does all of this in one command — **no Azure subscription or `az` CLI
 needed**, because `--teams-managed` (the default) creates a bot managed by Teams
 rather than an Azure Bot resource:
@@ -537,8 +570,11 @@ Remove `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`. Keep everything else —
 
 Run both integrations side by side and cut over per workspace; don't big-bang it.
 
-1. **Register** the Entra app, Azure Bot, and manifest. Prove an install reaches
-   `/api/teams/activities` before writing feature code. Most lost time hides here.
+0. **Get a work/school Microsoft 365 tenant** (§10). A personal account cannot
+   register a Teams app at all, so this blocks everything below.
+1. **Register** the Entra app and bot via `teams app create`, then point it at
+   `/api/teams/activities`. Prove an install reaches the endpoint before writing
+   feature code. Most lost time hides here.
 2. **Migrate the DB** (§8), additively.
 3. **`lib/teams-app.ts` + `lib/teams-helpers.ts`** (§6.1, §6.2).
 4. **Inbound route + `install.add`** (§7), so channels become discoverable.
