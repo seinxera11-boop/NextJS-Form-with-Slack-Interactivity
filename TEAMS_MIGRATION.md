@@ -127,9 +127,15 @@ npm install @microsoft/teams.apps @microsoft/teams.api @microsoft/teams.cards
 - `@microsoft/teams.api` — activity/response types, `MessageActivity`
 - `@microsoft/teams.cards` — Adaptive Card builders
 
+Installed versions are **2.1.0** — note the runtime packages are on a different
+release line from `@microsoft/teams.cli` (3.0.3). Don't assume a doc page written
+against 3.x matches the installed types; the type definitions in
+`node_modules/@microsoft/teams.apps/dist/*.d.ts` are the source of truth, and
+checking them is what caught the two corrections in §5 and §7.
+
 The `@microsoft/teams.cli` you installed globally is a **scaffolding and
 provisioning tool** (`teams --help`). It is not a runtime dependency. Use it to
-generate the app manifest and register the bot; don't add it to `package.json`.
+register the app and bot; don't add it to `package.json`.
 
 ### The serverless caveat — read before you write code
 
@@ -146,12 +152,19 @@ server.listen(3978);
 for the SDK to own, and per ARCHITECTURE.md you deploy to Vercel. Two viable
 shapes:
 
-**(a) Recommended — SDK as a library, Next.js owns the route.** Construct the
-`App` once in a module singleton, call `initialize()` lazily, and hand it each
-request body from your own route handler. You keep `export const runtime = "nodejs"`
-(as [app/api/checklist/route.ts](app/api/checklist/route.ts#L5) already does) and
-Next.js keeps control of routing. Outbound `app.send()` works fine from any
-route or cron job.
+**(a) Recommended — a custom `IHttpServerAdapter` for Next.js.** The SDK exposes
+the transport seam as an exported interface (`IHttpServerAdapter`, from
+`@microsoft/teams.apps`). `IHttpServer` keeps the Teams protocol logic — **including
+inbound JWT validation** — and delegates only wire concerns to the adapter. Both
+`start()` and `serveStatic()` are optional, so a serverless adapter is a small
+shim: `registerRoute()` captures the handler, and your Next.js route calls it with
+`{ body, headers }`. You keep `export const runtime = "nodejs"` (as
+[app/api/checklist/route.ts](app/api/checklist/route.ts#L5) already does) and
+Next.js keeps control of routing. Outbound `app.send()` works from any route or
+cron job.
+
+> **Do not call `app.process()` directly from a route handler.** It takes an
+> already-validated `IToken`, not raw headers — see §7.
 
 **(b) Separate always-on service.** Run the SDK's own server (Azure App Service,
 Container Apps, a Node host) and have Next.js call it. More moving parts;
@@ -316,16 +329,24 @@ Create `app/api/teams/activities/route.ts`. This single route replaces
 
 ```ts
 import { NextRequest, NextResponse } from "next/server";
-import { getTeamsApp } from "@/lib/teams-app";
+import { getTeamsHandler } from "@/lib/teams-app";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  const app = await getTeamsApp();
-  // Hand the raw activity to the SDK; it validates the Bot Framework JWT
-  // from the Authorization header before dispatching to your handlers.
-  const result = await app.process(await req.json(), req.headers);
-  return NextResponse.json(result ?? { ok: true });
+  // getTeamsHandler() returns the route handler the SDK registered through our
+  // NextAdapter. Going through it means IHttpServer validates the inbound
+  // Bot Framework JWT before any handler runs.
+  const handler = await getTeamsHandler();
+
+  const res = await handler({
+    body: await req.json(),
+    headers: Object.fromEntries(req.headers),
+    // Leave `token` unset: that is what makes the SDK run normal
+    // Authorization-header JWT validation. Populating it bypasses auth.
+  });
+
+  return NextResponse.json(res.body ?? {}, { status: res.status });
 }
 ```
 
@@ -366,10 +387,21 @@ app.on("install.add", async ({ activity }) => {
 ### What you get for free
 
 The Slack endpoint **does not verify request signatures** — ARCHITECTURE.md §9
-calls this out as forgeable. `app.process()` validates the Bot Framework JWT on
-every request, so **this vulnerability does not carry over**, provided you route
-inbound traffic through the SDK rather than parsing the body yourself. Do not
-shortcut it.
+calls this out as forgeable. The SDK closes this, but only if you enter through
+the right seam, and the distinction matters:
+
+| Entry point | Validates JWT? |
+|---|---|
+| `IHttpServer` route handler (via an adapter) | **Yes** — `JwtValidator.validateAccessToken`, JWKS-backed |
+| `app.process(event)` | **No** — takes an already-validated `IToken` |
+
+The SDK is blunt about this in `JsonWebToken`'s own doc comment: it "performs no
+signature verification, no issuer/audience checks, and no expiry enforcement …
+Callers must not construct this class from raw network input."
+
+So: **route inbound traffic through an adapter-registered handler**, never
+`app.process()` with a token you built from the request. Doing the latter
+reproduces the exact Slack vulnerability with extra steps.
 
 ### What you lose
 
@@ -443,20 +475,40 @@ Keep `botConnected` as a status indicator, but base it on "we have at least one
 
 ## 10. Manifest and registration
 
-Use the global CLI you installed:
+The CLI does all of this in one command — **no Azure subscription or `az` CLI
+needed**, because `--teams-managed` (the default) creates a bot managed by Teams
+rather than an Azure Bot resource:
 
 ```bash
-teams --help          # confirm the install
+teams login                               # interactive, opens a browser
+                                          # (or: teams login --device-code)
+
+teams app create \
+  --name "Office Checklist" \
+  --sign-in-audience multipleOrgs \
+  --env .env.local
 ```
 
-You need:
+`--env .env.local` writes `CLIENT_ID`, `CLIENT_SECRET` and `TENANT_ID` straight
+into your env file. The endpoint is deliberately omitted here — set it once the
+deploy URL is known:
 
-- An **Entra ID app registration**, multi-tenant (`AzureADMultipleOrgs`), with a
-  client secret.
-- An **Azure Bot resource** whose messaging endpoint is
-  `https://<your-domain>/api/teams/activities`.
-- A **Teams app manifest** declaring a `bots` entry with
-  `scopes: ["team", "groupchat"]` and `supportsFiles: false`.
+```bash
+teams app bot update <appId> \
+  --endpoint https://<your-domain>/api/teams/activities
+```
+
+Useful follow-ups:
+
+```bash
+teams app list                 # app ids
+teams app doctor <appId>       # diagnose registration problems
+teams app manifest             # download / update the manifest
+teams app rsc                  # resource-specific consent permissions
+```
+
+The manifest the CLI generates declares the `bots` entry for you; edit it with
+`teams app manifest` if you need `scopes: ["team", "groupchat"]` adjusted.
 
 Because this is multi-tenant and distributed to customers, each customer's Teams
 admin must approve the app — either sideloaded, via their org's app catalog, or
