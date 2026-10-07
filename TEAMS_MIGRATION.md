@@ -506,6 +506,24 @@ Check with `teams status --json`:
 If `tenantId` is the GUID above, stop: no flag, retry, or change of email address
 will help. The account type is what matters.
 
+### AADSTS5000228: access to tenant is denied
+
+A *different* failure, and a sign of progress: the tenant GUID in the message is
+a real organisation, so you are no longer on an MSA. You reached a tenant and
+were refused entry. Usual causes:
+
+- **Signed in as the wrong account.** A developer sandbox has its own admin,
+  `admin@<something>.onmicrosoft.com`, created during setup with its own
+  password. Signing in with the account you used to register the Developer
+  Program — or any outside address — is denied, because that identity is a
+  stranger to the sandbox tenant. Most common cause.
+- **Sandbox still provisioning.** A new E5 sandbox can take 10–30 minutes before
+  sign-in works.
+- **Sandbox expired.** Developer sandboxes lapse without activity.
+
+Sign in from a private/incognito window: the browser otherwise reuses a cached
+session and silently re-presents the account that was just denied.
+
 You need one of:
 
 - a **work/school account** in a Microsoft 365 tenant with Teams, and rights to
