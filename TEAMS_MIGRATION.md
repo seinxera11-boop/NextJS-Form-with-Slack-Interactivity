@@ -490,8 +490,21 @@ Symptoms, in the order you hit them:
 | `teams status` → `TDP: not connected (token unavailable)` | Teams Developer Portal only issues tokens to org accounts |
 | `teams app create` → `Failed to get TDP token` | Same — no tenant to create the app in |
 
-Check with `teams status --json` and look at `tenantId`. If it is the GUID
-above, stop: no flag or retry will help.
+**A custom domain does not make it a work account.** Microsoft lets you register
+a personal account with any email address you control, so `you@yourcompany.com`
+can still be an MSA. Owning the domain is not the same as having a Microsoft 365
+tenant for it.
+
+Check with `teams status --json`:
+
+| Field | Personal (blocked) | Work/school (works) |
+|---|---|---|
+| `tenantId` | `9188040d-6c67-4c5b-b112-36a304b66dad` | your organisation's own GUID |
+| `userObjectId` | starts `00000000-0000-0000-` | a real Entra object ID |
+| `tdp.connected` | `false` | `true` |
+
+If `tenantId` is the GUID above, stop: no flag, retry, or change of email address
+will help. The account type is what matters.
 
 You need one of:
 
