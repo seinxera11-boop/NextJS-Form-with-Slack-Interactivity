@@ -72,6 +72,17 @@ begin
       installed_at       timestamptz not null default now(),
       removed_at         timestamptz
     )$f$, ws_type);
+  -- Short-lived codes an admin posts in a channel to bind that installation
+  -- to their workspace (Teams has no OAuth `state` to carry the workspace).
+  execute format($f$
+    create table if not exists teams_claim_codes (
+      code         text primary key,
+      workspace_id %s not null references workspaces(id) on delete cascade,
+      created_by   text,
+      created_at   timestamptz not null default now(),
+      expires_at   timestamptz not null,
+      used_at      timestamptz
+    )$f$, ws_type);
 end $$;
 
 -- departments.id / checklists.id surface as `number` in TypeScript, which does
