@@ -1,6 +1,7 @@
 import { App } from "@microsoft/teams.apps";
 import { stripMentionsText } from "@microsoft/teams.api";
 import { NextAdapter } from "./teams-adapter";
+import { supabaseAdmin } from "./supabase-admin";
 import {
   claimInstallation,
   markInstallationRemoved,
@@ -124,21 +125,66 @@ function registerHandlers(app: App) {
     }
   });
 
-  // Approval button. Wired up in migration step 7 — logging only for now so
-  // registration can be verified end to end before any DB writes happen.
-  // Note: this handler must return a response (the type is not void) — the
-  // card is waiting on an answer.
+  // Approval button. This handler must return a response (the type is not
+  // void) — the card is waiting on an answer.
   app.on("card.action", async ({ activity }) => {
-    console.log("[teams] card.action", {
-      data: activity.value?.action?.data,
-      from: activity.from?.name,
-      tenantId: activity.conversation?.tenantId,
+    const reply = (value: string) => ({
+      statusCode: 200 as const,
+      type: "application/vnd.microsoft.activity.message" as const,
+      value,
     });
 
-    return {
-      statusCode: 200,
-      type: "application/vnd.microsoft.activity.message" as const,
-      value: "受け付けました（設定中）",
-    };
+    const data = activity.value?.action?.data as
+      | { verb?: string; response_id?: number | string; reason?: string }
+      | undefined;
+    if (data?.verb !== "approve") return reply("未対応の操作です");
+
+    const responseId = Number(data.response_id);
+    const tenantId = activity.conversation?.tenantId;
+    if (!Number.isInteger(responseId) || !tenantId) return reply("不正なリクエストです");
+
+    try {
+      // Tenant isolation: one credential reaches every tenant, so the response
+      // must belong to a workspace tied to the tenant the click came from.
+      // See TEAMS_MIGRATION.md §4.
+      const { data: response } = await supabaseAdmin
+        .from("responses")
+        .select("workspace_id")
+        .eq("id", responseId)
+        .maybeSingle();
+      if (!response) return reply("提出が見つかりません");
+
+      const { data: workspace } = await supabaseAdmin
+        .from("workspaces")
+        .select("teams_tenant_id")
+        .eq("id", response.workspace_id)
+        .maybeSingle();
+      if (!workspace?.teams_tenant_id || workspace.teams_tenant_id !== tenantId) {
+        console.warn("[teams] card.action tenant mismatch", { responseId, tenantId });
+        return reply("この提出を承認する権限がありません");
+      }
+
+      // The button stays clickable after approval, so this guard is
+      // load-bearing, not just a retry safeguard.
+      const { data: existing } = await supabaseAdmin
+        .from("response_approvals")
+        .select("id")
+        .eq("response_id", responseId)
+        .maybeSingle();
+      if (existing) return reply("既に承認済みです");
+
+      const reason = data.reason?.trim() || "コメントありませんでした。";
+      const approvedBy = activity.from?.name || "不明";
+
+      const { error } = await supabaseAdmin
+        .from("response_approvals")
+        .insert({ response_id: responseId, reason, approved_by: approvedBy });
+      if (error) throw error;
+
+      return reply(`${approvedBy}が承認しました\nコメント: ${reason}`);
+    } catch (err) {
+      console.error("[teams] card.action failed:", err);
+      return reply("承認の保存に失敗しました。もう一度お試しください。");
+    }
   });
 }

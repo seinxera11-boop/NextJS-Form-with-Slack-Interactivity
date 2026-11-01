@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SlackConnectPanel } from "./SlackConnectPanel";
+import { TeamsConnectPanel } from "./TeamsConnectPanel";
 import { type SlackChannelConfig } from "./types";
 import { isValidEmail } from "@/lib/utils";
 
@@ -612,10 +613,14 @@ export function SettingsTab({ workspaceSlug }: { workspaceSlug: string }) {
   return (
     <div className="max-w-150 -my-5 mx-auto py-8 sm:py-14 px-4 sm:px-8">
       <div className="text-2xl sm:text-3xl font-bold tracking-[-0.04em] text-[#1a1035] mb-2">設定</div>
-      <div className="text-sm text-[#6a5d8e] mb-11">Slack連携とサブ管理者の設定を行います。</div>
+      <div className="text-sm text-[#6a5d8e] mb-11">Slack・Teams連携とサブ管理者の設定を行います。</div>
 
       <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-4 sm:p-8 mb-5.5 bg-white shadow-[0_2px_18px_rgba(79,53,190,0.10)]">
         <SlackSection workspaceSlug={workspaceSlug} />
+      </div>
+
+      <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-4 sm:p-8 mb-5.5 bg-white shadow-[0_2px_18px_rgba(79,53,190,0.10)]">
+        <TeamsConnectPanel />
       </div>
 
       <div className="border-[1.5px] border-[#dfd5fb] rounded-2xl p-4 sm:p-8 mb-5.5 bg-white shadow-[0_2px_18px_rgba(79,53,190,0.10)]">

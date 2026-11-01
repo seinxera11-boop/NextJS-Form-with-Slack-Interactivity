@@ -125,4 +125,11 @@ alter table workspaces
   add constraint workspaces_messaging_provider_check
   check (messaging_provider in ('slack', 'teams'));
 
+-- Service-role access only (bypasses RLS); closes the tables to the anon key.
+alter table teams_configs            enable row level security;
+alter table teams_installations      enable row level security;
+alter table teams_claim_codes        enable row level security;
+alter table department_teams_configs enable row level security;
+alter table checklist_teams_configs  enable row level security;
+
 commit;
