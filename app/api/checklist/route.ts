@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getWebhookUrl } from "@/lib/slack-helpers";
+import { getConversationId, getMessagingProvider } from "@/lib/teams-helpers";
+import { getTeamsApp } from "@/lib/teams-app";
+import { buildApprovalCard } from "@/lib/teams-cards";
+import { MessageActivity } from "@microsoft/teams.api";
 
 export const runtime = "nodejs";
 
@@ -98,6 +102,44 @@ export async function POST(req: NextRequest) {
     const reasonText = reason?.trim() || "コメントありませんでした。";
     const hasMissing = missingItems.length > 0;
 
+    const approvalBodyText = hasMissing
+      ? `${missingItems.join("\n")} はチェックしませんでした。\n コメント： ${reasonText}`
+      : `\nすべてのタスクが完了しました\n コメント：${reasonText}`;
+
+    // Teams workspaces are posted via the bot instead of Slack webhooks.
+    if ((await getMessagingProvider(workspaceId)) === "teams") {
+      const [approvalConv, securityConv] = await Promise.all([
+        getConversationId(checklist_id, resolvedDeptId, "approval", workspaceId),
+        getConversationId(checklist_id, resolvedDeptId, "security", workspaceId),
+      ]);
+      const app = await getTeamsApp();
+
+      // app.send() throws; the submission is already saved, so a failed post
+      // must not turn into a 500.
+      if (approvalConv) {
+        try {
+          const card = buildApprovalCard({
+            responseId, checklistId: checklist_id, submittedBy: submitted_by,
+            departmentName, bodyText: approvalBodyText,
+          });
+          await app.send(approvalConv, new MessageActivity().addCard("adaptive", card));
+        } catch (err) {
+          console.error("[teams] approval send failed:", err);
+        }
+      }
+      if (securityConv) {
+        const text = hasMissing
+          ? `${departmentName}の ${submitted_by} が最終退出しました。\n\n${missingItems.join("\n\n")} はチェックしませんでした。\n\nコメント：${reasonText}`
+          : `${departmentName}の ${submitted_by} が最終退出しました。\n\nコメント：${reasonText}`;
+        try {
+          await app.send(securityConv, new MessageActivity(text));
+        } catch (err) {
+          console.error("[teams] security send failed:", err);
+        }
+      }
+      return NextResponse.json({ success: true, responseId });
+    }
+
     // 5. Fetch webhook URLs — dept-specific first, falls back to workspace
     const [approvalUrl, securityUrl] = await Promise.all([
       getWebhookUrl(checklist_id, resolvedDeptId, "approval", workspaceId),
@@ -105,10 +147,6 @@ export async function POST(req: NextRequest) {
     ]);
 
     // ── Approval channel payload ───────────────────────────────────────────────
-    const approvalBodyText = hasMissing
-      ? `${missingItems.join("\n")} はチェックしませんでした。\n コメント： ${reasonText}`
-      : `\nすべてのタスクが完了しました\n コメント：${reasonText}`;
-
     const approvalPayload = {
       blocks: [
         {
